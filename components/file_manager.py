@@ -138,17 +138,24 @@ class DragDropTable(QTableWidget):
         header.setSectionResizeMode(2, QHeaderView.Fixed)
         header.setSectionResizeMode(3, QHeaderView.Fixed)
         header.setSectionResizeMode(4, QHeaderView.Fixed)
+        # align center for duration and size columns
+        header.setDefaultAlignment(Qt.AlignCenter)
+        # disable auto bold for header sections when select a item
+        header.setHighlightSections(False)
 
-        self.setColumnWidth(2, 100)
+        self.setColumnWidth(2, 90)
         self.setColumnWidth(3, 80)
         self.setColumnWidth(4, 80)
 
-        header.setDefaultAlignment(Qt.AlignCenter)
+        # select entire row when clicked on an item
         self.setSelectionBehavior(QTableWidget.SelectRows)
+        # disable editing when double-clicked on item
         self.setEditTriggers(QTableWidget.NoEditTriggers)
+        # show grid lines
         self.showGrid = True
 
-        rows_to_show = 10
+        # set minimum height to show 9 rows
+        rows_to_show = 9
         row_height = self.verticalHeader().defaultSectionSize()
         header_height = self.horizontalHeader().height()
         total_height = row_height * rows_to_show + header_height + 1

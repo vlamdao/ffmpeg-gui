@@ -30,5 +30,9 @@
   {
     "name": "Concatenate Videos (Demuxer + Encode H264)",
     "command": "ffmpeg -f concat -safe 0 -i {concat_list} -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 128k \"{output}.mp4\""
+  },
+  {
+    "name": "Resize video to max 512px (width or height)",
+    "command": "ffmpeg -i \"{input_path}/{filename}.{ext}\" -vf \"scale='if(gt(iw,ih),512,-2)':'if(gt(ih,iw),512,-2)'\" \"{output_path}/512px_{filename}.{ext}\""
   }
 ]

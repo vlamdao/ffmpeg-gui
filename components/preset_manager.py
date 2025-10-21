@@ -23,16 +23,26 @@ class PresetManager:
     def setup_preset_table(self):
         """Setup the preset table with all necessary configurations"""
         self.preset_table.setColumnCount(2)
-        self.preset_table.setHorizontalHeaderLabels(['Preset', 'Command'])
+        self.preset_table.setHorizontalHeaderLabels(['Preset Name', 'Command Template'])
+        # stretch the last column to fill available space
         self.preset_table.horizontalHeader().setStretchLastSection(True)
+        # disable editing when double-clicked on item
         self.preset_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        # select entire row when clicked on an item
         self.preset_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.preset_table.setMinimumHeight(150)
+        # set minimum height for the preset table
+        self.preset_table.setMinimumHeight(200)
+        # set monospace font for command template column
         self.preset_table.setItemDelegateForColumn(1, FontDelegate(font_family="Consolas"))
-
+        # set preset name column width to 300 pixels
+        self.preset_table.setColumnWidth(0, 300)
+        
         preset_table_header = self.preset_table.horizontalHeader()
-        preset_table_header.setSectionResizeMode(0, QHeaderView.Fixed)
-        self.preset_table.setColumnWidth(0, 250)
+        # allow resizing of preset name column
+        preset_table_header.setSectionResizeMode(0, QHeaderView.Interactive)
+        # disable auto bold for header sections when select a item
+        preset_table_header.setHighlightSections(False)
+        # stretch command template column to fill available space
         preset_table_header.setSectionResizeMode(1, QHeaderView.Stretch)
         
         # Connect signals
