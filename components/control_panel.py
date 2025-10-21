@@ -49,11 +49,11 @@ class ControlPanel(QWidget):
                     self.parent.file_manager
                 )
             },
-            'clear': {
-                'text': ' Clear list',
-                'icon': 'clearlist.png',
-                'tooltip': 'Clear file list',
-                'connection': lambda: self.parent.file_manager.clear_list()
+            'remove': {
+                'text': ' Remove',
+                'icon': 'remove.png',
+                'tooltip': 'Remove selected files',
+                'connection': lambda: self.parent.file_manager.remove_selected_files()
             },
             'add_preset': {
                 'text': ' Add preset',

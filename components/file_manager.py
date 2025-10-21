@@ -1,3 +1,4 @@
+import select
 from PyQt5.QtWidgets import (
     QTableWidgetItem, QLabel, QFileDialog,
     QTableWidget, QTableWidgetItem, QHeaderView
@@ -25,16 +26,13 @@ class FileManager(QObject):
         self.setup_file_table()
 
     def setup_file_table(self):
-        """Setup the file table and its connections"""
         self.file_table.itemDoubleClicked.connect(self.open_file_on_doubleclick)
         self.file_table.files_dropped.connect(self.start_loading_files)
 
     def get_widget(self):
-        """Return the file table widget"""
         return self.file_table
 
     def add_files_dialog(self):
-        """Show dialog to add files"""
         files, _ = QFileDialog.getOpenFileNames(
             self.parent,
             "Select files",
@@ -45,7 +43,6 @@ class FileManager(QObject):
             self.start_loading_files(files)
 
     def start_loading_files(self, file_list):
-        """Start loading files in a separate thread"""
         if self.file_loader_thread is not None and self.file_loader_thread.isRunning():
             self.log_signal.emit("File loading already in progress. Please wait.")
             return
@@ -55,11 +52,9 @@ class FileManager(QObject):
         self.file_loader_thread.start()
 
     def on_add_file_received(self, filename, folder, duration_str, size_str):
-        """Add a file to the table"""
         self.file_table.add_file(filename, folder, duration_str, size_str)
 
     def open_file_on_doubleclick(self, item):
-        """Open file when double-clicked in table"""
         row = item.row()
         filename = self.file_table.item(row, 0).text()
         folder = self.file_table.item(row, 1).text()
@@ -69,7 +64,6 @@ class FileManager(QObject):
             self.log_signal.emit(f"Cannot open file: {full_path}")
 
     def update_status(self, row, status):
-        """Update the status of a file in the table"""
         icon_map = {
             "Processing": resource_path("icon/processing.png"),
             "Failed": resource_path("icon/failed.png"),
@@ -122,9 +116,11 @@ class FileManager(QObject):
             files.append((row_number, filename, folder))
         return files, selected_rows
 
-    def clear_list(self):
-        """Clear the file list"""
-        self.file_table.setRowCount(0)
+    def remove_selected_files(self):
+        selected_files, _ = self.get_selected_files()
+        for row_number, file_name, _ in sorted(selected_files, key=lambda x: x[0], reverse=True):
+            self.file_table.removeRow(row_number)
+            self.log_signal.emit(f"Removed {file_name}.")
 
 class DragDropTable(QTableWidget):
     files_dropped = pyqtSignal(list)
