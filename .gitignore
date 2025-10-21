@@ -6,7 +6,7 @@
 ## ===========================================
 ffmpeg-gui.pyproj
 ffmpeg-gui.sln
-.temp/*
+.temp/
 ## ===========================================
 
 # User-specific files
