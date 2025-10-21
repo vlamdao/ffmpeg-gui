@@ -57,7 +57,12 @@ class CommandGenerator(object):
         return finalize_command(cmd)
 
 def finalize_command(cmd):
+    # -y to overwrite without asking
     if '-y' not in cmd:
         cmd = cmd.replace("ffmpeg ", "ffmpeg -y ")
-    cmd = cmd.replace("ffmpeg ", "ffmpeg -loglevel warning ")
+
+    # set loglevel to warning if not specified
+    if '--loglevel' not in cmd:
+        cmd = cmd.replace("ffmpeg ", "ffmpeg -loglevel warning ")
+
     return cmd

@@ -29,11 +29,7 @@ class BatchProcessor(QObject):
             return
         
          # Start batch processing
-        self.start_batch(
-            file_manager,
-            command_input,
-            output_path
-        )
+        self.start_batch(file_manager, command_input, output_path)
 
     def start_batch(self, file_manager, command_input, output_path):
         """Start batch processing"""

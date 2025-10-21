@@ -1,4 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog
+from PyQt5.QtWidgets import (
+    QWidget, QHBoxLayout, QLabel, QLineEdit, 
+    QPushButton, QFileDialog
+)
 import os 
 
 class OutputPath(QWidget):

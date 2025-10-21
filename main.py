@@ -1,15 +1,12 @@
 import sys
-from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-    QTableWidget, QShortcut, QApplication, QSizePolicy
-)
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+                             QTableWidget, QShortcut, QApplication, QSizePolicy)
 from PyQt5.QtGui import QIcon, QKeySequence
 from utils import resource_path
 from components import (PresetManager, Logger, FileManager, ControlPanel, 
                         CommandInput, OutputPath)
 
 from processor import BatchProcessor
-
 
 class FFmpegBatchApp(QMainWindow):
     def __init__(self):
@@ -85,7 +82,7 @@ class FFmpegBatchApp(QMainWindow):
         """Append message to logger"""
         self.logger.append_log(msg)
 
-    def apply_preset_command(self, row: int, column: int):
+    def apply_preset_command(self, row: int):
         """Apply preset command when table row is double-clicked."""
         self.preset_manager.apply_preset(row)
 

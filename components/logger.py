@@ -2,7 +2,9 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTextEdit, QLineEdit,
     QPushButton, QHBoxLayout, QSizePolicy
 )
-from PyQt5.QtGui import (QFont, QSyntaxHighlighter, QTextCharFormat, QColor)
+from PyQt5.QtGui import (
+    QFont, QSyntaxHighlighter, QTextCharFormat, QColor
+)
 
 class SearchHighlighter(QSyntaxHighlighter):
     def __init__(self, parent=None):

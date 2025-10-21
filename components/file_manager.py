@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import (QTableWidgetItem, QLabel, QFileDialog,
-                             QTableWidget, QTableWidgetItem, QHeaderView
-                             )
+from PyQt5.QtWidgets import (
+    QTableWidgetItem, QLabel, QFileDialog,
+    QTableWidget, QTableWidgetItem, QHeaderView
+)
 from PyQt5.QtGui import QPixmap, QDesktopServices
 from PyQt5.QtCore import Qt, QObject, pyqtSignal, QUrl
 import os
