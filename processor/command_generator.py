@@ -1,22 +1,30 @@
 import os
+from components import CommandInput, OutputPath
 
 class CommandGenerator(object):
-    def __init__(self, selected_files, input_command, output_path):
+    def __init__(self, 
+                 selected_files: list[tuple[str, str, str]], 
+                 input_command: CommandInput,
+                 output_path: OutputPath):
+
         self.selected_files = selected_files
         self.input_command = input_command
         self.output_path = output_path
 
     def create_concat_file(self):
+        # create .temp directory in project root, same as main.py
         base_dir = os.path.dirname(os.path.abspath(os.path.join(__file__, "..")))
         temp_dir = os.path.join(base_dir, ".temp")
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir, exist_ok=True)
-    
+        
+        # create concat_list.txt content
         concat_content = []
         for _, fname, fpath in self.selected_files:
             full_path = os.path.join(fpath, fname)
             concat_content.append(f"file '{full_path}'")
-    
+        
+        # write to concat_list.txt in .temp directory
         concat_file = os.path.join(temp_dir, "concat_list.txt")
         with open(concat_file, "w", encoding="utf-8") as f:
             f.write("\n".join(concat_content))

@@ -1,20 +1,22 @@
 import os
 import subprocess
 from PyQt5.QtCore import QThread, pyqtSignal
+
+
 from .command_generator import CommandGenerator
 
 class FFmpegWorker(QThread):
+    from components import CommandInput, OutputPath
+
     update_status = pyqtSignal(int, str)
     log_signal = pyqtSignal(str)
 
-    def __init__(self, selected_files, command_input, output_path, parent=None):
-        """Worker thread to process FFmpeg commands in batch
-            Args:
-                selected_files (list): List of tuples (row_index, filename, filepath)
-                command_input (CommandInput): Command input instance
-                output_path (OutputPath): Output path instance
-                parent (QObject, optional): Parent QObject. Defaults to None.
-        """
+    def __init__(self, 
+                 selected_files: list[tuple[int, str, str]], 
+                 command_input: CommandInput, 
+                 output_path: OutputPath, 
+                 parent=None):
+
         super().__init__(parent)
         self.selected_files = selected_files
         self.command_input = command_input
@@ -27,7 +29,7 @@ class FFmpegWorker(QThread):
         cmd_template = self.command_input.get_command()
         if "-f concat" in cmd_template:
             return "concat_demuxer"
-        return "others"
+        return "others_command"
 
     def run(self):
         self._is_stopped = False
@@ -51,7 +53,7 @@ class FFmpegWorker(QThread):
                 else:
                     self.update_all_status("Failed")
 
-            case "others":
+            case "others_command":
                 for file in self.selected_files:
                     if self._is_stopped:
                         self.update_status.emit(file[0], "Stopped")
@@ -81,9 +83,9 @@ class FFmpegWorker(QThread):
         for file in self.selected_files:
             self.update_status.emit(file[0], status)
     
-    def process_command(self, cmd, status_row):
-        self.update_status.emit(status_row, "Processing")
-        self.log_signal.emit(f"Command:\n{cmd}")
+    def process_command(self, cmd, row_number: int):
+        self.update_status.emit(row_number, "Processing")
+        self.log_signal.emit(f'<br><span style="color:blue; font-weight:bold">{cmd}</span>')
 
         try:
             env = os.environ.copy()
@@ -105,7 +107,7 @@ class FFmpegWorker(QThread):
             for line in self.proc.stdout:
                 if self._is_stopped:
                     self.proc.terminate()
-                    self.update_status.emit(status_row, "Stopped")
+                    self.update_status.emit(row_number, "Stopped")
                     return
                 self.log_signal.emit(line.rstrip())
                 

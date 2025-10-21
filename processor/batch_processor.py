@@ -1,5 +1,6 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 from processor import FFmpegWorker
+from components import FileManager, CommandInput, OutputPath, Logger
 
 class BatchProcessor(QObject):
     log_signal = pyqtSignal(str)
@@ -11,28 +12,30 @@ class BatchProcessor(QObject):
         self.selected_files = []        # Selected files for processing
         self.selected_rows = set()      # Selected rows for update status
 
-    def run_command(self, file_manager, command_input, output_path, logger):
-        """Start processing the selected files
-            Args:
-                file_manager (FileManager): The file manager instance
-                command_input (CommandInput): The command input instance
-                output_path (OutputPath): The output path instance
-                logger (Logger): The logger instance
-        """
-        # Clear previous logs
+    def run_command(self, 
+                    file_manager: FileManager, 
+                    command_input: CommandInput, 
+                    output_path: OutputPath, 
+                    logger: Logger):
+        
         logger.clear()
-
-        # Save selected files and rows after "Run" is clicked
+        
+        # Get selected files and rows
+        # selected_files: List[str], selected_rows: Set[int]
+        # selected_files for processing, selected_rows for status update
         self.selected_files, self.selected_rows = file_manager.get_selected_files()
+        
         if not self.selected_files:
             self.log_signal.emit("No items selected to process.")
             return
         
-         # Start batch processing
         self.start_batch(file_manager, command_input, output_path)
 
-    def start_batch(self, file_manager, command_input, output_path):
-        """Start batch processing"""
+    def start_batch(self, 
+                    file_manager: FileManager, 
+                    command_input: CommandInput, 
+                    output_path: OutputPath):
+        
         # Update status to "Pending" for selected files
         for row in self.selected_rows:
             file_manager.update_status(row, "Pending")
@@ -48,17 +51,16 @@ class BatchProcessor(QObject):
         self.worker.log_signal.connect(self.log_signal.emit)
         self.worker.start()
 
-    def stop_batch(self, file_manager):
-        """Stop batch processing"""
+    def stop_batch(self, file_manager: FileManager):
         if self.worker and self.worker.isRunning():
             self.worker.stop()
             self.log_signal.emit("Stopped batch processing...")
 
         # Update status of selected files to "Stopped" if they were pending or processing
         for row in self.selected_rows:
-            widget = file_manager.file_table.cellWidget(row, 4)
-            if widget is not None:
-                if hasattr(widget, 'status') and widget.status in ["Pending", "Processing"]:
+            status_widget = file_manager.file_table.cellWidget(row, 4)
+            if status_widget is not None:
+                if hasattr(status_widget, 'status') and status_widget.status in ["Pending", "Processing"]:
                     file_manager.update_status(row, "Stopped")
             else:
                 status_item = file_manager.file_table.item(row, 4)
@@ -66,5 +68,4 @@ class BatchProcessor(QObject):
                     file_manager.update_status(row, "Stopped")
 
     def is_processing(self):
-        """Check if batch processing is running"""
         return self.worker is not None and self.worker.isRunning()
