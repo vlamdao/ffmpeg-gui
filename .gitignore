@@ -3,6 +3,12 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+## ===========================================
+ffmpeg-gui.pyproj
+ffmpeg-gui.sln
+.temp/*
+## ===========================================
+
 # User-specific files
 *.rsuser
 *.suo

@@ -39,6 +39,8 @@
     <Compile Include="utils\__init__.py" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include=".gitattributes" />
+    <Content Include=".gitignore" />
     <Content Include="compile.bat" />
     <Content Include="icon\addfiles.png" />
     <Content Include="icon\addpreset.png" />
