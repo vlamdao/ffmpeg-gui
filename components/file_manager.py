@@ -1,19 +1,17 @@
-import select
 from PyQt5.QtWidgets import (
     QTableWidgetItem, QLabel, QFileDialog,
     QTableWidget, QTableWidgetItem, QHeaderView
 )
+from PyQt5.QtCore import (
+    QThread, pyqtSignal, QCoreApplication, Qt, 
+    QObject, pyqtSignal, QUrl)
 from PyQt5.QtGui import QPixmap, QDesktopServices
-from PyQt5.QtCore import Qt, QObject, pyqtSignal, QUrl
 import os
 from utils import resource_path
 from .delegate import FontDelegate
-# from processor import FileLoaderThread
-import os
 import json
 import subprocess
 import sys
-from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication
 
 class FileManager(QObject):
     log_signal = pyqtSignal(str)  # For logging messages
