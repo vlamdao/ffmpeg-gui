@@ -153,7 +153,7 @@ class DragDropTable(QTableWidget):
         self.showGrid = True
 
         # set minimum height to show 9 rows
-        rows_to_show = 9
+        rows_to_show = 5
         row_height = self.verticalHeader().defaultSectionSize()
         header_height = self.horizontalHeader().height()
         total_height = row_height * rows_to_show + header_height + 1
