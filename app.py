@@ -32,7 +32,7 @@ class App(QMainWindow):
         self.file_manager = FileManager(self)
         self.file_manager.log_signal.connect(self.append_log)
         file_manager_widget = self.file_manager.get_widget()
-        file_manager_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        file_manager_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         top_layout.addWidget(file_manager_widget, 2)
 
         # ============================================================
@@ -68,7 +68,7 @@ class App(QMainWindow):
         # Preset table setup
         # ============================================================
         self.preset_table = QTableWidget()
-        self.preset_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.preset_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         main_layout.addWidget(self.preset_table)
         self.preset_manager = PresetManager(self, self.preset_table, self.command_input.get_command_widget())
 
