@@ -44,7 +44,14 @@ class PresetManager:
         preset_table_header.setHighlightSections(False)
         # stretch command template column to fill available space
         preset_table_header.setSectionResizeMode(1, QHeaderView.Stretch)
-        
+
+        # set minimum height to show 5 rows
+        rows_to_show = 2
+        row_height = self.preset_table.verticalHeader().defaultSectionSize()
+        header_height = self.preset_table.horizontalHeader().height()
+        total_height = row_height * rows_to_show + header_height + 1
+        self.preset_table.setMinimumHeight(total_height)
+
         # Connect signals
         self.preset_table.cellDoubleClicked.connect(self.parent.apply_preset_command)
         self.preset_table.setContextMenuPolicy(Qt.CustomContextMenu)
