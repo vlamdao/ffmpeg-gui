@@ -128,7 +128,7 @@ class DragDropTable(QTableWidget):
         self.setItemDelegate(FontDelegate(font_size=8))
         self.setAcceptDrops(True)
         self.setColumnCount(5)
-        self.setHorizontalHeaderLabels(['Filename', 'Path', 'Duration', 'Size', 'Status'])
+        self.setHorizontalHeaderLabels(['Filename', 'Path', 'Length', 'Size', 'Status'])
 
         header = self.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)
@@ -141,9 +141,9 @@ class DragDropTable(QTableWidget):
         # disable auto bold for header sections when select a item
         header.setHighlightSections(False)
 
-        self.setColumnWidth(2, 90)
-        self.setColumnWidth(3, 80)
-        self.setColumnWidth(4, 80)
+        self.setColumnWidth(2, 70)
+        self.setColumnWidth(3, 75)
+        self.setColumnWidth(4, 50)
 
         # select entire row when clicked on an item
         self.setSelectionBehavior(QTableWidget.SelectRows)
