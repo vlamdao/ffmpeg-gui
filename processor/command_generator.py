@@ -70,7 +70,7 @@ def finalize_command(cmd):
         cmd = cmd.replace("ffmpeg ", "ffmpeg -y ")
 
     # set loglevel to warning if not specified
-    if '--loglevel' not in cmd:
+    if '-loglevel' not in cmd:
         cmd = cmd.replace("ffmpeg ", "ffmpeg -loglevel warning ")
 
     return cmd
