@@ -31,7 +31,7 @@ class PresetManager:
         # select entire row when clicked on an item
         self.preset_table.setSelectionBehavior(QTableWidget.SelectRows)
         # set minimum height for the preset table
-        self.preset_table.setMinimumHeight(200)
+        self.preset_table.setMinimumHeight(100)
         # set monospace font for command template column
         self.preset_table.setItemDelegateForColumn(1, FontDelegate(font_family="Consolas"))
         # set preset name column width to 300 pixels
