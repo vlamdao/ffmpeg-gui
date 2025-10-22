@@ -7,6 +7,7 @@
 ffmpeg-gui.pyproj
 ffmpeg-gui.sln
 .temp/
+.vscode/
 ## ===========================================
 
 # User-specific files
