@@ -16,7 +16,6 @@ class OutputPath(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Label
         self.out_label = QLabel("Output path:")
         self.out_label.setFixedWidth(80)
         layout.addWidget(self.out_label)
