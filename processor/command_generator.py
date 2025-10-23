@@ -21,7 +21,9 @@ class CommandGenerator(object):
         self.output_path = output_path
 
     def _create_concat_file(self) -> str:
-        """Creates a temporary text file listing files for FFmpeg's concat demuxer."""
+        """Creates a temporary text file listing files for FFmpeg's concat demuxer.
+            Located in .temp directory in project root.
+        """
         # create .temp directory in project root, same as main.py
         base_dir = os.path.dirname(os.path.abspath(os.path.join(__file__, "..")))
         temp_dir = os.path.join(base_dir, ".temp")
@@ -46,7 +48,15 @@ class CommandGenerator(object):
         for placeholder, value in replacements.items():
             template = template.replace(placeholder, value)
         return template
-
+    
+    def _finalize_command(cmd: str) -> str:
+        """Adds default ffmpeg flags like -y and -loglevel if not present."""
+        if 'ffmpeg ' in cmd and '-y ' not in cmd:
+            cmd = cmd.replace("ffmpeg ", "ffmpeg -y ", 1)
+        if 'ffmpeg ' in cmd and '-loglevel ' not in cmd:
+            cmd = cmd.replace("ffmpeg ", "ffmpeg -loglevel warning ", 1)
+        return cmd
+    
     def generate_concat_command(self) -> str | None:
         """Generates the full command for a concat operation."""
         if not self.selected_files:
@@ -64,7 +74,7 @@ class CommandGenerator(object):
         }
         cmd = self._populate_template(template, replacements)
 
-        return _finalize_command(cmd)
+        return self._finalize_command(cmd)
 
     def generate_others_command(self, input_file: tuple[int, str, str]) -> str | None:
         """Generates a command for a single-file operation."""
@@ -86,12 +96,6 @@ class CommandGenerator(object):
         }
         cmd = self._populate_template(template, replacements)
 
-        return _finalize_command(cmd)
+        return self._finalize_command(cmd)
 
-def _finalize_command(cmd: str) -> str:
-    """Adds default ffmpeg flags like -y and -loglevel if not present."""
-    if 'ffmpeg ' in cmd and '-y ' not in cmd:
-        cmd = cmd.replace("ffmpeg ", "ffmpeg -y ", 1)
-    if 'ffmpeg ' in cmd and '-loglevel ' not in cmd:
-        cmd = cmd.replace("ffmpeg ", "ffmpeg -loglevel warning ", 1)
-    return cmd
+
