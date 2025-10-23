@@ -39,42 +39,6 @@ class FFmpegWorker(QThread):
             return "concat_demuxer"
         return "others_command"
 
-    def run(self):
-        """
-        The main execution method of the thread.
-        Generates and processes FFmpeg commands based on the command type.
-        """
-        self._is_stopped = False
-        command_type = self._get_command_type()
-
-        if command_type == "concat_demuxer":
-            cmd = self._cmd_generator.generate_concat_command()
-            if not cmd:
-                return
-            self._update_all_status("Processing")
-            final_status = self._process_command(cmd)
-            self._update_all_status(final_status)
-
-        elif command_type == "others_command":
-            files_to_process = list(self._selected_files)
-            while files_to_process:
-                # Get the next file from the front of the list to process
-                row_index, filename, folder = files_to_process.pop(0)
-
-                if self._is_stopped:
-                    # Mark this and all remaining files as "Stopped"
-                    self.update_status.emit(row_index, "Stopped")
-                    for rem_row, _, _ in files_to_process:
-                        self.update_status.emit(rem_row, "Stopped")
-                    break  # Exit the loop
-
-                current_file_tuple = (row_index, filename, folder)
-                cmd = self._cmd_generator.generate_others_command(current_file_tuple)
-                if cmd:
-                    self.update_status.emit(row_index, "Processing")
-                    final_status = self._process_command(cmd)
-                    self.update_status.emit(row_index, final_status)
-
     def _update_all_status(self, status: str):
         """Updates the status for all selected files."""
         for row_index, _, _ in self._selected_files:
@@ -132,6 +96,42 @@ class FFmpegWorker(QThread):
         finally:
             self._proc = None
 
+    def run(self):
+        """
+        The main execution method of the thread.
+        Generates and processes FFmpeg commands based on the command type.
+        """
+        self._is_stopped = False
+        command_type = self._get_command_type()
+
+        if command_type == "concat_demuxer":
+            cmd = self._cmd_generator.generate_concat_command()
+            if not cmd:
+                return
+            self._update_all_status("Processing")
+            final_status = self._process_command(cmd)
+            self._update_all_status(final_status)
+
+        elif command_type == "others_command":
+            files_to_process = list(self._selected_files)
+            while files_to_process:
+                # Get the next file from the front of the list to process
+                row_index, filename, folder = files_to_process.pop(0)
+
+                if self._is_stopped:
+                    # Mark this and all remaining files as "Stopped"
+                    self.update_status.emit(row_index, "Stopped")
+                    for rem_row, _, _ in files_to_process:
+                        self.update_status.emit(rem_row, "Stopped")
+                    break  # Exit the loop
+
+                current_file_tuple = (row_index, filename, folder)
+                cmd = self._cmd_generator.generate_others_command(current_file_tuple)
+                if cmd:
+                    self.update_status.emit(row_index, "Processing")
+                    final_status = self._process_command(cmd)
+                    self.update_status.emit(row_index, final_status)
+    
     def stop(self):
         """
         Sets the stop flag and attempts to terminate the running process.
