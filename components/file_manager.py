@@ -133,18 +133,37 @@ class FileManager(QObject):
             return
         self.file_loader_thread = FileLoaderThread(file_list)
         self.file_loader_thread.log_signal.connect(self.log_signal.emit)
-        self.file_loader_thread.add_file_signal.connect(self.file_table.add_file)
+        self.file_loader_thread.add_file_signal.connect(self._on_add_file)
+        self.file_loader_thread.finished.connect(self._on_loading_finished)
         self.file_loader_thread.start()
 
-    # def on_add_file_received(self, file_info: FileInfo):
-    #     """Slot to receive FileInfo object and add it to the table."""
-    #     self.file_table.add_file(file_info)
+    def _on_add_file(self, file_info):
+        self.file_table.add_file(file_info)
+
+    def _on_loading_finished(self):
+        """Cleans up the file loader thread after it has finished."""
+        self.log_signal.emit("Finished loading file information.")
+        self.file_loader_thread.deleteLater()
+        self.file_loader_thread = None
 
     def open_file_on_doubleclick(self, item):
         row = item.row()
-        filename = self.file_table.item(row, 0).text()
-        folder = self.file_table.item(row, 1).text()
+
+        filename_item = self.file_table.item(row, 0)
+        folder_item = self.file_table.item(row, 1)
+
+        if not (filename_item and folder_item):
+            self.log_signal.emit(f"Error: Could not retrieve file info for row {row}.")
+            return
+
+        filename = filename_item.text()
+        folder = folder_item.text()
         full_path = os.path.join(folder, filename)
+
+        if not os.path.exists(full_path):
+            self.log_signal.emit(f"File not found: {full_path}")
+            return
+
         url = QUrl.fromLocalFile(full_path)
         if not QDesktopServices.openUrl(url):
             self.log_signal.emit(f"Cannot open file: {full_path}")
@@ -194,19 +213,31 @@ class FileManager(QObject):
             # files = [(0, "video1.mp4", "C:/Videos"), (1, "video2.mp4", "C:/Videos")]
             # selected_rows = {0, 1}
         """
-        selected_rows = set(idx.row() for idx in self.file_table.selectionModel().selectedRows())
+        selected_rows = {idx.row() for idx in self.file_table.selectionModel().selectedRows()}
         files = []
         for row_number in selected_rows:
-            filename = self.file_table.item(row_number, 0).text()
-            folder = self.file_table.item(row_number, 1).text()
-            files.append((row_number, filename, folder))
+            filename_item = self.file_table.item(row_number, 0)
+            folder_item = self.file_table.item(row_number, 1)
+
+            if filename_item and folder_item:
+                filename = filename_item.text()
+                folder = folder_item.text()
+                files.append((row_number, filename, folder))
+            else:
+                self.log_signal.emit(f"Warning: Could not retrieve file info for row {row_number}. Skipping.")
+
         return files, selected_rows
 
     def remove_selected_files(self):
-        selected_files, _ = self.get_selected_files()
-        for row_number, file_name, _ in sorted(selected_files, key=lambda x: x[0], reverse=True):
-            self.file_table.removeRow(row_number)
-            self.log_signal.emit(f"Removed {file_name}.")
+        """Removes all selected rows from the file table."""
+        # Get all selected row indices directly from the selection model
+        selected_rows = self.file_table.selectionModel().selectedRows()
+        
+        # Sort row indices in reverse order to avoid index shifting issues during removal
+        for index in sorted(selected_rows, key=lambda idx: idx.row(), reverse=True):
+            filename = self.file_table.item(index.row(), 0).text()
+            self.file_table.removeRow(index.row())
+            self.log_signal.emit(f"Removed {filename}.")
 
 class DragDropTable(QTableWidget):
     files_dropped = pyqtSignal(list)
