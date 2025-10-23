@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (
     QTableWidgetItem, QLabel, QFileDialog,
-    QTableWidget, QTableWidgetItem, QHeaderView
+    QTableWidget, QTableWidgetItem, QHeaderView, QMenu, QApplication
 )
 from PyQt5.QtCore import (
     QThread, pyqtSignal, QCoreApplication, Qt, 
@@ -377,6 +377,10 @@ class DragDropTable(QTableWidget):
         item.setTextAlignment(alignment)
         return item
 
+    # Note: The following event handlers (dragEnterEvent, dragMoveEvent, dropEvent,
+    # contextMenuEvent) must use camelCase naming because they are overriding
+    # methods from the parent QWidget class. This is a requirement of PyQt.
+
     def dragEnterEvent(self, event):
         """Handles the drag enter event to accept file URLs."""
         if event.mimeData().hasUrls():
@@ -400,6 +404,31 @@ class DragDropTable(QTableWidget):
             self.files_dropped.emit(filepaths)
         else:
             event.ignore()
+
+    def contextMenuEvent(self, event):
+        """Shows a context menu on right-click."""
+        item = self.itemAt(event.pos())
+        if not item:
+            return
+
+        row = item.row()
+        filename_item = self.item(row, self.Column.FILENAME.value)
+        path_item = self.item(row, self.Column.PATH.value)
+
+        if not (filename_item and path_item):
+            return
+
+        menu = QMenu(self)
+        copy_filename_action = menu.addAction("Copy Filename")
+        copy_path_action = menu.addAction("Copy Path")
+
+        action = menu.exec_(event.globalPos())
+
+        clipboard = QApplication.clipboard()
+        if action == copy_filename_action:
+            clipboard.setText(filename_item.text())
+        elif action == copy_path_action:
+            clipboard.setText(path_item.text())
     
     def add_file(self, file_info: FileInfo):
         """Adds a new file to the table, avoiding duplicates."""
