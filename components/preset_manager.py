@@ -51,11 +51,7 @@ class PresetManager:
         header_height = self.preset_table.horizontalHeader().height()
         total_height = row_height * rows_to_show + header_height + 1
         self.preset_table.setMinimumHeight(total_height)
-
-        # Connect signals
-        self.preset_table.cellDoubleClicked.connect(self.parent.apply_preset_command)
         self.preset_table.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.preset_table.customContextMenuRequested.connect(self.parent.preset_context_menu)
     
     def load_presets(self):
         presets = []
@@ -239,4 +235,3 @@ class PresetDialog(QDialog):
         button_layout.addWidget(ok_button)
         button_layout.addWidget(cancel_button)
         layout.addLayout(button_layout)
-
