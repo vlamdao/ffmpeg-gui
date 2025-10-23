@@ -8,6 +8,7 @@ from PyQt5.QtCore import (
 from PyQt5.QtGui import QPixmap, QDesktopServices, QIcon
 import os
 from utils import resource_path
+from enum import Enum
 from .delegate import FontDelegate
 import json
 import subprocess
@@ -149,8 +150,8 @@ class FileManager(QObject):
     def open_file_on_doubleclick(self, item):
         row = item.row()
 
-        filename_item = self.file_table.item(row, 0)
-        folder_item = self.file_table.item(row, 1)
+        filename_item = self.file_table.item(row, self.file_table.Column.FILENAME.value)
+        folder_item = self.file_table.item(row, self.file_table.Column.PATH.value)
 
         if not (filename_item and folder_item):
             self.log_signal.emit(f"Error: Could not retrieve file info for row {row}.")
@@ -180,8 +181,8 @@ class FileManager(QObject):
         }
 
         # Remove old status (widget, text, icon)
-        self.file_table.removeCellWidget(row, 7)
-        item = self.file_table.item(row, 7)
+        self.file_table.removeCellWidget(row, self.file_table.Column.STATUS.value)
+        item = self.file_table.item(row, self.file_table.Column.STATUS.value)
         if item:
             item.setText("")
             item.setIcon(QIcon())
@@ -194,7 +195,7 @@ class FileManager(QObject):
             label.setPixmap(pixmap)
             label.setAlignment(Qt.AlignCenter)
             label.setToolTip(status.replace("Successed", "Success"))
-            self.file_table.setCellWidget(row, 7, label)
+            self.file_table.setCellWidget(row, self.file_table.Column.STATUS.value, label)
 
     def get_selected_files(self):
         """Get list of selected files from the table
@@ -212,8 +213,8 @@ class FileManager(QObject):
         selected_rows = {idx.row() for idx in self.file_table.selectionModel().selectedRows()}
         files = []
         for row_number in selected_rows:
-            filename_item = self.file_table.item(row_number, 0)
-            folder_item = self.file_table.item(row_number, 1)
+            filename_item = self.file_table.item(row_number, self.file_table.Column.FILENAME.value)
+            folder_item = self.file_table.item(row_number, self.file_table.Column.PATH.value)
 
             if filename_item and folder_item:
                 filename = filename_item.text()
@@ -231,55 +232,67 @@ class FileManager(QObject):
         
         # Sort row indices in reverse order to avoid index shifting issues during removal
         for index in sorted(selected_rows, key=lambda idx: idx.row(), reverse=True):
-            filename = self.file_table.item(index.row(), 0).text()
+            filename = self.file_table.item(index.row(), self.file_table.Column.FILENAME.value).text()
             self.file_table.removeRow(index.row())
             self.log_signal.emit(f"Removed {filename}.")
 
 class DragDropTable(QTableWidget):
     files_dropped = pyqtSignal(list)
 
+    class Column(Enum):
+        FILENAME = 0
+        PATH = 1
+        RESOLUTION = 2
+        CODEC = 3
+        BITRATE = 4
+        DURATION = 5
+        SIZE = 6
+        STATUS = 7
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._setup_ui()
+        self._setup_behavior()
+
+    def _setup_ui(self):
+        """Sets up the main UI components of the table."""
         self.setItemDelegate(FontDelegate(font_size=8))
-        self.setAcceptDrops(True)
-        self.setColumnCount(8)
-        self.setHorizontalHeaderLabels(['Filename', 'Path', 'Resolution', 'Codec', 'Bit rate' ,'Duration', 'Size', 'Status'])
+        self.setColumnCount(len(self.Column))
+        self._setup_headers()
+        self.showGrid()
 
-        header = self.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.Fixed)
-        header.setSectionResizeMode(3, QHeaderView.Fixed)
-        header.setSectionResizeMode(4, QHeaderView.Fixed)
-        header.setSectionResizeMode(5, QHeaderView.Fixed)
-        header.setSectionResizeMode(6, QHeaderView.Fixed)
-        header.setSectionResizeMode(7, QHeaderView.Fixed)
-        # align center for duration and size columns
-        header.setDefaultAlignment(Qt.AlignCenter)
-        # disable auto bold for header sections when select a item
-        header.setHighlightSections(False)
-
-        self.setColumnWidth(2, 100)
-        self.setColumnWidth(3, 70)
-        self.setColumnWidth(4, 80)
-        self.setColumnWidth(5, 80)
-        self.setColumnWidth(6, 80)
-        self.setColumnWidth(7, 60)
-
-
-        # select entire row when clicked on an item
-        self.setSelectionBehavior(QTableWidget.SelectRows)
-        # disable editing when double-clicked on item
-        self.setEditTriggers(QTableWidget.NoEditTriggers)
-        # show grid lines
-        self.showGrid = True
-
-        # set minimum height
+        # Set a dynamic minimum height to show a certain number of rows
         rows_to_show = 5
         row_height = self.verticalHeader().defaultSectionSize()
         header_height = self.horizontalHeader().height()
         total_height = row_height * rows_to_show + header_height + 1
         self.setMinimumHeight(total_height)
+
+    def _setup_headers(self):
+        """Configures the table headers."""
+        self.setHorizontalHeaderLabels([col.name.replace('_', ' ').title() for col in self.Column])
+        header = self.horizontalHeader()
+        header.setDefaultAlignment(Qt.AlignCenter)
+        header.setHighlightSections(False)
+
+        # Dynamic columns
+        header.setSectionResizeMode(self.Column.FILENAME.value, QHeaderView.Stretch)
+        header.setSectionResizeMode(self.Column.PATH.value, QHeaderView.Stretch)
+
+        # Fixed width columns
+        fixed_widths = {
+            self.Column.RESOLUTION: 100, self.Column.CODEC: 70, self.Column.BITRATE: 80,
+            self.Column.DURATION: 80, self.Column.SIZE: 80, self.Column.STATUS: 60
+        }
+        for col, width in fixed_widths.items():
+            header.setSectionResizeMode(col.value, QHeaderView.Fixed)
+            self.setColumnWidth(col.value, width)
+
+    def _setup_behavior(self):
+        """Configures table interaction behavior."""
+        self.setAcceptDrops(True)
+        self.setSelectionBehavior(QTableWidget.SelectRows)
+        self.setEditTriggers(QTableWidget.NoEditTriggers)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -297,39 +310,38 @@ class DragDropTable(QTableWidget):
         if event.mimeData().hasUrls():
             event.setDropAction(Qt.CopyAction)
             event.accept()
-
             filepaths = [url.toLocalFile() for url in event.mimeData().urls() if os.path.isfile(url.toLocalFile())]
             self.files_dropped.emit(filepaths)
-
         else:
             event.ignore()
 
-    def set_item(self, row, column, item, align):
-        item = QTableWidgetItem(item)
-        match align:
-            case "center":
-                item.setTextAlignment(Qt.AlignCenter)
-            case "left":
-                item.setTextAlignment(Qt.AlignLeft)
-            case "right":
-                item.setTextAlignment(Qt.AlignRight)
-        super().setItem(row, column, item)
+    def _create_table_item(self, text: str, alignment: Qt.AlignmentFlag = Qt.AlignVCenter | Qt.AlignLeft) -> QTableWidgetItem:
+        """Creates a QTableWidgetItem with specified text and alignment."""
+        item = QTableWidgetItem(text)
+        item.setTextAlignment(alignment)
+        return item
 
     def add_file(self, file_info: FileInfo):
+        """Adds a new file to the table, avoiding duplicates."""
+        # Check duplicate
         for row in range(self.rowCount()):
-            if self.item(row, 0).text() == file_info.filename and self.item(row, 1).text() == file_info.folder:
-                return
+            filename_item = self.item(row, self.Column.FILENAME.value)
+            path_item = self.item(row, self.Column.PATH.value)
+            if filename_item and path_item:
+                if filename_item.text() == file_info.filename and path_item.text() == file_info.folder:
+                    return
+
         row = self.rowCount()
         self.insertRow(row)
 
-        self.set_item(row, 0, file_info.filename, "left")
-        self.set_item(row, 1, file_info.folder, "left")
-        self.set_item(row, 2, file_info.resolution, "center")
-        self.set_item(row, 3, file_info.codec, "center")
-        self.set_item(row, 4, file_info.bitrate, "center")
-        self.set_item(row, 5, file_info.duration, "center")
-        self.set_item(row, 6, file_info.size, "center")
-        self.set_item(row, 7, "", "center")
+        self.setItem(row, self.Column.FILENAME.value, self._create_table_item(file_info.filename))
+        self.setItem(row, self.Column.PATH.value, self._create_table_item(file_info.folder))
+        self.setItem(row, self.Column.RESOLUTION.value, self._create_table_item(file_info.resolution, Qt.AlignCenter))
+        self.setItem(row, self.Column.CODEC.value, self._create_table_item(file_info.codec, Qt.AlignCenter))
+        self.setItem(row, self.Column.BITRATE.value, self._create_table_item(file_info.bitrate, Qt.AlignCenter))
+        self.setItem(row, self.Column.DURATION.value, self._create_table_item(file_info.duration, Qt.AlignCenter))
+        self.setItem(row, self.Column.SIZE.value, self._create_table_item(file_info.size, Qt.AlignCenter))
+        self.setItem(row, self.Column.STATUS.value, self._create_table_item("", Qt.AlignCenter))
 
 class FileLoaderThread(QThread):
     log_signal = pyqtSignal(str)

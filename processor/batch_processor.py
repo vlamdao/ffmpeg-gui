@@ -60,7 +60,7 @@ class BatchProcessor(QObject):
         # Update status of selected files to "Stopped" if they were pending or processing
         # The status column is at index 7
         for row in self.selected_rows:
-            status_widget = file_manager.file_table.cellWidget(row, 7)
+            status_widget = file_manager.file_table.cellWidget(row, file_manager.file_table.Column.STATUS.value)
             if status_widget and isinstance(status_widget, QLabel):
                 current_status = status_widget.toolTip()
                 if current_status in ["Pending", "Processing"]:
