@@ -32,6 +32,10 @@ class FontDelegate(QStyledItemDelegate):
 
         This method is called by the view to get the style options for painting
         an item. We override it to apply our custom font settings.
+
+        Args:
+            option (QStyleOptionViewItem): The style option to be initialized.
+            index (QModelIndex): The model index of the item being painted.
         """
         super().initStyleOption(option, index)
         if self.font_family is not None:

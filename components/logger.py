@@ -157,7 +157,14 @@ class Logger(QWidget):
             self.highlighter.set_pattern("") # Trigger rehighlight with no pattern
 
     def _update_search_results_if_needed(self):
-        """Performs search and caches results if the pattern or log has changed."""
+        """Updates the internal list of search match positions if necessary.
+
+        This method acts as a lazy-loading mechanism for search results. It
+        only re-scans the entire document for matches if the search pattern has
+        changed or if new log messages have been added (which invalidates the
+        previous results). This avoids re-searching on every "Next"/"Previous"
+        click, improving performance on large logs.
+        """
         if not self.search_pattern:
             self._search_results = []
             self.highlighter.set_pattern("")

@@ -62,6 +62,12 @@ class FileInfo:
 
     @property
     def resolution(self) -> str:
+        """Returns the video resolution as a 'widthxheight' string.
+
+        Returns:
+            str: The formatted resolution string (e.g., "1920x1080"),
+                 or "N/A" if not available.
+        """
         if self._info.get("video_stream"):
             width = self._info["video_stream"]["width"]
             height = self._info["video_stream"]["height"]
@@ -71,12 +77,23 @@ class FileInfo:
 
     @property
     def codec(self) -> str:
+        """Returns the name of the video codec.
+
+        Returns:
+            str: The codec name (e.g., "h264"), or "N/A" if not available.
+        """
         if self._info.get("video_stream"):
             return self._info["video_stream"].get("codec", "N/A")
         return "N/A"
 
     @property
     def bitrate(self) -> str:
+        """Returns the video bitrate, formatted in kbps or Mbps.
+
+        Returns:
+            str: The formatted bitrate string (e.g., "800.5 kbps" or
+                 "1.50 Mbps"), or "N/A" if not available or invalid.
+        """
         if self._info.get("video_stream"):
             bitrate_val = self._info["video_stream"].get("bitrate")
             if bitrate_val:
@@ -91,6 +108,12 @@ class FileInfo:
 
     @property
     def duration(self) -> str:
+        """Returns the media duration formatted as HH:MM:SS.
+
+        Returns:
+            str: The formatted duration string (e.g., "00:10:32"),
+                 or "N/A" if not available.
+        """
         seconds = self._info.get("duration")
         if seconds:
             try:
@@ -104,6 +127,12 @@ class FileInfo:
 
     @property
     def size(self) -> str:
+        """Returns the file size, formatted in B, KB, MB, or GB.
+
+        Returns:
+            str: The formatted file size string (e.g., "1.23 GB"),
+                 or "N/A" if not available.
+        """
         size_bytes = self._info.get("size")
         if size_bytes:
             try:
@@ -292,6 +321,12 @@ class DragDropTable(QTableWidget):
         STATUS = 7
 
     def __init__(self, *args, **kwargs):
+        """Initializes the DragDropTable widget.
+
+        Args:
+            *args: Variable length argument list for QTableWidget.
+            **kwargs: Arbitrary keyword arguments for QTableWidget.
+        """
         super().__init__(*args, **kwargs)
         self._setup_ui()
         self._setup_behavior()

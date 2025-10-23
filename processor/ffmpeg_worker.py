@@ -24,6 +24,15 @@ class FFmpegWorker(QThread):
                  command_input: CommandInput,
                  output_path: OutputPath,
                  parent=None):
+        """Initializes the FFmpegWorker thread.
+
+        Args:
+            selected_files (list[tuple[int, str, str]]): A list of files to be processed.
+                Each tuple contains (row_index, filename, folder_path).
+            command_input (CommandInput): The widget containing the FFmpeg command template.
+            output_path (OutputPath): The widget managing the output path.
+            parent (QObject, optional): The parent object. Defaults to None.
+        """
         super().__init__(parent)
         self._selected_files = selected_files
         self._command_input = command_input
@@ -33,26 +42,45 @@ class FFmpegWorker(QThread):
         self._cmd_generator = CommandGenerator(self._selected_files, self._command_input, self._output_path)
 
     def _get_command_type(self) -> str:
-        """Determines the command type based on the command template."""
+        """Determines the command type based on the command template.
+
+        Inspects the user-provided command string to see if it contains flags
+        specific to certain operations, like the concat demuxer.
+
+        Returns:
+            str: A string identifying the command type, e.g., "concat_demuxer"
+                 or "others_command".
+        """
         cmd_template = self._command_input.get_command()
         if "-f concat" in cmd_template:
             return "concat_demuxer"
         return "others_command"
 
     def _update_all_status(self, status: str):
-        """Updates the status for all selected files."""
+        """Updates the status for all selected files simultaneously.
+
+        This is a convenience method used for batch operations like 'concat'
+        where all files share the same processing state.
+
+        Args:
+            status (str): The new status to set for all files (e.g., "Processing", "Success").
+        """
         for row_index, _, _ in self._selected_files:
             self.update_status.emit(row_index, status)
 
     def _process_command(self, cmd: str) -> str:
         """
-        Executes a single FFmpeg command using subprocess.
+        Executes a single FFmpeg command, captures its output, and handles termination.
+
+        This method runs the command in a subprocess, reading stdout/stderr line by
+        line and emitting it via the `log_signal`. It continuously checks the `_is_stopped`
+        flag to allow for graceful termination of the process.
 
         Args:
-            cmd: The command string to execute.
+            cmd (str): The complete FFmpeg command string to execute.
 
         Returns:
-            A status string: "Success", "Failed", or "Stopped".
+            str: A status string indicating the outcome: "Success", "Failed", or "Stopped".
         """
         self.log_signal.emit(f'<br><span style="color:blue; font-weight:bold">{cmd}</span>')
         try:
@@ -98,8 +126,12 @@ class FFmpegWorker(QThread):
 
     def run(self):
         """
-        The main execution method of the thread.
-        Generates and processes FFmpeg commands based on the command type.
+        The main execution method of the thread, called when `start()` is invoked.
+
+        It determines the type of command to be executed (e.g., a single concat
+        operation or multiple individual file operations). It then generates the
+        appropriate FFmpeg command(s) and processes them, updating the UI with
+        status changes along the way.
         """
         self._is_stopped = False
         command_type = self._get_command_type()
@@ -134,8 +166,10 @@ class FFmpegWorker(QThread):
     
     def stop(self):
         """
-        Sets the stop flag and attempts to terminate the running process.
-        The running process loop will handle the cleanup.
+        Signals the worker to stop processing.
+
+        This method sets a flag that is checked within the processing loops,
+        and it attempts to terminate the current FFmpeg subprocess if one is running.
         """
         self._is_stopped = True
         if self._proc and self._proc.poll() is None:

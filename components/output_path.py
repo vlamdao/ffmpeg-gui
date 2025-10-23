@@ -7,13 +7,19 @@ from pathlib import Path
 class OutputPath(QWidget):
     """A widget for selecting and managing the output directory."""
     def __init__(self, parent: QWidget | None = None, default_path: str = "./output"):
+        """Initializes the OutputPath widget.
+
+        Args:
+            parent (QWidget | None, optional): The parent widget. Defaults to None.
+            default_path (str, optional): The default path to display. Defaults to "./output".
+        """
         super().__init__(parent)
         self.parent = parent
         self._default_path = str(Path(default_path)) # Normalize path
         self._setup_ui()
 
     def _setup_ui(self):
-        """Setup the output path interface"""
+        """Sets up the user interface, including the label, text input, and browse button."""
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 

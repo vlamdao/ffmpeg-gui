@@ -9,7 +9,20 @@ from PyQt5.QtCore import Qt
 from .delegate import FontDelegate
 
 class PresetManager:
+    """Manages the creation, loading, editing, and saving of FFmpeg command presets.
+
+    This class controls the preset table UI, handles user interactions like
+    adding, editing, deleting, and applying presets, and manages the persistence
+    of presets to a JSON file.
+    """
     def __init__(self, parent, preset_table, cmd_input):
+        """Initializes the PresetManager.
+
+        Args:
+            parent (QWidget): The parent widget, typically the main application window.
+            preset_table (QTableWidget): The table widget used to display presets.
+            cmd_input (QTextEdit): The command input widget where presets will be applied.
+        """
         self.parent = parent
         self.preset_table = preset_table
         self.cmd_input = cmd_input
@@ -19,7 +32,7 @@ class PresetManager:
         self._load_presets()
 
     def _setup_preset_table(self):
-        """Setup the preset table with all necessary configurations"""
+        """Configures the appearance and behavior of the preset table widget."""
         self.preset_table.setColumnCount(2)
         self.preset_table.setHorizontalHeaderLabels(['Preset Name', 'Command Template'])
         # stretch the last column to fill available space
@@ -52,6 +65,10 @@ class PresetManager:
         self.preset_table.setContextMenuPolicy(Qt.CustomContextMenu)
     
     def _load_presets(self):
+        """Loads presets from 'presets.json' and populates the table.
+
+        If the file doesn't exist, it proceeds with an empty list.
+        """
         presets = []
         if os.path.exists("presets.json"):
             with open("presets.json", "r", encoding="utf-8") as f:
@@ -75,7 +92,12 @@ class PresetManager:
             self.preset_table.setItem(row, 1, command_template_item)
 
     def add_preset(self):
-        """Show dialog to add new preset"""
+        """Opens a dialog to add a new preset.
+
+        After the user enters a name and command, it validates the input,
+        checks for duplicate names, and adds the new preset to the table
+        and saves it to the file.
+        """
         dialog = PresetDialog(self.parent, "Add Preset")
         if dialog.exec_() == QDialog.Accepted:
             preset_name, command = dialog.get_preset()
@@ -97,8 +119,12 @@ class PresetManager:
             self.preset_table.setItem(row, 1, QTableWidgetItem(command))
             self.save_presets()
 
-    def edit_preset(self, row):
-        """Edit existing preset"""
+    def edit_preset(self, row: int):
+        """Opens a dialog to edit an existing preset at a given row.
+
+        Args:
+            row (int): The table row of the preset to be edited.
+        """
         if row < 0:
             return
 
@@ -123,8 +149,12 @@ class PresetManager:
             self.preset_table.setItem(row, 1, QTableWidgetItem(new_command))
             self.save_presets()
 
-    def delete_preset(self, row):
-        """Delete preset at specified row"""
+    def delete_preset(self, row: int):
+        """Deletes the preset at the specified row after user confirmation.
+
+        Args:
+            row (int): The table row of the preset to be deleted.
+        """
         if row < 0:
             return
 
@@ -141,16 +171,24 @@ class PresetManager:
             self.preset_table.removeRow(row)
             self.save_presets()
 
-    def apply_preset(self, row):
-        """Apply preset command to main command input"""
+    def apply_preset(self, row: int, col: int):
+        """Applies the selected preset's command to the main command input field.
+
+        This is typically connected to the `cellDoubleClicked` signal.
+
+        Args:
+            row (int): The row of the cell that was double-clicked.
+            col (int): The column of the cell that was double-clicked (unused).
+        """
         if row >= 0:
             command_template_item = self.preset_table.item(row, 1)
             if command_template_item:
                 self.cmd_input.setPlainText(command_template_item.text())
 
     def show_context_menu(self, pos):
-        """Show context menu for preset table"""
+        """Shows a context menu (Edit, Delete) for the preset table."""
         row = self.preset_table.rowAt(pos.y())
+        # Do not show menu if right-clicking on the header or empty space
         if row < 0:
             return
 
@@ -166,7 +204,7 @@ class PresetManager:
             self.delete_preset(row)
 
     def save_presets(self):
-        """Save presets to file"""
+        """Saves all presets from the table to 'presets.json'."""
         presets = []
         for row in range(self.preset_table.rowCount()):
             presets.append({
@@ -178,14 +216,25 @@ class PresetManager:
 
 
 class PresetDialog(QDialog):
+    """A dialog for adding or editing a preset (name and command)."""
     _INPUT_WIDTH = 500
     _CMD_INPUT_HEIGHT = 70
 
     def __init__(self, parent=None, title="Preset", preset_name="", preset_command=""):
+        """Initializes the PresetDialog.
+
+        Args:
+            parent (QWidget, optional): The parent widget. Defaults to None.
+            title (str, optional): The window title for the dialog. Defaults to "Preset".
+            preset_name (str, optional): The initial text for the preset name field. Defaults to "".
+            preset_command (str, optional): The initial text for the command field. Defaults to "".
+        """
         super().__init__(parent)
         self.setWindowTitle(title)
         
+        # =======================================
         # Create widgets
+        # =======================================
         self.name_input = QLineEdit(preset_name)
         self.cmd_input = QTextEdit(preset_command)
         self.cmd_input.setFont(QFont("Consolas", 9))
@@ -195,12 +244,16 @@ class PresetDialog(QDialog):
         self.cmd_input.setMinimumWidth(self._INPUT_WIDTH)
         self.cmd_input.setMinimumHeight(self._CMD_INPUT_HEIGHT)
 
+        # =======================================
         # Create layout and add widgets
+        # =======================================
         layout = QFormLayout(self)
         layout.addRow("Preset Name:", self.name_input)
         layout.addRow("Command:", self.cmd_input)
 
+        # =======================================
         # Add standard buttons
+        # =======================================
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
