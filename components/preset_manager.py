@@ -17,10 +17,10 @@ class PresetManager:
         self.cmd_input = cmd_input
         
         # Setup preset table
-        self.setup_preset_table()
-        self.load_presets()
+        self._setup_preset_table()
+        self._load_presets()
 
-    def setup_preset_table(self):
+    def _setup_preset_table(self):
         """Setup the preset table with all necessary configurations"""
         self.preset_table.setColumnCount(2)
         self.preset_table.setHorizontalHeaderLabels(['Preset Name', 'Command Template'])
@@ -53,23 +53,23 @@ class PresetManager:
         self.preset_table.setMinimumHeight(total_height)
         self.preset_table.setContextMenuPolicy(Qt.CustomContextMenu)
     
-    def load_presets(self):
+    def _load_presets(self):
         presets = []
         if os.path.exists("presets.json"):
             with open("presets.json", "r", encoding="utf-8") as f:
                 presets = json.load(f)
-        self.load_presets_into_table(presets)
+        self._load_presets_into_table(presets)
 
-    def load_presets_into_table(self, presets):
+    def _load_presets_into_table(self, presets):
         """Populate the preset table with data"""
         self.preset_table.setRowCount(0)
         for preset in presets:
             row = self.preset_table.rowCount()
             self.preset_table.insertRow(row)
-            name_item = QTableWidgetItem(preset['name'])
-            cmd_item = QTableWidgetItem(preset['command'])
-            self.preset_table.setItem(row, 0, name_item)
-            self.preset_table.setItem(row, 1, cmd_item)
+            preset_name_item = QTableWidgetItem(preset['name'])
+            command_template_item = QTableWidgetItem(preset['command'])
+            self.preset_table.setItem(row, 0, preset_name_item)
+            self.preset_table.setItem(row, 1, command_template_item)
 
     def add_preset(self):
         """Show dialog to add new preset"""
@@ -143,9 +143,9 @@ class PresetManager:
     def apply_preset(self, row):
         """Apply preset command to main command input"""
         if row >= 0:
-            cmd_item = self.preset_table.item(row, 1)
-            if cmd_item:
-                self.cmd_input.setPlainText(cmd_item.text())
+            command_template_item = self.preset_table.item(row, 1)
+            if command_template_item:
+                self.cmd_input.setPlainText(command_template_item.text())
 
     def show_context_menu(self, pos):
         """Show context menu for preset table"""
