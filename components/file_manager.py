@@ -139,6 +139,20 @@ class FileManager(QObject):
         self.file_table.itemDoubleClicked.connect(self.open_file_on_doubleclick)
         self.file_table.files_dropped.connect(self.start_loading_files)
 
+    def _add_file_to_table(self, file_info: FileInfo):
+        """Slot to receive a FileInfo object and add it to the table."""
+        self.file_table.add_file(file_info)
+
+    def _on_loading_finished(self):
+        """Cleans up the file loader thread after it has finished."""
+        self.log_signal.emit("Finished loading file information.")
+        self.file_loader_thread.deleteLater()
+        self.file_loader_thread = None
+
+    def _update_loading_progress(self, current: int, total: int, filename: str):
+        """Updates the log with file loading progress."""
+        self.log_signal.emit(f"Loading: {current}/{total} - {filename}")
+
     def get_widget(self):
         """Returns the underlying QTableWidget instance."""
         return self.file_table
@@ -169,20 +183,6 @@ class FileManager(QObject):
         self.file_loader_thread.progress_signal.connect(self._update_loading_progress)
         self.file_loader_thread.finished.connect(self._on_loading_finished)
         self.file_loader_thread.start()
-
-    def _add_file_to_table(self, file_info: FileInfo):
-        """Slot to receive a FileInfo object and add it to the table."""
-        self.file_table.add_file(file_info)
-
-    def _on_loading_finished(self):
-        """Cleans up the file loader thread after it has finished."""
-        self.log_signal.emit("Finished loading file information.")
-        self.file_loader_thread.deleteLater()
-        self.file_loader_thread = None
-
-    def _update_loading_progress(self, current: int, total: int, filename: str):
-        """Updates the log with file loading progress."""
-        self.log_signal.emit(f"Loading: {current}/{total} - {filename}")
 
     def open_file_on_doubleclick(self, item):
         """Opens the file with the default system application when double-clicked.
@@ -335,6 +335,12 @@ class DragDropTable(QTableWidget):
         self.setAcceptDrops(True)
         self.setSelectionBehavior(QTableWidget.SelectRows)
         self.setEditTriggers(QTableWidget.NoEditTriggers)
+    
+    def _create_table_item(self, text: str, alignment: Qt.AlignmentFlag = Qt.AlignVCenter | Qt.AlignLeft) -> QTableWidgetItem:
+        """Creates a QTableWidgetItem with specified text and alignment."""
+        item = QTableWidgetItem(text)
+        item.setTextAlignment(alignment)
+        return item
 
     def dragEnterEvent(self, event):
         """Handles the drag enter event to accept file URLs."""
@@ -359,13 +365,7 @@ class DragDropTable(QTableWidget):
             self.files_dropped.emit(filepaths)
         else:
             event.ignore()
-
-    def _create_table_item(self, text: str, alignment: Qt.AlignmentFlag = Qt.AlignVCenter | Qt.AlignLeft) -> QTableWidgetItem:
-        """Creates a QTableWidgetItem with specified text and alignment."""
-        item = QTableWidgetItem(text)
-        item.setTextAlignment(alignment)
-        return item
-
+    
     def add_file(self, file_info: FileInfo):
         """Adds a new file to the table, avoiding duplicates."""
         # Check duplicate
@@ -410,32 +410,6 @@ class FileLoaderThread(QThread):
         self.input_files = input_files
         self._is_stopped = False
 
-    def stop(self):
-        """Sets a flag to gracefully stop the thread's execution."""
-        self._is_stopped = True
-
-    def run(self):
-        """The main execution method of the thread."""
-        # Check for ffprobe existence once before starting the loop.
-        if not self._is_ffprobe_available():
-            self.log_signal.emit("Error: ffprobe not found. Please ensure ffmpeg is in your system's PATH.")
-            return
-
-        total = len(self.input_files)
-        for idx, filepath in enumerate(self.input_files):
-            if self._is_stopped:
-                break
-
-            self.progress_signal.emit(idx + 1, total, os.path.basename(filepath))
-
-            ffprobe_output = self._run_ffprobe(filepath)
-            if not ffprobe_output:
-                self.log_signal.emit(f"Failed to get info for file: {filepath}")
-                continue
-
-            file_info = FileInfo(filepath, ffprobe_output)
-            self.add_file_signal.emit(file_info)
-
     def _run_ffprobe(self, filepath: str) -> dict | None:
         """Executes ffprobe on a given file to extract media information.
 
@@ -469,3 +443,29 @@ class FileLoaderThread(QThread):
         """Checks if ffprobe command is available in the system's PATH."""
         from shutil import which
         return which('ffprobe') is not None
+    
+    def stop(self):
+        """Sets a flag to gracefully stop the thread's execution."""
+        self._is_stopped = True
+
+    def run(self):
+        """The main execution method of the thread."""
+        # Check for ffprobe existence once before starting the loop.
+        if not self._is_ffprobe_available():
+            self.log_signal.emit("Error: ffprobe not found. Please ensure ffmpeg is in your system's PATH.")
+            return
+
+        total = len(self.input_files)
+        for idx, filepath in enumerate(self.input_files):
+            if self._is_stopped:
+                break
+
+            self.progress_signal.emit(idx + 1, total, os.path.basename(filepath))
+
+            ffprobe_output = self._run_ffprobe(filepath)
+            if not ffprobe_output:
+                self.log_signal.emit(f"Failed to get info for file: {filepath}")
+                continue
+
+            file_info = FileInfo(filepath, ffprobe_output)
+            self.add_file_signal.emit(file_info)
