@@ -12,7 +12,7 @@ class App(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("FFmpeg GUI")
-        self.resize(1200, 750)
+        self.resize(1400, 750)
         central = QWidget()
         self.setCentralWidget(central)
         icon_path = resource_path("icon/ffmpeg.ico")
