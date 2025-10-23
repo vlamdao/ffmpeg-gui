@@ -176,62 +176,71 @@ class PresetManager:
             json.dump(presets, f, indent=2, ensure_ascii=False)
 
 class PresetDialog(QDialog):
+    _LABEL_WIDTH = 80
+    _INPUT_WIDTH = 500
+    _CMD_INPUT_HEIGHT = 70
+    _BUTTON_WIDTH = 200
+    _ICON_SIZE = QSize(24, 24)
+    _BUTTON_STYLE = """
+        QPushButton {
+            font-size: 13px;
+            padding: 10px 20px;
+            font-weight: semi-bold;
+        }
+    """
+
     def __init__(self, parent=None, title="Preset", preset_name="", preset_command=""):
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.setup_ui(preset_name, preset_command)
+        self._preset_name = preset_name
+        self._preset_command = preset_command
 
-    def setup_ui(self, preset_name, preset_command):
-        layout = QVBoxLayout(self)
+        self._setup_ui()
 
-        # Name input
-        name_layout = QHBoxLayout()
-        name_label = QLabel("Preset name:")
-        name_label.setFixedWidth(80)
-        self.name_input = QLineEdit(preset_name)
-        self.name_input.setFixedWidth(500)
+    def _setup_ui(self):
+        self._create_widgets()
+        self._create_layout()
 
-        name_layout.addWidget(name_label)
-        name_layout.addWidget(self.name_input)
-        layout.addLayout(name_layout)
+    def _create_widgets(self):
+        self.name_label = QLabel("Preset name:")
+        self.name_label.setFixedWidth(self._LABEL_WIDTH)
+        self.name_input = QLineEdit(self._preset_name)
+        self.name_input.setFixedWidth(self._INPUT_WIDTH)
 
-        # Command input
-        cmd_layout = QHBoxLayout()
-        cmd_label = QLabel("Command:")
-        cmd_label.setFixedWidth(80)
-        self.cmd_input = QTextEdit(preset_command)
-        self.cmd_input.setFixedHeight(70)
-        self.cmd_input.setFixedWidth(500)
+        self.cmd_label = QLabel("Command:")
+        self.cmd_label.setFixedWidth(self._LABEL_WIDTH)
+        self.cmd_input = QTextEdit(self._preset_command)
+        self.cmd_input.setFixedHeight(self._CMD_INPUT_HEIGHT)
+        self.cmd_input.setFixedWidth(self._INPUT_WIDTH)
         self.cmd_input.setFont(QFont("Consolas", 9))
-        cmd_layout.addWidget(cmd_label)
-        cmd_layout.addWidget(self.cmd_input)
-        layout.addLayout(cmd_layout)
 
-        # Buttons
-        button_style = """
-            QPushButton {
-                font-size: 13px;
-                padding: 10px 20px;
-                font-weight: semi-bold;
-            }
-        """
+        self.ok_button = self._create_button("OK", "icon/ok.png", self.accept)
+        self.cancel_button = self._create_button("Cancel", "icon/cancel.png", self.reject)
+
+    def _create_layout(self):
+        main_layout = QVBoxLayout(self)
+
+        name_layout = QHBoxLayout()
+        name_layout.addWidget(self.name_label)
+        name_layout.addWidget(self.name_input)
+        main_layout.addLayout(name_layout)
+
+        cmd_layout = QHBoxLayout()
+        cmd_layout.addWidget(self.cmd_label)
+        cmd_layout.addWidget(self.cmd_input)
+        main_layout.addLayout(cmd_layout)
+
         button_layout = QHBoxLayout()
         button_layout.setSpacing(5)
+        button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
+        main_layout.addLayout(button_layout)
 
-        ok_button = QPushButton("OK")
-        ok_button.setStyleSheet(button_style)
-        ok_button.setIcon(QIcon(resource_path("icon/ok.png")))
-        ok_button.setIconSize(QSize(24, 24))
-        ok_button.setFixedWidth(200)
-
-        cancel_button = QPushButton("Cancel")
-        cancel_button.setStyleSheet(button_style)
-        cancel_button.setIcon(QIcon(resource_path("icon/cancel.png")))
-        cancel_button.setIconSize(QSize(24, 24))
-        cancel_button.setFixedWidth(200)
-
-        ok_button.clicked.connect(self.accept)
-        cancel_button.clicked.connect(self.reject)
-        button_layout.addWidget(ok_button)
-        button_layout.addWidget(cancel_button)
-        layout.addLayout(button_layout)
+    def _create_button(self, text, icon_path, on_click):
+        button = QPushButton(text)
+        button.setStyleSheet(self._BUTTON_STYLE)
+        button.setIcon(QIcon(resource_path(icon_path)))
+        button.setIconSize(self._ICON_SIZE)
+        button.setFixedWidth(self._BUTTON_WIDTH)
+        button.clicked.connect(on_click)
+        return button

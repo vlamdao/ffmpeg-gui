@@ -27,12 +27,10 @@ class App(QMainWindow):
         self.logger = Logger()
         self.command_input = CommandInput(self)
         self.output_path = OutputPath(self)
-        
-        # BatchProcessor depends on the components above, so it must be initialized after them.
-        self.batch_processor = BatchProcessor(self)
-        self.control_panel = ControlPanel(self)
         self.preset_table = QTableWidget()
         self.preset_manager = PresetManager(self, self.preset_table, self.command_input.get_command_widget())
+        self.batch_processor = BatchProcessor(self)
+        self.control_panel = ControlPanel(self)
 
     def _setup_layout(self):
         """Set up the main window layout and add all component widgets."""

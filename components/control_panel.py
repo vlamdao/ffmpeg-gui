@@ -52,7 +52,7 @@ class ControlPanel(QWidget):
                 'text': ' Add preset',
                 'icon': 'addpreset.png',
                 'tooltip': 'Add new preset',
-                'connection': lambda: self.parent.add_preset_dialog()
+                'connection': self.parent.preset_manager.add_preset
             }
         }
 
