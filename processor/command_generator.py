@@ -49,6 +49,7 @@ class CommandGenerator(object):
             template = template.replace(placeholder, value)
         return template
     
+    @staticmethod
     def _finalize_command(cmd: str) -> str:
         """Adds default ffmpeg flags like -y and -loglevel if not present."""
         if 'ffmpeg ' in cmd and '-y ' not in cmd:
@@ -97,5 +98,3 @@ class CommandGenerator(object):
         cmd = self._populate_template(template, replacements)
 
         return self._finalize_command(cmd)
-
-
