@@ -135,6 +135,7 @@ class FileManager(QObject):
         self.file_loader_thread = FileLoaderThread(file_list)
         self.file_loader_thread.log_signal.connect(self.log_signal.emit)
         self.file_loader_thread.add_file_signal.connect(self._on_add_file)
+        self.file_loader_thread.progress_signal.connect(self._on_loading_progress)
         self.file_loader_thread.finished.connect(self._on_loading_finished)
         self.file_loader_thread.start()
 
@@ -146,6 +147,10 @@ class FileManager(QObject):
         self.log_signal.emit("Finished loading file information.")
         self.file_loader_thread.deleteLater()
         self.file_loader_thread = None
+
+    def _on_loading_progress(self, current, total, filename):
+        """Updates the log with file loading progress."""
+        self.log_signal.emit(f"{current}/{total} - {filename}")
 
     def open_file_on_doubleclick(self, item):
         row = item.row()
@@ -198,18 +203,6 @@ class FileManager(QObject):
             self.file_table.setCellWidget(row, self.file_table.Column.STATUS.value, label)
 
     def get_selected_files(self):
-        """Get list of selected files from the table
-    
-        Returns:
-            tuple: A tuple containing:
-                - list: List of tuples (row_number, filename, folder) for each selected file
-                - set: Set of selected row indices
-            
-        Example:
-            files, selected_rows = file_manager.get_selected_files()
-            # files = [(0, "video1.mp4", "C:/Videos"), (1, "video2.mp4", "C:/Videos")]
-            # selected_rows = {0, 1}
-        """
         selected_rows = {idx.row() for idx in self.file_table.selectionModel().selectedRows()}
         files = []
         for row_number in selected_rows:
@@ -346,48 +339,54 @@ class DragDropTable(QTableWidget):
 class FileLoaderThread(QThread):
     log_signal = pyqtSignal(str)
     add_file_signal = pyqtSignal(FileInfo) 
+    progress_signal = pyqtSignal(int, int, str)
 
-    def __init__(self, input_files):
+    def __init__(self, input_files: list[str]):
         super().__init__()
         self.input_files = input_files
         self._is_stopped = False
 
     def stop(self):
+        """Sets a flag to gracefully stop the thread's execution."""
         self._is_stopped = True
 
     def run(self):
+        """The main execution method of the thread."""
+        # Check for ffprobe existence once before starting the loop.
+        if not self.is_ffprobe_available():
+            self.log_signal.emit("Error: ffprobe not found. Please ensure ffmpeg is in your system's PATH.")
+            return
+
         total = len(self.input_files)
         for idx, filepath in enumerate(self.input_files):
             if self._is_stopped:
                 break
 
+            self.progress_signal.emit(idx + 1, total, os.path.basename(filepath))
+
             ffprobe_output = self.run_ffprobe(filepath)
             if not ffprobe_output:
                 self.log_signal.emit(f"Failed to get info for file: {filepath}")
                 continue
-            else:
-                self.log_signal.emit(f"{idx+1}/{total} - {filepath}")
 
             file_info = FileInfo(filepath, ffprobe_output)
             self.add_file_signal.emit(file_info)
-            QCoreApplication.processEvents()
 
-    def run_ffprobe(self, file):
+    def run_ffprobe(self, filepath: str) -> dict | None:
         """Executes ffprobe on a given file to extract media information.
             Args:
-                file (str): The absolute path to the media file to be analyzed.
+                filepath (str): The absolute path to the media file to be analyzed.
 
             Returns:
                 dict | None: A dictionary containing the parsed JSON output from
                             ffprobe if successful, otherwise None.
         """
         try:
-            startupinfo = None
-            if sys.platform == "win32":
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo = subprocess.STARTUPINFO() if sys.platform == "win32" else None
+            if startupinfo: startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
             result = subprocess.run(
-                ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', file],
+                ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', filepath],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -396,9 +395,12 @@ class FileLoaderThread(QThread):
                 startupinfo=startupinfo
             )
             return json.loads(result.stdout)
-        except FileNotFoundError:
-            self.log_signal.emit("ffprobe not found. Please ensure ffmpeg is in your system's PATH.")
-            return None
         except Exception as e:
-            self.log_signal.emit(f"Error running ffprobe for {file}: {e}")
+            self.log_signal.emit(f"Error running ffprobe for {filepath}: {e}")
             return None
+
+    @staticmethod
+    def is_ffprobe_available() -> bool:
+        """Checks if ffprobe command is available in the system's PATH."""
+        from shutil import which
+        return which('ffprobe') is not None
