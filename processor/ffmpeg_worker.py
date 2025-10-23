@@ -47,32 +47,33 @@ class FFmpegWorker(QThread):
                 
                 # Update status of all selected files after processing
                 if success:
-                    self.update_all_status("Successed")
+                    self.update_all_status("Success")
                 elif self._is_stopped:
                     self.update_all_status("Stopped")
                 else:
                     self.update_all_status("Failed")
 
             case "others_command":
-                for file in self.selected_files:
+                for row_index, filename, folder in self.selected_files:
                     if self._is_stopped:
-                        self.update_status.emit(file[0], "Stopped")
+                        self.update_status.emit(row_index, "Stopped")
                         break
                     
-                    cmd = self.cmd_generator.generate_others_command(file)
+                    current_file_tuple = (row_index, filename, folder)
+                    cmd = self.cmd_generator.generate_others_command(current_file_tuple)
                     if cmd:
                         # Update status to "Processing" for current file
-                        self.update_status.emit(file[0], "Processing")
+                        self.update_status.emit(row_index, "Processing")
 
-                        success = self.process_command(cmd, file[0])
+                        success = self.process_command(cmd, row_index)
 
                         # Update status for processed file
                         if success:
-                            self.update_status.emit(file[0], "Successed")
+                            self.update_status.emit(row_index, "Success")
                         elif self._is_stopped:
-                            self.update_status.emit(file[0], "Stopped")
+                            self.update_status.emit(row_index, "Stopped")
                         else:
-                            self.update_status.emit(file[0], "Failed")
+                            self.update_status.emit(row_index, "Failed")
 
             case _:
                 # Default case: pass
@@ -80,8 +81,8 @@ class FFmpegWorker(QThread):
                 pass
 
     def update_all_status(self, status):
-        for file in self.selected_files:
-            self.update_status.emit(file[0], status)
+        for row_index, _, _ in self.selected_files:
+            self.update_status.emit(row_index, status)
     
     def process_command(self, cmd, row_number: int):
         self.update_status.emit(row_number, "Processing")
