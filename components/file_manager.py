@@ -15,12 +15,26 @@ import subprocess
 import sys
 
 class FileInfo:
+    """A data class to store and process media file information.
+
+    This class is initialized with a file path and the raw JSON output
+    from ffprobe. It provides properties to access formatted media
+    attributes like resolution, codec, duration, etc., encapsulating
+    the logic for parsing and formatting this information.
+    """
     def __init__(self, filepath: str, metadata: dict):
+        """Initializes the FileInfo object.
+
+        Args:
+            filepath (str): The absolute path to the media file.
+            metadata (dict): The raw JSON output from an ffprobe analysis.
+        """
         self._filepath = filepath
         self._metadata = metadata
-        self._info = self._get_info_from_metadata()
+        self._info = self._parse_metadata()
 
-    def _get_info_from_metadata(self):
+    def _parse_metadata(self):
+        """Parses the raw ffprobe metadata to extract key information."""
         format_info = self._metadata.get('format', {})
         
         streams = self._metadata.get('streams', [])
@@ -38,10 +52,12 @@ class FileInfo:
 
     @property
     def filename(self) -> str:
+        """Returns the base name of the file."""
         return os.path.basename(self._filepath)
 
     @property
     def folder(self) -> str:
+        """Returns the directory path of the file."""
         return os.path.dirname(self._filepath)
 
     @property
@@ -102,23 +118,33 @@ class FileInfo:
         return "N/A"
 
 class FileManager(QObject):
+    """Manages the file list, loading operations, and user interactions.
+
+    This class acts as a controller for the file table. It handles adding
+    files (via dialog or drag-drop), loading their metadata in a background
+    thread, and updating their status during processing.
+    """
     log_signal = pyqtSignal(str)
 
     def __init__(self, parent):
+        """Initializes the FileManager."""
         super().__init__()
         self.parent = parent
         self.file_table = DragDropTable()
         self.file_loader_thread = None
-        self.setup_file_table()
+        self._setup_file_table()
 
-    def setup_file_table(self):
+    def _setup_file_table(self):
+        """Sets up signal-slot connections for the file table."""
         self.file_table.itemDoubleClicked.connect(self.open_file_on_doubleclick)
         self.file_table.files_dropped.connect(self.start_loading_files)
 
     def get_widget(self):
+        """Returns the underlying QTableWidget instance."""
         return self.file_table
 
     def add_files_dialog(self):
+        """Opens a file dialog to allow the user to select one or more files."""
         files, _ = QFileDialog.getOpenFileNames(
             self.parent,
             "Select files",
@@ -129,17 +155,23 @@ class FileManager(QObject):
             self.start_loading_files(files)
 
     def start_loading_files(self, file_list):
+        """Starts a background thread to load information for a list of files.
+
+        Args:
+            file_list (list[str]): A list of absolute file paths to process.
+        """
         if self.file_loader_thread is not None and self.file_loader_thread.isRunning():
             self.log_signal.emit("File loading already in progress. Please wait.")
             return
         self.file_loader_thread = FileLoaderThread(file_list)
         self.file_loader_thread.log_signal.connect(self.log_signal.emit)
-        self.file_loader_thread.add_file_signal.connect(self._on_add_file)
-        self.file_loader_thread.progress_signal.connect(self._on_loading_progress)
+        self.file_loader_thread.add_file_signal.connect(self._add_file_to_table)
+        self.file_loader_thread.progress_signal.connect(self._update_loading_progress)
         self.file_loader_thread.finished.connect(self._on_loading_finished)
         self.file_loader_thread.start()
 
-    def _on_add_file(self, file_info):
+    def _add_file_to_table(self, file_info: FileInfo):
+        """Slot to receive a FileInfo object and add it to the table."""
         self.file_table.add_file(file_info)
 
     def _on_loading_finished(self):
@@ -148,11 +180,16 @@ class FileManager(QObject):
         self.file_loader_thread.deleteLater()
         self.file_loader_thread = None
 
-    def _on_loading_progress(self, current, total, filename):
+    def _update_loading_progress(self, current: int, total: int, filename: str):
         """Updates the log with file loading progress."""
-        self.log_signal.emit(f"{current}/{total} - {filename}")
+        self.log_signal.emit(f"Loading: {current}/{total} - {filename}")
 
     def open_file_on_doubleclick(self, item):
+        """Opens the file with the default system application when double-clicked.
+
+        Args:
+            item (QTableWidgetItem): The table item that was double-clicked.
+        """
         row = item.row()
 
         filename_item = self.file_table.item(row, self.file_table.Column.FILENAME.value)
@@ -175,7 +212,12 @@ class FileManager(QObject):
             self.log_signal.emit(f"Cannot open file: {full_path}")
 
     def update_status(self, row, status):
-        """Updates the status icon and tooltip for a given row."""
+        """Updates the status icon in the table for a given row.
+
+        Args:
+            row (int): The row index to update.
+            status (str): The new status (e.g., "Processing", "Success", "Failed").
+        """
         icon_map = {
             "Processing": resource_path("icon/processing.png"),
             "Failed": resource_path("icon/failed.png"),
@@ -203,6 +245,13 @@ class FileManager(QObject):
             self.file_table.setCellWidget(row, self.file_table.Column.STATUS.value, label)
 
     def get_selected_files(self):
+        """Gets the data for all currently selected files in the table.
+
+        Returns:
+            tuple: A tuple containing:
+                - list: A list of tuples, where each tuple is (row_index, filename, folder).
+                - set: A set of selected row indices.
+        """
         selected_rows = {idx.row() for idx in self.file_table.selectionModel().selectedRows()}
         files = []
         for row_number in selected_rows:
@@ -288,18 +337,21 @@ class DragDropTable(QTableWidget):
         self.setEditTriggers(QTableWidget.NoEditTriggers)
 
     def dragEnterEvent(self, event):
+        """Handles the drag enter event to accept file URLs."""
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
         else:
             event.ignore()
 
     def dragMoveEvent(self, event):
+        """Handles the drag move event to accept file URLs."""
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
         else:
             event.ignore()
 
     def dropEvent(self, event):
+        """Handles the drop event to process dropped files."""
         if event.mimeData().hasUrls():
             event.setDropAction(Qt.CopyAction)
             event.accept()
@@ -337,11 +389,23 @@ class DragDropTable(QTableWidget):
         self.setItem(row, self.Column.STATUS.value, self._create_table_item("", Qt.AlignCenter))
 
 class FileLoaderThread(QThread):
+    """A QThread worker for loading and processing media file information.
+
+    This thread processes a list of file paths in the background to avoid
+    freezing the main application UI. For each file, it executes `ffprobe`
+    to extract media metadata, creates a `FileInfo` object, and emits signals
+    to update the UI with progress and results.
+    """
     log_signal = pyqtSignal(str)
     add_file_signal = pyqtSignal(FileInfo) 
     progress_signal = pyqtSignal(int, int, str)
 
     def __init__(self, input_files: list[str]):
+        """Initializes the FileLoaderThread.
+
+        Args:
+            input_files (list[str]): A list of absolute file paths to be processed.
+        """
         super().__init__()
         self.input_files = input_files
         self._is_stopped = False
@@ -353,7 +417,7 @@ class FileLoaderThread(QThread):
     def run(self):
         """The main execution method of the thread."""
         # Check for ffprobe existence once before starting the loop.
-        if not self.is_ffprobe_available():
+        if not self._is_ffprobe_available():
             self.log_signal.emit("Error: ffprobe not found. Please ensure ffmpeg is in your system's PATH.")
             return
 
@@ -364,7 +428,7 @@ class FileLoaderThread(QThread):
 
             self.progress_signal.emit(idx + 1, total, os.path.basename(filepath))
 
-            ffprobe_output = self.run_ffprobe(filepath)
+            ffprobe_output = self._run_ffprobe(filepath)
             if not ffprobe_output:
                 self.log_signal.emit(f"Failed to get info for file: {filepath}")
                 continue
@@ -372,14 +436,15 @@ class FileLoaderThread(QThread):
             file_info = FileInfo(filepath, ffprobe_output)
             self.add_file_signal.emit(file_info)
 
-    def run_ffprobe(self, filepath: str) -> dict | None:
+    def _run_ffprobe(self, filepath: str) -> dict | None:
         """Executes ffprobe on a given file to extract media information.
-            Args:
-                filepath (str): The absolute path to the media file to be analyzed.
 
-            Returns:
-                dict | None: A dictionary containing the parsed JSON output from
-                            ffprobe if successful, otherwise None.
+        Args:
+            filepath (str): The absolute path to the media file to be analyzed.
+
+        Returns:
+            dict | None: A dictionary containing the parsed JSON output from
+                         ffprobe if successful, otherwise None.
         """
         try:
             startupinfo = subprocess.STARTUPINFO() if sys.platform == "win32" else None
@@ -400,7 +465,7 @@ class FileLoaderThread(QThread):
             return None
 
     @staticmethod
-    def is_ffprobe_available() -> bool:
+    def _is_ffprobe_available() -> bool:
         """Checks if ffprobe command is available in the system's PATH."""
         from shutil import which
         return which('ffprobe') is not None
