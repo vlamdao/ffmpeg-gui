@@ -34,20 +34,13 @@ class ControlPanel(QWidget):
                 'text': ' Run',
                 'icon': 'run.png',
                 'tooltip': 'Start processing files',
-                'connection': lambda: self.parent.batch_processor.run_command(
-                    self.parent.file_manager,
-                    self.parent.command_input,
-                    self.parent.output_path,
-                    self.parent.logger
-                )
+                'connection': self.parent.batch_processor.run_command
             },
             'stop': {
                 'text': ' Stop',
                 'icon': 'stop.png',
                 'tooltip': 'Stop processing',
-                'connection': lambda: self.parent.batch_processor.stop_batch(
-                    self.parent.file_manager
-                )
+                'connection': self.parent.batch_processor.stop_batch
             },
             'remove': {
                 'text': ' Remove',

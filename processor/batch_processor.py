@@ -1,70 +1,58 @@
 from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtWidgets import QLabel
 from processor import FFmpegWorker
 from components import FileManager, CommandInput, OutputPath, Logger
 
 class BatchProcessor(QObject):
     log_signal = pyqtSignal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
-        self.worker = None
-        self.selected_files = []        # Selected files for processing
-        self.selected_rows = set()      # Selected rows for update status
+        self._ffmpeg_worker = None
 
-    def run_command(self, 
-                    file_manager: FileManager, 
-                    command_input: CommandInput, 
-                    output_path: OutputPath, 
-                    logger: Logger):
-        
-        logger.clear()
-        
-        # Get selected files and rows
-        # selected_files: List[str], selected_rows: Set[int]
-        # selected_files for processing, selected_rows for status update
-        self.selected_files, self.selected_rows = file_manager.get_selected_files()
-        
-        if not self.selected_files:
+        # Store references to components from the main app
+        self.file_manager: FileManager = self.parent.file_manager
+        self.command_input: CommandInput = self.parent.command_input
+        self.output_path: OutputPath = self.parent.output_path
+        self.logger: Logger = self.parent.logger
+
+    def run_command(self):
+        if self.is_processing():
+            self.log_signal.emit("A batch process is already running.")
+            return
+        self.logger.clear()
+
+        selected_files, selected_rows = self.file_manager.get_selected_files()
+        if not selected_files:
             self.log_signal.emit("No items selected to process.")
             return
         
-        self.start_batch(file_manager, command_input, output_path)
+        self.start_batch(selected_files, selected_rows)
 
-    def start_batch(self, 
-                    file_manager: FileManager, 
-                    command_input: CommandInput, 
-                    output_path: OutputPath):
-        
+    def start_batch(self, selected_files: list, selected_rows: set):
         # Update status to "Pending" for selected files
-        for row in self.selected_rows:
-            file_manager.update_status(row, "Pending")
-        
+        for row in selected_rows:
+            self.file_manager.update_status(row, "Pending")
+
         # Clear status for unselected files
-        for row in range(file_manager.file_table.rowCount()):
-            if row not in self.selected_rows:
-                file_manager.update_status(row, "")
+        for row in range(self.file_manager.file_table.rowCount()):
+            if row not in selected_rows:
+                self.file_manager.update_status(row, "")
 
         # Create and start worker
-        self.worker = FFmpegWorker(self.selected_files, command_input, output_path)
-        self.worker.update_status.connect(file_manager.update_status)
-        self.worker.log_signal.connect(self.log_signal.emit)
-        self.worker.start()
+        self._ffmpeg_worker = FFmpegWorker(selected_files, self.command_input, self.output_path)
+        self._ffmpeg_worker.update_status.connect(self.file_manager.update_status)
+        self._ffmpeg_worker.log_signal.connect(self.log_signal.emit)
+        self._ffmpeg_worker.finished.connect(self._on_worker_finished)
+        self._ffmpeg_worker.start()
 
-    def stop_batch(self, file_manager: FileManager):
-        if self.worker and self.worker.isRunning():
-            self.worker.stop()
+    def stop_batch(self):
+        if self.is_processing():
+            self._ffmpeg_worker.stop()
             self.log_signal.emit("Stopped batch processing...")
 
-        # Update status of selected files to "Stopped" if they were pending or processing
-        # The status column is at index 7
-        for row in self.selected_rows:
-            status_widget = file_manager.file_table.cellWidget(row, file_manager.file_table.Column.STATUS.value)
-            if status_widget and isinstance(status_widget, QLabel):
-                current_status = status_widget.toolTip()
-                if current_status in ["Pending", "Processing"]:
-                    file_manager.update_status(row, "Stopped")
+    def _on_worker_finished(self):
+        self._ffmpeg_worker = None
 
     def is_processing(self):
-        return self.worker is not None and self.worker.isRunning()
+        return self._ffmpeg_worker is not None and self._ffmpeg_worker.isRunning()
