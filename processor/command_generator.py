@@ -1,24 +1,34 @@
 import os
 from components import CommandInput, OutputPath
 
+# Constants for command template placeholders
+PLACEHOLDER_INPUT_PATH = "{input_path}"
+PLACEHOLDER_INPUT_FILE = "{input_file}"
+PLACEHOLDER_OUTPUT_PATH = "{output_path}"
+PLACEHOLDER_FILENAME = "{filename}"
+PLACEHOLDER_EXT = "{ext}"
+PLACEHOLDER_CONCAT_LIST = "{concat_list}"
+PLACEHOLDER_OUTPUT = "{output}"
+
 class CommandGenerator(object):
     def __init__(self, 
-                 selected_files: list[tuple[str, str, str]], 
-                 input_command: CommandInput,
+                 selected_files: list[tuple[int, str, str]], 
+                 command_input: CommandInput,
                  output_path: OutputPath):
 
         self.selected_files = selected_files
-        self.input_command = input_command
+        self.command_input = command_input
         self.output_path = output_path
 
-    def create_concat_file(self):
+    def _create_concat_file(self) -> str:
+        """Creates a temporary text file listing files for FFmpeg's concat demuxer."""
         # create .temp directory in project root, same as main.py
         base_dir = os.path.dirname(os.path.abspath(os.path.join(__file__, "..")))
         temp_dir = os.path.join(base_dir, ".temp")
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir, exist_ok=True)
         
-        # create concat_list.txt content
+        # Create concat_list.txt content
         concat_content = []
         for _, fname, fpath in self.selected_files:
             full_path = os.path.join(fpath, fname)
@@ -31,46 +41,57 @@ class CommandGenerator(object):
     
         return concat_file
 
-    def generate_concat_command(self):
+    def _populate_template(self, template: str, replacements: dict) -> str:
+        """Replaces placeholders in a command template with actual values."""
+        for placeholder, value in replacements.items():
+            template = template.replace(placeholder, value)
+        return template
+
+    def generate_concat_command(self) -> str | None:
+        """Generates the full command for a concat operation."""
         if not self.selected_files:
             return None
 
         _, _, inputfile_folder = self.selected_files[0]
 
-        concat_file = self.create_concat_file()
+        concat_file_path = self._create_concat_file()
         output_dir = self.output_path.get_completed_output_path(inputfile_folder, "output")
         
-        cmd = self.input_command.get_command()
-        cmd = cmd.replace("{concat_list}", f'"{concat_file}"')
-        cmd = cmd.replace("{output}", output_dir)
+        template = self.command_input.get_command()
+        replacements = {
+            PLACEHOLDER_CONCAT_LIST: f'{concat_file_path}',
+            PLACEHOLDER_OUTPUT: f'{output_dir}'
+        }
+        cmd = self._populate_template(template, replacements)
 
-        return finalize_command(cmd)
+        return _finalize_command(cmd)
 
-    def generate_others_command(self, input_file):
+    def generate_others_command(self, input_file: tuple[int, str, str]) -> str | None:
+        """Generates a command for a single-file operation."""
         if not input_file:
             return None
         
         _, filename, inputfile_folder = input_file
         name, ext = os.path.splitext(filename)
-        ext = ext.lstrip('.')
 
         output_dir = self.output_path.get_completed_output_path(inputfile_folder)
 
-        cmd = self.input_command.get_command()
-        cmd = cmd.replace("{input_path}", inputfile_folder)
-        cmd = cmd.replace("{output_path}", output_dir)
-        cmd = cmd.replace("{filename}", name)
-        cmd = cmd.replace("{ext}", ext)
+        template = self.command_input.get_command()
+        replacements = {
+            PLACEHOLDER_INPUT_FILE: f'{os.path.join(inputfile_folder, filename)}',
+            PLACEHOLDER_INPUT_PATH: f'{inputfile_folder}',
+            PLACEHOLDER_OUTPUT_PATH: f'{output_dir}',
+            PLACEHOLDER_FILENAME: name,
+            PLACEHOLDER_EXT: ext.lstrip('.')
+        }
+        cmd = self._populate_template(template, replacements)
 
-        return finalize_command(cmd)
+        return _finalize_command(cmd)
 
-def finalize_command(cmd):
-    # -y to overwrite without asking
-    if '-y' not in cmd:
-        cmd = cmd.replace("ffmpeg ", "ffmpeg -y ")
-
-    # set loglevel to warning if not specified
-    if '-loglevel' not in cmd:
-        cmd = cmd.replace("ffmpeg ", "ffmpeg -loglevel warning ")
-
+def _finalize_command(cmd: str) -> str:
+    """Adds default ffmpeg flags like -y and -loglevel if not present."""
+    if 'ffmpeg ' in cmd and '-y ' not in cmd:
+        cmd = cmd.replace("ffmpeg ", "ffmpeg -y ", 1)
+    if 'ffmpeg ' in cmd and '-loglevel ' not in cmd:
+        cmd = cmd.replace("ffmpeg ", "ffmpeg -loglevel warning ", 1)
     return cmd
