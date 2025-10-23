@@ -45,6 +45,7 @@ class SearchHighlighter(QSyntaxHighlighter):
         self._current_match_pos = current_match_pos
         self.rehighlight()
 
+    # Inherited from QSyntaxHighlighter
     def highlightBlock(self, text: str):
         """
         Highlights a block of text based on the set pattern.
@@ -69,7 +70,7 @@ class SearchHighlighter(QSyntaxHighlighter):
             if index == -1:
                 break
             absolute_pos = block_pos + index
-            # Tái sử dụng các đối tượng format đã được tạo sẵn.
+            # Reuse pre-created format objects.
             if absolute_pos == self._current_match_pos:
                 self.setFormat(index, length, self.current_match_format)
             else:
@@ -78,11 +79,20 @@ class SearchHighlighter(QSyntaxHighlighter):
             start = index + length
 
 class Logger(QWidget):
+    """
+    A widget for displaying logs with search and highlighting capabilities.
+
+    This component consists of a read-only text area for log messages and
+    a search bar with "Previous" and "Next" buttons to navigate through
+    search results.
+    """
     def __init__(self):
+        """Initializes the Logger widget."""
         super().__init__()
         self.setup_ui()
         
     def setup_ui(self):
+        """Sets up the user interface for the logger and search controls."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
@@ -101,7 +111,8 @@ class Logger(QWidget):
         
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search log...")
-        self.search_input.returnPressed.connect(self.perform_search)
+        self.search_input.returnPressed.connect(self._on_search_enter_pressed)
+        self.search_input.textChanged.connect(self._on_search_text_changed)
         self.search_input.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         
         self.prev_btn = QPushButton("Previous")
@@ -122,69 +133,128 @@ class Logger(QWidget):
         # =======================================
         self.highlighter = SearchHighlighter(self.log_view.document())
         self.search_pattern = ""
-        self.current_match = -1
+        self.current_match_index = -1
+        self._search_results = []
+        self._search_results_dirty = True
+
+    def _on_search_enter_pressed(self):
+        """Handles the Enter key press in the search input field."""
+        current_text = self.search_input.text()
+        # If the search text is new, perform a new search.
+        # Otherwise, just find the next occurrence.
+        if current_text != self.search_pattern:
+            self.perform_search(current_text)
+        else:
+            self.search_next()
+
+    def _on_search_text_changed(self, text: str):
+        """Clears highlighting if the search input is empty."""
+        if not text:
+            self.search_pattern = ""
+            self.current_match_index = -1
+            self._search_results = []
+            self._search_results_dirty = True
+            self.highlighter.set_pattern("") # Trigger rehighlight with no pattern
+
+    def _update_search_results_if_needed(self):
+        """Performs search and caches results if the pattern or log has changed."""
+        if not self.search_pattern:
+            self._search_results = []
+            self.highlighter.set_pattern("")
+            return
+
+        if self._search_results_dirty:
+            self._search_results = []
+            text = self.log_view.toPlainText()
+            # Use QRegularExpression for a more robust and potentially faster search
+            # but for now, we stick to the simple find
+            pattern_lower = self.search_pattern.lower()
+            text_lower = text.lower()
+            
+            start = 0
+            while True:
+                index = text_lower.find(pattern_lower, start)
+                if index == -1:
+                    break
+                self._search_results.append(index)
+                start = index + 1
+            
+            self._search_results_dirty = False
 
     def get_widget(self):
+        """Returns the widget instance itself."""
         return self
 
     def append_log(self, msg):
+        """
+        Appends a new message to the log view.
+
+        Args:
+            msg (str): The message to append.
+        """
         self.log_view.append(msg)
+        # Invalidate search results when new log is added
+        self._search_results_dirty = True
         
     def clear(self):
+        """Clears all messages from the log view."""
         self.log_view.clear()
         
     def perform_search(self, text=None):
+        """
+        Initiates a new search for the given text.
+
+        If no text is provided, it uses the current text from the search input.
+        It resets the search state and finds the first match.
+
+        Args:
+            text (str, optional): The text to search for. Defaults to None.
+        """
         if text is None:
             text = self.search_input.text()
         self.search_pattern = text
-        self.current_match = -1
+        self.current_match_index = -1
+        self._search_results_dirty = True
         self.search_next()
         
     def search_previous(self):
+        """Finds and highlights the previous occurrence of the search pattern."""
         if not self.search_pattern:
             return
         
-        text = self.log_view.toPlainText().lower()
-        search_pattern = self.search_pattern.lower()
-        
-        if self.current_match == -1:
-            self.current_match = text.count(search_pattern) - 1
-        else:
-            self.current_match = (self.current_match - 1) % text.count(search_pattern)
-            
+        self._update_search_results_if_needed()
+        if not self._search_results:
+            return
+
+        num_matches = len(self._search_results)
+        self.current_match_index = (self.current_match_index - 1 + num_matches) % num_matches
         self.highlight_current_match()
         
     def search_next(self):
+        """Finds and highlights the next occurrence of the search pattern."""
         if not self.search_pattern:
             return
-            
-        text = self.log_view.toPlainText().lower()
-        search_pattern = self.search_pattern.lower()
-        
-        if text.count(search_pattern) > 0:
-            self.current_match = (self.current_match + 1) % text.count(search_pattern)
-            self.highlight_current_match()
-            
-    def get_match_position(self, match_index):
-        """Get the position of a specific match in the text"""
-        if match_index < 0:
-            return -1
-            
-        text = self.log_view.toPlainText().lower()
-        search_pattern = self.search_pattern.lower()
-        
-        current_pos = 0
-        for i in range(match_index + 1):
-            current_pos = text.find(search_pattern, current_pos)
-            if current_pos == -1:  # if no match found
-                return -1
-            if i < match_index:
-                current_pos += 1
-                
-        return current_pos
+
+        self._update_search_results_if_needed()
+        if not self._search_results:
+            return
+
+        num_matches = len(self._search_results)
+        self.current_match_index = (self.current_match_index + 1) % num_matches
+        self.highlight_current_match()
 
     def highlight_current_match(self):
-        position = self.get_match_position(self.current_match)
+        """
+        Highlights the current search match and scrolls the view to it.
+
+        This method updates the highlighter to mark the current match with a
+        special color and ensures it is visible on the screen.
+        """
+        if not self._search_results or self.current_match_index < 0:
+            self.highlighter.set_pattern(self.search_pattern, -1)
+            return
+
+        position = self._search_results[self.current_match_index]
         self.highlighter.set_pattern(self.search_pattern, position)
         
         if position >= 0:
