@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import (
     QThread, pyqtSignal, QCoreApplication, Qt, 
     QObject, pyqtSignal, QUrl)
-from PyQt5.QtGui import QPixmap, QDesktopServices
+from PyQt5.QtGui import QPixmap, QDesktopServices, QIcon
 import os
 from utils import resource_path
 from .delegate import FontDelegate
@@ -169,36 +169,32 @@ class FileManager(QObject):
             self.log_signal.emit(f"Cannot open file: {full_path}")
 
     def update_status(self, row, status):
+        """Updates the status icon and tooltip for a given row."""
         icon_map = {
             "Processing": resource_path("icon/processing.png"),
             "Failed": resource_path("icon/failed.png"),
-            "Successed": resource_path("icon/success.png"),
+            "Success": resource_path("icon/success.png"),
+            "Successed": resource_path("icon/success.png"), # Handle old value for compatibility
             "Pending": resource_path("icon/pending.png"),
             "Stopped": resource_path("icon/stop.png"),
         }
+
+        # Remove old status (widget, text, icon)
+        self.file_table.removeCellWidget(row, 7)
+        item = self.file_table.item(row, 7)
+        if item:
+            item.setText("")
+            item.setIcon(QIcon())
+
         if status in icon_map:
+            # QLabel to hold the centered icon. This trick can center icon in column
             label = QLabel()
             pixmap = QPixmap(icon_map[status])
             pixmap = pixmap.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             label.setPixmap(pixmap)
             label.setAlignment(Qt.AlignCenter)
-            label.status = status
-            old_widget = self.file_table.cellWidget(row, 7)
-            if old_widget:
-                self.file_table.removeCellWidget(row, 7)
+            label.setToolTip(status.replace("Successed", "Success"))
             self.file_table.setCellWidget(row, 7, label)
-        elif status == "" or status is None:
-            old_widget = self.file_table.cellWidget(row, 7)
-            if old_widget:
-                self.file_table.removeCellWidget(row, 7)
-            self.file_table.setItem(row, 7, QTableWidgetItem(""))
-        else:
-            old_widget = self.file_table.cellWidget(row, 7)
-            if old_widget:
-                self.file_table.removeCellWidget(row, 7)
-            item = QTableWidgetItem(status)
-            item.setTextAlignment(Qt.AlignCenter)
-            self.file_table.setItem(row, 7, item)
 
     def get_selected_files(self):
         """Get list of selected files from the table

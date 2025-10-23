@@ -1,4 +1,5 @@
 from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtWidgets import QLabel
 from processor import FFmpegWorker
 from components import FileManager, CommandInput, OutputPath, Logger
 
@@ -57,14 +58,12 @@ class BatchProcessor(QObject):
             self.log_signal.emit("Stopped batch processing...")
 
         # Update status of selected files to "Stopped" if they were pending or processing
+        # The status column is at index 7
         for row in self.selected_rows:
-            status_widget = file_manager.file_table.cellWidget(row, 4)
-            if status_widget is not None:
-                if hasattr(status_widget, 'status') and status_widget.status in ["Pending", "Processing"]:
-                    file_manager.update_status(row, "Stopped")
-            else:
-                status_item = file_manager.file_table.item(row, 4)
-                if status_item is not None and status_item.text() in ["Pending", "Processing"]:
+            status_widget = file_manager.file_table.cellWidget(row, 7)
+            if status_widget and isinstance(status_widget, QLabel):
+                current_status = status_widget.toolTip()
+                if current_status in ["Pending", "Processing"]:
                     file_manager.update_status(row, "Stopped")
 
     def is_processing(self):
