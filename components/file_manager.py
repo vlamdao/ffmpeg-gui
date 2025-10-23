@@ -13,8 +13,95 @@ import json
 import subprocess
 import sys
 
+class FileInfo:
+    def __init__(self, filepath: str, metadata: dict):
+        self._filepath = filepath
+        self._metadata = metadata
+        self._info = self._get_info_from_metadata()
+
+    def _get_info_from_metadata(self):
+        format_info = self._metadata.get('format', {})
+        
+        streams = self._metadata.get('streams', [])
+        video_stream = next((stream for stream in streams if stream.get('codec_type') == 'video'), None)
+        return {
+            "duration": format_info.get('duration'),
+            "size": format_info.get('size'),
+            "video_stream": {
+                "codec": video_stream.get('codec_name'),
+                "width": video_stream.get('width'),
+                "height": video_stream.get('height'),
+                "bitrate": video_stream.get('bit_rate')
+            } if video_stream else None
+        }
+
+    @property
+    def filename(self) -> str:
+        return os.path.basename(self._filepath)
+
+    @property
+    def folder(self) -> str:
+        return os.path.dirname(self._filepath)
+
+    @property
+    def resolution(self) -> str:
+        if self._info.get("video_stream"):
+            width = self._info["video_stream"]["width"]
+            height = self._info["video_stream"]["height"]
+            if width and height:
+                return f'{width}x{height}'
+        return "N/A"
+
+    @property
+    def codec(self) -> str:
+        if self._info.get("video_stream"):
+            return self._info["video_stream"].get("codec", "N/A")
+        return "N/A"
+
+    @property
+    def bitrate(self) -> str:
+        if self._info.get("video_stream"):
+            bitrate_val = self._info["video_stream"].get("bitrate")
+            if bitrate_val:
+                try:
+                    bitrate_val = float(bitrate_val)
+                    if bitrate_val < 0: return "N/A"
+                    kbps = bitrate_val / 1000
+                    return f"{kbps / 1000:.2f} Mbps" if kbps >= 1000 else f"{kbps:.1f} kbps"
+                except (ValueError, TypeError):
+                    return "N/A"
+        return "N/A"
+
+    @property
+    def duration(self) -> str:
+        seconds = self._info.get("duration")
+        if seconds:
+            try:
+                seconds = float(seconds)
+                m, s = divmod(seconds, 60)
+                h, m = divmod(m, 60)
+                return f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
+            except (ValueError, TypeError):
+                return "N/A"
+        return "N/A"
+
+    @property
+    def size(self) -> str:
+        size_bytes = self._info.get("size")
+        if size_bytes:
+            try:
+                size_bytes_float = float(size_bytes)
+                if size_bytes_float == 0: return "0B"
+                size_name = ("B", "KB", "MB", "GB")
+                size_bytes_int = int(size_bytes_float)
+                i = int(abs(size_bytes_int).bit_length() - 1) // 10 if size_bytes_int > 0 else 0
+                return f"{size_bytes_float / (1024**i):.2f} {size_name[i]}"
+            except (ValueError, TypeError):
+                return "N/A"
+        return "N/A"
+
 class FileManager(QObject):
-    log_signal = pyqtSignal(str)  # For logging messages
+    log_signal = pyqtSignal(str)
 
     def __init__(self, parent):
         super().__init__()
@@ -46,11 +133,12 @@ class FileManager(QObject):
             return
         self.file_loader_thread = FileLoaderThread(file_list)
         self.file_loader_thread.log_signal.connect(self.log_signal.emit)
-        self.file_loader_thread.add_file_signal.connect(self.on_add_file_received)
+        self.file_loader_thread.add_file_signal.connect(self.file_table.add_file)
         self.file_loader_thread.start()
 
-    def on_add_file_received(self, filename, folder, duration_str, size_str):
-        self.file_table.add_file(filename, folder, duration_str, size_str)
+    # def on_add_file_received(self, file_info: FileInfo):
+    #     """Slot to receive FileInfo object and add it to the table."""
+    #     self.file_table.add_file(file_info)
 
     def open_file_on_doubleclick(self, item):
         row = item.row()
@@ -76,22 +164,22 @@ class FileManager(QObject):
             label.setPixmap(pixmap)
             label.setAlignment(Qt.AlignCenter)
             label.status = status
-            old_widget = self.file_table.cellWidget(row, 4)
+            old_widget = self.file_table.cellWidget(row, 7)
             if old_widget:
-                self.file_table.removeCellWidget(row, 4)
-            self.file_table.setCellWidget(row, 4, label)
+                self.file_table.removeCellWidget(row, 7)
+            self.file_table.setCellWidget(row, 7, label)
         elif status == "" or status is None:
-            old_widget = self.file_table.cellWidget(row, 4)
+            old_widget = self.file_table.cellWidget(row, 7)
             if old_widget:
-                self.file_table.removeCellWidget(row, 4)
-            self.file_table.setItem(row, 4, QTableWidgetItem(""))
+                self.file_table.removeCellWidget(row, 7)
+            self.file_table.setItem(row, 7, QTableWidgetItem(""))
         else:
-            old_widget = self.file_table.cellWidget(row, 4)
+            old_widget = self.file_table.cellWidget(row, 7)
             if old_widget:
-                self.file_table.removeCellWidget(row, 4)
+                self.file_table.removeCellWidget(row, 7)
             item = QTableWidgetItem(status)
             item.setTextAlignment(Qt.AlignCenter)
-            self.file_table.setItem(row, 4, item)
+            self.file_table.setItem(row, 7, item)
 
     def get_selected_files(self):
         """Get list of selected files from the table
@@ -127,8 +215,8 @@ class DragDropTable(QTableWidget):
         super().__init__(*args, **kwargs)
         self.setItemDelegate(FontDelegate(font_size=8))
         self.setAcceptDrops(True)
-        self.setColumnCount(5)
-        self.setHorizontalHeaderLabels(['Filename', 'Path', 'Length', 'Size', 'Status'])
+        self.setColumnCount(8)
+        self.setHorizontalHeaderLabels(['Filename', 'Path', 'Resolution', 'Codec', 'Bit rate' ,'Duration', 'Size', 'Status'])
 
         header = self.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)
@@ -136,14 +224,21 @@ class DragDropTable(QTableWidget):
         header.setSectionResizeMode(2, QHeaderView.Fixed)
         header.setSectionResizeMode(3, QHeaderView.Fixed)
         header.setSectionResizeMode(4, QHeaderView.Fixed)
+        header.setSectionResizeMode(5, QHeaderView.Fixed)
+        header.setSectionResizeMode(6, QHeaderView.Fixed)
+        header.setSectionResizeMode(7, QHeaderView.Fixed)
         # align center for duration and size columns
         header.setDefaultAlignment(Qt.AlignCenter)
         # disable auto bold for header sections when select a item
         header.setHighlightSections(False)
 
-        self.setColumnWidth(2, 70)
-        self.setColumnWidth(3, 75)
-        self.setColumnWidth(4, 50)
+        self.setColumnWidth(2, 100)
+        self.setColumnWidth(3, 70)
+        self.setColumnWidth(4, 80)
+        self.setColumnWidth(5, 80)
+        self.setColumnWidth(6, 80)
+        self.setColumnWidth(7, 60)
+
 
         # select entire row when clicked on an item
         self.setSelectionBehavior(QTableWidget.SelectRows)
@@ -182,62 +277,78 @@ class DragDropTable(QTableWidget):
         else:
             event.ignore()
 
-    def add_file(self, filename, inputfile_folder, duration_str, size_str):
+    def set_item(self, row, column, item, align):
+        item = QTableWidgetItem(item)
+        match align:
+            case "center":
+                item.setTextAlignment(Qt.AlignCenter)
+            case "left":
+                item.setTextAlignment(Qt.AlignLeft)
+            case "right":
+                item.setTextAlignment(Qt.AlignRight)
+        super().setItem(row, column, item)
+
+    def add_file(self, file_info: FileInfo):
         for row in range(self.rowCount()):
-            if self.item(row, 0).text() == filename and self.item(row, 1).text() == inputfile_folder:
+            if self.item(row, 0).text() == file_info.filename and self.item(row, 1).text() == file_info.folder:
                 return
         row = self.rowCount()
         self.insertRow(row)
-        self.setItem(row, 0, QTableWidgetItem(filename))
-        self.setItem(row, 1, QTableWidgetItem(inputfile_folder))
 
-        d_item = QTableWidgetItem(duration_str)
-        d_item.setTextAlignment(Qt.AlignCenter)
-        self.setItem(row, 2, d_item)
-
-        size_item = QTableWidgetItem(size_str)
-        size_item.setTextAlignment(Qt.AlignCenter)
-        self.setItem(row, 3, size_item)
-
-        self.setItem(row, 4, QTableWidgetItem(""))
+        self.set_item(row, 0, file_info.filename, "left")
+        self.set_item(row, 1, file_info.folder, "left")
+        self.set_item(row, 2, file_info.resolution, "center")
+        self.set_item(row, 3, file_info.codec, "center")
+        self.set_item(row, 4, file_info.bitrate, "center")
+        self.set_item(row, 5, file_info.duration, "center")
+        self.set_item(row, 6, file_info.size, "center")
+        self.set_item(row, 7, "", "center")
 
 class FileLoaderThread(QThread):
     log_signal = pyqtSignal(str)
-    add_file_signal = pyqtSignal(str, str, str, str)
+    add_file_signal = pyqtSignal(FileInfo) 
 
-    def __init__(self, filepaths):
+    def __init__(self, input_files):
         super().__init__()
-        self.filepaths = filepaths
+        self.input_files = input_files
         self._is_stopped = False
 
     def stop(self):
         self._is_stopped = True
 
     def run(self):
-        total = len(self.filepaths)
-        for idx, filepath in enumerate(self.filepaths):
+        total = len(self.input_files)
+        for idx, filepath in enumerate(self.input_files):
             if self._is_stopped:
                 break
 
-            filename = os.path.basename(filepath)
-            folder = os.path.dirname(filepath)
-            filesize = format_size(os.path.getsize(filepath))
+            ffprobe_output = self.run_ffprobe(filepath)
+            if not ffprobe_output:
+                self.log_signal.emit(f"Failed to get info for file: {filepath}")
+                continue
+            else:
+                self.log_signal.emit(f"{idx+1}/{total} - {filepath}")
 
-            duration_sec = self.get_duration(filepath)
-            duration_str = format_duration(duration_sec)
-
-            self.log_signal.emit(f"{idx + 1}/{total}: {filename}, Duration: {duration_str}, Size: {filesize}")
-            self.add_file_signal.emit(filename, folder, duration_str, filesize)
+            file_info = FileInfo(filepath, ffprobe_output)
+            self.add_file_signal.emit(file_info)
             QCoreApplication.processEvents()
 
-    def get_duration(self, filepath):
+    def run_ffprobe(self, file):
+        """Executes ffprobe on a given file to extract media information.
+            Args:
+                file (str): The absolute path to the media file to be analyzed.
+
+            Returns:
+                dict | None: A dictionary containing the parsed JSON output from
+                            ffprobe if successful, otherwise None.
+        """
         try:
             startupinfo = None
             if sys.platform == "win32":
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             result = subprocess.run(
-                ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', filepath],
+                ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', file],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -245,26 +356,10 @@ class FileLoaderThread(QThread):
                 check=True,
                 startupinfo=startupinfo
             )
-            metadata = json.loads(result.stdout)
-            return float(metadata['format']['duration'])
-        except Exception:
+            return json.loads(result.stdout)
+        except FileNotFoundError:
+            self.log_signal.emit("ffprobe not found. Please ensure ffmpeg is in your system's PATH.")
             return None
-
-
-def format_duration(seconds):
-    if seconds is None:
-        return "N/A"
-    m, s = divmod(int(seconds), 60)
-    h, m = divmod(m, 60)
-    return f"{h:02d}:{m:02d}:{s:02d}"
-
-def format_size(size_bytes):
-    if size_bytes == 0:
-        return "0B"
-    size_name = ("B", "KB", "MB", "GB")
-    i = 0
-    p = 1024
-    while size_bytes >= p and i < len(size_name) - 1:
-        size_bytes /= p
-        i += 1
-    return f"{size_bytes:.2f} {size_name[i]}"
+        except Exception as e:
+            self.log_signal.emit(f"Error running ffprobe for {file}: {e}")
+            return None
