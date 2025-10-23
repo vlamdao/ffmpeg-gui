@@ -1,13 +1,11 @@
 import json, os
 from PyQt5.QtWidgets import (
-    QTableWidget, QTableWidgetItem, QInputDialog, 
-    QMessageBox, QMenu, QDialog, QVBoxLayout,
-    QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QHeaderView, QTextEdit
+    QTableWidget, QTableWidgetItem, QFormLayout,
+    QMessageBox, QMenu, QDialog, QTextEdit,
+    QLineEdit, QHeaderView,  QDialogButtonBox
 )
-from PyQt5.QtGui import QIcon, QFont
-from PyQt5.QtCore import Qt, QSize
-from utils import resource_path
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt
 from .delegate import FontDelegate
 
 class PresetManager:
@@ -60,8 +58,13 @@ class PresetManager:
                 presets = json.load(f)
         self._load_presets_into_table(presets)
 
-    def _load_presets_into_table(self, presets):
-        """Populate the preset table with data"""
+    def _load_presets_into_table(self, presets: list[dict]):
+        """Populate the table with preset data.
+        Args:
+            presets (list[dict]): A list of dictionaries, where each
+                                 dictionary represents a preset and contains
+                                 'name' and 'command' keys.
+        """
         self.preset_table.setRowCount(0)
         for preset in presets:
             row = self.preset_table.rowCount()
@@ -75,8 +78,7 @@ class PresetManager:
         """Show dialog to add new preset"""
         dialog = PresetDialog(self.parent, "Add Preset")
         if dialog.exec_() == QDialog.Accepted:
-            preset_name = dialog.name_input.text().strip()
-            command = dialog.cmd_input.toPlainText().strip()
+            preset_name, command = dialog.get_preset()
             
             if not preset_name or not command:
                 QMessageBox.warning(self.parent, "Error", "Both fields are required!")
@@ -105,10 +107,9 @@ class PresetManager:
 
         dialog = PresetDialog(self.parent, "Edit Preset", old_name, old_command)
         if dialog.exec_() == QDialog.Accepted:
-            new_name = dialog.name_input.text().strip()
-            new_command = dialog.cmd_input.toPlainText().strip()
+            new_name, new_command = dialog.get_preset()
 
-            if not new_name or not new_command:  # was checking undefined 'command' variable
+            if not new_name or not new_command:
                 QMessageBox.warning(self.parent, "Error", "Both fields are required!")
                 return
 
@@ -175,72 +176,36 @@ class PresetManager:
         with open("presets.json", "w", encoding="utf-8") as f:
             json.dump(presets, f, indent=2, ensure_ascii=False)
 
+
 class PresetDialog(QDialog):
-    _LABEL_WIDTH = 80
     _INPUT_WIDTH = 500
     _CMD_INPUT_HEIGHT = 70
-    _BUTTON_WIDTH = 200
-    _ICON_SIZE = QSize(24, 24)
-    _BUTTON_STYLE = """
-        QPushButton {
-            font-size: 13px;
-            padding: 10px 20px;
-            font-weight: semi-bold;
-        }
-    """
 
     def __init__(self, parent=None, title="Preset", preset_name="", preset_command=""):
         super().__init__(parent)
         self.setWindowTitle(title)
-        self._preset_name = preset_name
-        self._preset_command = preset_command
-
-        self._setup_ui()
-
-    def _setup_ui(self):
-        self._create_widgets()
-        self._create_layout()
-
-    def _create_widgets(self):
-        self.name_label = QLabel("Preset name:")
-        self.name_label.setFixedWidth(self._LABEL_WIDTH)
-        self.name_input = QLineEdit(self._preset_name)
-        self.name_input.setFixedWidth(self._INPUT_WIDTH)
-
-        self.cmd_label = QLabel("Command:")
-        self.cmd_label.setFixedWidth(self._LABEL_WIDTH)
-        self.cmd_input = QTextEdit(self._preset_command)
-        self.cmd_input.setFixedHeight(self._CMD_INPUT_HEIGHT)
-        self.cmd_input.setFixedWidth(self._INPUT_WIDTH)
+        
+        # Create widgets
+        self.name_input = QLineEdit(preset_name)
+        self.cmd_input = QTextEdit(preset_command)
         self.cmd_input.setFont(QFont("Consolas", 9))
+        
+        # Set initial sizes (can be adjusted by user)
+        self.name_input.setMinimumWidth(self._INPUT_WIDTH)
+        self.cmd_input.setMinimumWidth(self._INPUT_WIDTH)
+        self.cmd_input.setMinimumHeight(self._CMD_INPUT_HEIGHT)
 
-        self.ok_button = self._create_button("OK", "icon/ok.png", self.accept)
-        self.cancel_button = self._create_button("Cancel", "icon/cancel.png", self.reject)
+        # Create layout and add widgets
+        layout = QFormLayout(self)
+        layout.addRow("Preset Name:", self.name_input)
+        layout.addRow("Command:", self.cmd_input)
 
-    def _create_layout(self):
-        main_layout = QVBoxLayout(self)
+        # Add standard buttons
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
 
-        name_layout = QHBoxLayout()
-        name_layout.addWidget(self.name_label)
-        name_layout.addWidget(self.name_input)
-        main_layout.addLayout(name_layout)
-
-        cmd_layout = QHBoxLayout()
-        cmd_layout.addWidget(self.cmd_label)
-        cmd_layout.addWidget(self.cmd_input)
-        main_layout.addLayout(cmd_layout)
-
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(5)
-        button_layout.addWidget(self.ok_button)
-        button_layout.addWidget(self.cancel_button)
-        main_layout.addLayout(button_layout)
-
-    def _create_button(self, text, icon_path, on_click):
-        button = QPushButton(text)
-        button.setStyleSheet(self._BUTTON_STYLE)
-        button.setIcon(QIcon(resource_path(icon_path)))
-        button.setIconSize(self._ICON_SIZE)
-        button.setFixedWidth(self._BUTTON_WIDTH)
-        button.clicked.connect(on_click)
-        return button
+    def get_preset(self):
+        """Returns the preset name and command from the input fields."""
+        return self.name_input.text().strip(), self.cmd_input.toPlainText().strip()
