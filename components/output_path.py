@@ -2,76 +2,81 @@ from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QFileDialog
 )
-import os 
+from pathlib import Path
 
 class OutputPath(QWidget):
-    def __init__(self, parent=None, default_path="./output"):
+    """A widget for selecting and managing the output directory."""
+    def __init__(self, parent: QWidget | None = None, default_path: str = "./output"):
         super().__init__(parent)
         self.parent = parent
-        self.default_path = default_path
-        self.setup_ui()
+        self._default_path = str(Path(default_path)) # Normalize path
+        self._setup_ui()
 
-    def setup_ui(self):
+    def _setup_ui(self):
         """Setup the output path interface"""
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.out_label = QLabel("Output path:")
-        self.out_label.setFixedWidth(80)
-        layout.addWidget(self.out_label)
+        self._path_label = QLabel("Output path:")
+        self._path_label.setFixedWidth(80)
+        layout.addWidget(self._path_label)
 
         # Path input
-        self.out_input = QLineEdit(self.default_path)
-        layout.addWidget(self.out_input)
+        self._path_input = QLineEdit(self._default_path)
+        layout.addWidget(self._path_input)
 
         # Browse button
-        self.browse_btn = QPushButton("Browse...")
-        self.browse_btn.clicked.connect(self.browse_output)
-        layout.addWidget(self.browse_btn)
+        self._browse_button = QPushButton("Browse...")
+        self._browse_button.clicked.connect(self._on_browse_clicked)
+        layout.addWidget(self._browse_button)
 
-    def browse_output(self):
-        """Open dialog to choose output directory"""
+    def _on_browse_clicked(self):
+        """Opens a dialog to choose an output directory."""
         path = QFileDialog.getExistingDirectory(
             self,
             "Choose output folder",
-            self.get_path()  # Start from current path
+            self.get_path() # Start browsing from the current path
         )
         if path:
             self.set_path(path)
 
-    # Getter and Setter methods
-    def get_path(self):
-        """Get the current output path"""
-        return self.out_input.text().strip()
+    def get_path(self) -> str:
+        """Gets the current output path from the input field."""
+        return self._path_input.text().strip()
 
-    def set_path(self, path):
-        """Set the output path"""
-        self.out_input.setText(path)
+    def set_path(self, path: str):
+        """Sets the output path in the input field."""
+        self._path_input.setText(path)
 
-    def create_output_directory(self):
-        """Create output directory if it doesn't exist"""
-        import os
-        path = self.get_path()
-        if not os.path.exists(path):
-            try:
-                os.makedirs(path)
-                return True
-            except OSError:
-                return False
-        return True
+    def get_completed_output_path(self, input_file_folder: str, filename: str | None = None) -> str:
+        """
+        Resolves the final output path based on user input and the input file's location.
 
-    def get_completed_output_path(self, inputfile_folder, filename=None):
-        path = self.get_path()
-        if path in ('./', '.'):
-            out_dir = inputfile_folder
-        elif path.startswith('./'):
-            out_dir = os.path.join(inputfile_folder, path.strip('./'))
+        - If the path is absolute, it's used directly.
+        - If the path is relative (e.g., '.', './output'), it's resolved relative
+          to the input file's folder.
+
+        The directory is created if it doesn't exist.
+
+        Args:
+            input_file_folder (str): The folder path of the source file.
+            filename (str | None): An optional filename to append to the path.
+
+        Returns:
+            str: The absolute, resolved output path.
+        """
+        user_path_str = self.get_path()
+        user_path = Path(user_path_str)
+        input_folder_path = Path(input_file_folder)
+
+        if user_path.is_absolute():
+            output_dir = user_path
         else:
-            out_dir = path
-        
-        if not os.path.exists(out_dir):
-            os.makedirs(out_dir, exist_ok=True)
-     
+            # Resolve relative path against the input file's folder
+            output_dir = input_folder_path.joinpath(user_path).resolve()
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+
         if filename:
-            return os.path.join(out_dir, filename)
-        return out_dir
+            return str(output_dir / filename)
+        return str(output_dir)
