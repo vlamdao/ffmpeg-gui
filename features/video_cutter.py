@@ -1,150 +1,15 @@
 import os
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QSlider, QListWidget, QWidget, QStyle,
-                             QMessageBox, QLabel, QListWidgetItem, QSizePolicy, QStyleOptionSlider,
-                             QSplitter, QMenu, QFormLayout, QTimeEdit, QDialogButtonBox)
-from PyQt5.QtCore import Qt, QUrl, QTime, QRect, QPoint, QTimer
-from PyQt5.QtGui import QPainter, QColor
+                             QWidget, QMessageBox, QLabel, QListWidgetItem, 
+                             QSizePolicy, QMenu, QStyle)
+from PyQt5.QtCore import Qt, QUrl, QTime, QPoint
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 
 from processor import FFmpegWorker
 from components import FontDelegate
-
-_MARKER_COLOR = QColor(0, 120, 215, 100)
-
-class DeselectableListWidget(QListWidget):
-    """A QListWidget that clears selection when clicking on an empty area."""
-    def mousePressEvent(self, event):
-        # If we click on an empty area, clear the selection.
-        # This will trigger the itemSelectionChanged signal.
-        if not self.itemAt(event.pos()):
-            self.clearSelection()
-        # Call the base class implementation to handle normal item clicks.
-        super().mousePressEvent(event)
-
-class MarkerSlider(QSlider):
-    """A custom QSlider that can draw markers for video segments."""
-    
-    def __init__(self, orientation):
-        super().__init__(orientation)
-        self.segment_markers = [] # List of (start_ms, end_ms) tuples
-        self.current_start_marker_ms = -1 # Single start_ms for the temporary marker
-
-    def set_segment_markers(self, markers):
-        """Sets the list of markers to be drawn.
-
-        Args:
-            markers (list[tuple[int, int]]): A list of (start_ms, end_ms) tuples.
-        """
-        self.segment_markers = markers
-        self.update() # Trigger a repaint
-
-    def set_current_start_marker(self, start_ms):
-        """Sets the position of the temporary start marker."""
-        self.current_start_marker_ms = start_ms
-        self.update() # Trigger a repaint
-
-    def paintEvent(self, event):
-        """Override paintEvent to draw markers on the slider track."""
-        super().paintEvent(event) # Draw the slider first
-
-        painter = QPainter(self)
-        # Use a semi-transparent color for the markers
-        opt = QStyleOptionSlider()
-        self.initStyleOption(opt)
-        groove_rect = self.style().subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderGroove, self)
-
-        # Draw completed segment markers
-        if self.segment_markers:
-            painter.setBrush(_MARKER_COLOR) # Blue color for segments
-            painter.setPen(Qt.NoPen)
-            for start_ms, end_ms in self.segment_markers:
-            # Calculate the pixel position for the start and end of the segment
-                start_pos = QStyle.sliderPositionFromValue(self.minimum(), self.maximum(), start_ms, groove_rect.width())
-                end_pos = QStyle.sliderPositionFromValue(self.minimum(), self.maximum(), end_ms, groove_rect.width())
-                
-                # Draw a rectangle for the segment
-                marker_height = groove_rect.height() # Should be 16px from stylesheet
-                marker_rect = QRect(groove_rect.x() + start_pos, groove_rect.y(), end_pos - start_pos, marker_height)
-                painter.drawRect(marker_rect)
-
-        # Draw current start marker
-        if self.current_start_marker_ms != -1:
-            painter.setBrush(_MARKER_COLOR) # Red color for start marker
-            painter.setPen(Qt.NoPen) # Red border
-            
-            start_pos = QStyle.sliderPositionFromValue(self.minimum(), self.maximum(), self.current_start_marker_ms, groove_rect.width())
-            
-            # Draw a thin vertical line or a small rectangle
-            marker_width = 2 # A thin line
-            marker_height = groove_rect.height()
-            marker_rect = QRect(groove_rect.x() + start_pos - marker_width // 2, groove_rect.y(), marker_width, marker_height)
-            painter.drawRect(marker_rect)
-
-    def mousePressEvent(self, event):
-        """Override mousePressEvent to allow jumping to a position by clicking on the groove."""
-        if event.button() == Qt.LeftButton:
-            opt = QStyleOptionSlider()
-            self.initStyleOption(opt)
-            groove_rect = self.style().subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderGroove, self)
-            handle_rect = self.style().subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self)
-
-            # Check if the click is on the groove, but not on the handle.
-            if groove_rect.contains(event.pos()) and not handle_rect.contains(event.pos()):
-                if self.orientation() == Qt.Horizontal:
-                    pos_in_groove = event.pos().x() - groove_rect.x()
-                    value = QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), pos_in_groove, groove_rect.width())
-                else: # Vertical
-                    pos_in_groove = event.pos().y() - groove_rect.y()
-                    value = QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), pos_in_groove, groove_rect.height())
-                
-                self.setValue(value)
-                # Manually trigger the action that sliderReleased would have done
-                self.sliderReleased.emit()
-
-        # Let the base class handle the event for dragging the handle
-        super().mousePressEvent(event)
-
-class EditSegmentDialog(QDialog):
-    """A dialog for editing the start and end times of a video segment."""
-    def __init__(self, parent, initial_start_ms, initial_end_ms):
-        super().__init__(parent)
-        self.setWindowTitle("Edit Segment")
-        self.setMinimumWidth(300)
-
-        self.start_time_edit = QTimeEdit(self)
-        self.end_time_edit = QTimeEdit(self)
-        # Set display format to include milliseconds
-        self.start_time_edit.setDisplayFormat("HH:mm:ss.zzz")
-        self.end_time_edit.setDisplayFormat("HH:mm:ss.zzz")
-
-        # Set initial values
-        self.start_time_edit.setTime(QTime.fromMSecsSinceStartOfDay(initial_start_ms))
-        self.end_time_edit.setTime(QTime.fromMSecsSinceStartOfDay(initial_end_ms))
-
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-
-        layout = QFormLayout(self)
-        layout.addRow("Start Time:", self.start_time_edit)
-        layout.addRow("End Time:", self.end_time_edit)
-        layout.addWidget(buttons)
-
-    def get_edited_times(self):
-        """Returns the start and end times (in milliseconds) from the input fields."""
-        start_ms = self.start_time_edit.time().msecsSinceStartOfDay()
-        end_ms = self.end_time_edit.time().msecsSinceStartOfDay()
-        return start_ms, end_ms
-
-    def accept(self):
-        """Override accept to add validation before closing the dialog."""
-        start_ms, end_ms = self.get_edited_times()
-        if start_ms >= end_ms:
-            QMessageBox.warning(self, "Invalid Times", "Start time must be before end time.")
-            return
-        super().accept()
+from .video_cutter_components import (DeselectableListWidget, MarkerSlider, 
+                                      EditSegmentDialog)
 
 class VideoCutter(QDialog):
 
@@ -166,6 +31,7 @@ class VideoCutter(QDialog):
         self.end_time = None
         self._media_loaded = False
         self.active_workers = []
+        self._was_playing_before_seek = False
         self.frame_step_ms = 500 # Step 0.5 seconds
         self.selected_segment_index = -1 # -1 means no segment is selected for editing
         
@@ -296,10 +162,10 @@ class VideoCutter(QDialog):
         self.media_player.positionChanged.connect(self.update_position)
         self.media_player.durationChanged.connect(self.update_duration)
 
-        self.position_slider.sliderPressed.connect(self.media_player.pause)
+        self.position_slider.sliderPressed.connect(self._on_slider_pressed)
         self.position_slider.sliderMoved.connect(self.set_position)
         # Connect sliderReleased to set_position for final position update (after drag or click)
-        self.position_slider.sliderReleased.connect(lambda: self.set_position(self.position_slider.value()))
+        self.position_slider.sliderReleased.connect(self._on_slider_released)
 
         self.previous_frame_button.clicked.connect(self.previous_frame)
         self.set_start_button.clicked.connect(self.set_start_time)
@@ -347,6 +213,18 @@ class VideoCutter(QDialog):
         self.media_player.setPosition(position)
         # Unblock signals after setting the position
         self.position_slider.blockSignals(False)
+
+    def _on_slider_pressed(self):
+        """Saves the player state and pauses it when the user starts seeking."""
+        self._was_playing_before_seek = (self.media_player.state() == QMediaPlayer.PlayingState)
+        self.media_player.pause()
+
+    def _on_slider_released(self):
+        """Restores the player state after the user finishes seeking."""
+        # Update position one last time
+        self.set_position(self.position_slider.value())
+        if self._was_playing_before_seek:
+            self.media_player.play()
 
     def next_frame(self):
         """Advances the video by one frame."""
