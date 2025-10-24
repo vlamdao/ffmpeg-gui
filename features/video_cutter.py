@@ -8,8 +8,8 @@ from PyQt5.QtMultimediaWidgets import QVideoWidget
 
 from processor import FFmpegWorker
 from components import FontDelegate
-from .video_cutter_components import (DeselectableListWidget, MarkerSlider, 
-                                      EditSegmentDialog)
+from .video_cutter_components import (DeselectableListWidget, MarkerSlider,
+                                      EditSegmentDialog, ClickableVideoWidget)
 
 class VideoCutter(QDialog):
 
@@ -67,7 +67,7 @@ class VideoCutter(QDialog):
         left_layout.setContentsMargins(0, 0, 0, 0)
 
         # Video display
-        self.video_widget = QVideoWidget()
+        self.video_widget = ClickableVideoWidget()
         self.video_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.video_widget.setMinimumHeight(300)
         left_layout.addWidget(self.video_widget)
@@ -156,6 +156,7 @@ class VideoCutter(QDialog):
 
     def _connect_signals(self):
         self.play_button.clicked.connect(self.toggle_play)
+        self.video_widget.doubleClicked.connect(self.toggle_play)
 
         self.media_player.stateChanged.connect(self.update_media_state)
         self.media_player.positionChanged.connect(self.update_position)
