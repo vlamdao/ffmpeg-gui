@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, QMenu, QApplication
 )
 from PyQt5.QtCore import (
-    QThread, pyqtSignal, QCoreApplication, Qt, 
+    QThread, pyqtSignal, QStandardPaths, Qt, 
     QObject, pyqtSignal, QUrl)
 from PyQt5.QtGui import QPixmap, QDesktopServices, QIcon
 import os
@@ -188,10 +188,11 @@ class FileManager(QObject):
 
     def add_files_dialog(self):
         """Opens a file dialog to allow the user to select one or more files."""
+        default_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.MoviesLocation)
         files, _ = QFileDialog.getOpenFileNames(
             self.parent,
             "Select files",
-            "",
+            default_dir,
             "All files (*)"
         )
         if files:
