@@ -23,7 +23,8 @@ class FFmpegWorker(QThread):
                  selected_files: list[tuple[int, str, str]],
                  command_input: CommandInput,
                  output_path: OutputPath,
-                 parent=None):
+                 parent=None,
+                 command_override: str = None):
         """Initializes the FFmpegWorker thread.
 
         Args:
@@ -32,6 +33,7 @@ class FFmpegWorker(QThread):
             command_input (CommandInput): The widget containing the FFmpeg command template.
             output_path (OutputPath): The widget managing the output path.
             parent (QObject, optional): The parent object. Defaults to None.
+            command_override (str, optional): A specific command to run, bypassing generation.
         """
         super().__init__(parent)
         self._selected_files = selected_files
@@ -39,7 +41,9 @@ class FFmpegWorker(QThread):
         self._output_path = output_path
         self._proc = None
         self._is_stopped = False
-        self._cmd_generator = CommandGenerator(self._selected_files, self._command_input, self._output_path)
+        self._command_override = command_override
+        if not command_override:
+            self._cmd_generator = CommandGenerator(self._selected_files, self._command_input, self._output_path)
 
     def _get_command_type(self) -> str:
         """Determines the command type based on the command template.
@@ -134,6 +138,11 @@ class FFmpegWorker(QThread):
         status changes along the way.
         """
         self._is_stopped = False
+
+        if self._command_override:
+            self._process_command(self._command_override)
+            return
+
         command_type = self._get_command_type()
 
         if command_type == "concat_demuxer":

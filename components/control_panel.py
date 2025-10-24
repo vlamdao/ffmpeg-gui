@@ -47,6 +47,12 @@ class ControlPanel(QWidget):
                 'tooltip': 'Add files to the list',
                 'connection': lambda: self.parent.file_manager.add_files_dialog()
             },
+            'cut_video': {
+                'text': ' Cut Video',
+                'icon': 'run.png',
+                'tooltip': 'Cut a video into segments',
+                'connection': lambda: self.parent.open_video_cutter()
+            },
             'run': {
                 'text': ' Run',
                 'icon': 'run.png',
