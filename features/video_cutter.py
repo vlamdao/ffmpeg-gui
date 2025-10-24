@@ -31,8 +31,7 @@ class VideoCutter(QDialog):
         self.end_time = None
         self._media_loaded = False
         self.active_workers = []
-        self._was_playing_before_seek = False
-        self.frame_step_ms = 500 # Step 0.5 seconds
+        self.frame_step_ms = 1000 # Step 0.5 seconds
         self.selected_segment_index = -1 # -1 means no segment is selected for editing
         
         self._setup_ui()
@@ -162,10 +161,8 @@ class VideoCutter(QDialog):
         self.media_player.positionChanged.connect(self.update_position)
         self.media_player.durationChanged.connect(self.update_duration)
 
-        self.position_slider.sliderPressed.connect(self._on_slider_pressed)
         self.position_slider.sliderMoved.connect(self.set_position)
-        # Connect sliderReleased to set_position for final position update (after drag or click)
-        self.position_slider.sliderReleased.connect(self._on_slider_released)
+        self.position_slider.sliderReleased.connect(lambda: self.set_position(self.position_slider.value()))
 
         self.previous_frame_button.clicked.connect(self.previous_frame)
         self.set_start_button.clicked.connect(self.set_start_time)
@@ -209,22 +206,12 @@ class VideoCutter(QDialog):
 
     def set_position(self, position):
         # Block signals to prevent update_position from being called while we are setting the position
+        # This avoids the slider jumping back to the old position during the update.
         self.position_slider.blockSignals(True)
+        self.media_player.pause() # Pause the video
         self.media_player.setPosition(position)
         # Unblock signals after setting the position
         self.position_slider.blockSignals(False)
-
-    def _on_slider_pressed(self):
-        """Saves the player state and pauses it when the user starts seeking."""
-        self._was_playing_before_seek = (self.media_player.state() == QMediaPlayer.PlayingState)
-        self.media_player.pause()
-
-    def _on_slider_released(self):
-        """Restores the player state after the user finishes seeking."""
-        # Update position one last time
-        self.set_position(self.position_slider.value())
-        if self._was_playing_before_seek:
-            self.media_player.play()
 
     def next_frame(self):
         """Advances the video by one frame."""
