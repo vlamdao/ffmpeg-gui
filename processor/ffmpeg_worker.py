@@ -1,8 +1,8 @@
+from __future__ import annotations
 import os
 import subprocess
 from PyQt5.QtCore import QThread, pyqtSignal
-
-from .command_generator import CommandGenerator
+from helper import CommandGenerator
 
 class FFmpegWorker(QThread):
     """
@@ -14,15 +14,13 @@ class FFmpegWorker(QThread):
                                     the status of a file in the UI.
         log_signal (pyqtSignal): Emits log messages to be displayed.
     """
-    from components import CommandInput, OutputPath
-
     update_status = pyqtSignal(int, str)
     log_signal = pyqtSignal(str)
 
     def __init__(self,
-                 selected_files: list[tuple[int, str, str]],
-                 command_input: CommandInput,
-                 output_path: OutputPath,
+                 selected_files,
+                 command_input,
+                 output_path,
                  parent=None,
                  command_override: str = None):
         """Initializes the FFmpegWorker thread.
@@ -35,16 +33,16 @@ class FFmpegWorker(QThread):
             parent (QObject, optional): The parent object. Defaults to None.
             command_override (str, optional): A specific command to run, bypassing generation.
         """
+
         super().__init__(parent)
         self._selected_files = selected_files
         self._command_input = command_input
         self._output_path = output_path
         self._proc = None
         self._is_stopped = False
+        self._cmd_generator = CommandGenerator(selected_files, command_input, output_path)
         self._command_override = command_override
-        if not command_override:
-            self._cmd_generator = CommandGenerator(self._selected_files, self._command_input, self._output_path)
-
+        
     def _get_command_type(self) -> str:
         """Determines the command type based on the command template.
 

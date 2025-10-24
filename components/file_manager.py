@@ -7,12 +7,13 @@ from PyQt5.QtCore import (
     QObject, pyqtSignal, QUrl)
 from PyQt5.QtGui import QPixmap, QDesktopServices, QIcon
 import os
-from utils import resource_path
 from enum import Enum
-from .delegate import FontDelegate
 import json
 import subprocess
 import sys
+
+from .delegate import FontDelegate
+from helper import resource_path
 
 class FileInfo:
     """A data class to store and process media file information.

@@ -4,7 +4,7 @@ from .file_manager import FileManager
 from .logger import Logger
 from .output_path import OutputPath
 from .preset_manager import PresetManager
-from .video_cutter import VideoCutter
+from .delegate import FontDelegate
 
 __all__ = [ 'CommandInput', 
            'ControlPanel', 
@@ -12,5 +12,5 @@ __all__ = [ 'CommandInput',
            'Logger', 
            'OutputPath', 
            'PresetManager',
-           'VideoCutter'
+           'FontDelegate'
          ]

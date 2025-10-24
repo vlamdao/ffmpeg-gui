@@ -3,10 +3,11 @@ import os
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QTableWidget, QShortcut, QApplication, QSizePolicy, QMessageBox)
 from PyQt5.QtGui import QIcon, QKeySequence
-from utils import resource_path
-from components import (PresetManager, Logger, FileManager, ControlPanel, 
-                        CommandInput, OutputPath, VideoCutter)
+from helper import resource_path
+from components import (PresetManager, Logger, FileManager, ControlPanel,
+                        CommandInput, OutputPath)
 
+from features import VideoCutter
 from processor import BatchProcessor
 
 class App(QMainWindow):
@@ -31,8 +32,7 @@ class App(QMainWindow):
         self.preset_table = QTableWidget()
         self.preset_manager = PresetManager(self, self.preset_table, self.command_input.get_command_widget())
         self.batch_processor = BatchProcessor(self)
-        self.control_panel = ControlPanel(self)
-        self.video_cutter = VideoCutter(self)
+        self.control_panel = ControlPanel(self) # Must be after other components
         self.control_panel.enable_button('cut_video', False)
 
     def _setup_layout(self):
@@ -85,6 +85,33 @@ class App(QMainWindow):
         selected_files, _ = self.file_manager.get_selected_files()
         # Enable cut_video button only if exactly one file is selected
         self.control_panel.enable_button('cut_video', len(selected_files) == 1)
+
+    def _setup_video_cutter(self):
+        selected_files, _ = self.file_manager.get_selected_files()
+        if len(selected_files) != 1:
+            QMessageBox.warning(self, "Selection Error", "Please select exactly one video file to cut.")
+            return
+
+        _, file_name, file_path = selected_files[0]
+        full_path = os.path.join(file_path, file_name)
+        
+        # Check if it's a video file (basic check)
+        video_extensions = ['.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv']
+        if not any(full_path.lower().endswith(ext) for ext in video_extensions):
+            QMessageBox.warning(self, "Invalid File Type", "Please select a valid video file.")
+            return
+        
+        output_path = self.output_path.get_completed_output_path(file_path)
+        logger = self.logger
+        dialog = VideoCutter(
+            video_path=full_path,
+            output_path=output_path,
+            logger=logger,
+            parent=self)
+        dialog.exec_()
+
+    def open_video_cutter(self):
+        self._setup_video_cutter()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

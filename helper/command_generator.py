@@ -1,5 +1,4 @@
 import os
-from components import CommandInput, OutputPath
 
 # Constants for command template placeholders
 PLACEHOLDER_INPUT_PATH = "{input_path}"
@@ -11,10 +10,7 @@ PLACEHOLDER_CONCAT_LIST = "{concat_list}"
 PLACEHOLDER_OUTPUT = "{output}"
 
 class CommandGenerator(object):
-    def __init__(self, 
-                 selected_files: list[tuple[int, str, str]], 
-                 command_input: CommandInput,
-                 output_path: OutputPath):
+    def __init__(self, selected_files, command_input, output_path):
 
         self.selected_files = selected_files
         self.command_input = command_input

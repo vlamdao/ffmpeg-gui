@@ -1,8 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize
-from utils import resource_path
-
+from helper import resource_path
 
 class ControlPanel(QWidget):
     """A widget that contains the main control buttons for the application.
@@ -70,7 +69,7 @@ class ControlPanel(QWidget):
                 'text': ' Cut Video',
                 'icon': 'run.png',
                 'tooltip': 'Cut a video into segments',
-                'connection': lambda: self.parent.video_cutter.show()
+                'connection': lambda: self.parent.open_video_cutter()
             },
             'add_preset': {
                 'text': ' Add preset',
