@@ -31,7 +31,7 @@ class VideoCutter(QDialog):
         self.end_time = None
         self._media_loaded = False
         self.active_workers = []
-        self.frame_step_ms = 1000 # Step 0.5 seconds
+        self.frame_step_ms = 33 # Step for ~30fps
         self.selected_segment_index = -1 # -1 means no segment is selected for editing
         
         self._setup_ui()
@@ -162,8 +162,8 @@ class VideoCutter(QDialog):
         self.media_player.positionChanged.connect(self.update_position)
         self.media_player.durationChanged.connect(self.update_duration)
 
-        self.position_slider.sliderMoved.connect(self.set_position)
-        self.position_slider.sliderReleased.connect(lambda: self.set_position(self.position_slider.value()))
+        self.position_slider.sliderPressed.connect(self.media_player.pause)
+        self.position_slider.valueChanged.connect(self.set_position)
 
         self.previous_frame_button.clicked.connect(self.previous_frame)
         self.set_start_button.clicked.connect(self.set_start_time)
@@ -180,7 +180,11 @@ class VideoCutter(QDialog):
 
     # Media Player Slots
     def toggle_play(self):
-        if self.media_player.state() == QMediaPlayer.PlayingState:
+        # If the video is at the end, restart it
+        if self.media_player.position() >= self.media_player.duration() - 100: # -100ms for safety margin
+            self.media_player.setPosition(0)
+            self.media_player.play()
+        elif self.media_player.state() == QMediaPlayer.PlayingState:
             self.media_player.pause()
         else:
             self.media_player.play()
@@ -192,7 +196,10 @@ class VideoCutter(QDialog):
             self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
 
     def update_position(self, position):
+        self.position_slider.blockSignals(True)
         self.position_slider.setValue(position)
+        self.position_slider.blockSignals(False)
+        
         duration = self.media_player.duration()
         self.time_label.setText(f"{self.ms_to_time_str(position)} / {self.ms_to_time_str(duration)}")
         
@@ -206,13 +213,8 @@ class VideoCutter(QDialog):
         self.time_label.setText(f"{self.ms_to_time_str(position)} / {self.ms_to_time_str(duration)}")
 
     def set_position(self, position):
-        # Block signals to prevent update_position from being called while we are setting the position
-        # This avoids the slider jumping back to the old position during the update.
-        self.position_slider.blockSignals(True)
-        self.media_player.pause() # Pause the video
-        self.media_player.setPosition(position)
-        # Unblock signals after setting the position
-        self.position_slider.blockSignals(False)
+        if self.media_player.position() != position:
+            self.media_player.setPosition(position)
 
     def next_frame(self):
         """Advances the video by one frame."""
@@ -407,12 +409,17 @@ class VideoCutter(QDialog):
         for i, (start_ms, end_ms) in enumerate(self.segments):
             start_str = self.ms_to_time_str(start_ms)
             end_str = self.ms_to_time_str(end_ms)
+            
             # Sanitize filename parts by replacing ':' with '-'
             safe_start_str = start_str.replace(':', '-')
             safe_end_str = end_str.replace(':', '-')
             output_file = os.path.join(output_dir, f"{safe_start_str}--{safe_end_str}--{base_name}{ext}")
             
-            command = f'ffmpeg -loglevel warning -i "{self.video_path}" -ss {start_str} -to {end_str} -c copy "{output_file}"'
+            # -ss before -i for fast seeking.
+            # -to specifies the stop time.
+            # -c copy to avoid re-encoding, which is faster and preserves quality.
+            # -loglevel warning to reduce console noise.
+            command = f'ffmpeg -loglevel warning -ss {start_str} -to {end_str} -i "{self.video_path}" -c copy "{output_file}"'
             
             # Create and run a worker for each segment
             worker = FFmpegWorker(
