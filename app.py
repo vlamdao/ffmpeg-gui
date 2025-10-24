@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtGui import QIcon, QKeySequence
 from utils import resource_path
 from components import (PresetManager, Logger, FileManager, ControlPanel, 
-                        CommandInput, OutputPath, VideoCutterDialog)
+                        CommandInput, OutputPath, VideoCutter)
 
 from processor import BatchProcessor
 
@@ -32,6 +32,7 @@ class App(QMainWindow):
         self.preset_manager = PresetManager(self, self.preset_table, self.command_input.get_command_widget())
         self.batch_processor = BatchProcessor(self)
         self.control_panel = ControlPanel(self)
+        self.video_cutter = VideoCutter(self)
         self.control_panel.enable_button('cut_video', False)
 
     def _setup_layout(self):
@@ -80,29 +81,10 @@ class App(QMainWindow):
         QShortcut(QKeySequence("Esc"), self).activated.connect(self.close)
         QShortcut(QKeySequence("Ctrl+W"), self).activated.connect(self.close)
 
-    def open_video_cutter(self):
-        selected_files, _ = self.file_manager.get_selected_files()
-        if len(selected_files) != 1:
-            QMessageBox.warning(self, "Selection Error", "Please select exactly one video file to cut.")
-            return
-
-        _, file_name, file_path = selected_files[0]
-        full_path = os.path.join(file_path, file_name)
-        
-        # Check if it's a video file (basic check)
-        video_extensions = ['.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv']
-        if not any(full_path.lower().endswith(ext) for ext in video_extensions):
-            QMessageBox.warning(self, "Invalid File Type", "Please select a valid video file.")
-            return
-
-        dialog = VideoCutterDialog(full_path, self)
-        dialog.exec_()
-
     def _update_control_buttons(self):
         selected_files, _ = self.file_manager.get_selected_files()
         # Enable cut_video button only if exactly one file is selected
         self.control_panel.enable_button('cut_video', len(selected_files) == 1)
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
