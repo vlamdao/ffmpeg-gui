@@ -85,34 +85,6 @@ class BatchProcessor(QObject):
         
         self._start_batch(selected_files, selected_rows)
 
-    def add_to_queue_and_run(self, command, output_file):
-        """
-        Adds a single, pre-defined command to the processing queue and runs it.
-
-        This is designed for features like the Video Cutter that generate their
-        own FFmpeg commands. It will not run if another process is already active.
-
-        Args:
-            command (str): The full FFmpeg command to execute.
-            output_file (str): The path to the expected output file.
-        """
-        if self.is_processing():
-            self.log_signal.emit("Another process is already running. Please wait.")
-            return
-
-        self._logger.clear()
-        self.log_signal.emit("Starting single command processing...")
-
-        # We pass an empty list for selected_files as it's not used for command_override
-        self._ffmpeg_worker = FFmpegWorker(
-            selected_files=[],
-            command_input=self._command_input, # Still needed for constructor
-            output_path=self._output_path,     # Still needed for constructor
-            command_override=command
-        )
-        self._ffmpeg_worker.log_signal.connect(self.log_signal.emit)
-        self._ffmpeg_worker.finished.connect(self._on_worker_finished)
-        self._ffmpeg_worker.start()
     def is_processing(self):
         """
         Checks if a batch process is currently active.
