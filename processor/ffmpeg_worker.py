@@ -52,7 +52,7 @@ class FFmpegWorker(QThread):
                  or "others_command".
         """
         cmd_template = self._command_input.get_command()
-        if "-f concat" in cmd_template:
+        if "-f concat" in cmd_template and "_get_command_type" not in cmd_template:
             return "concat_demuxer"
         return "others_command"
 
