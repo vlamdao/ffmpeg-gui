@@ -18,9 +18,9 @@ class FFmpegWorker(QThread):
     log_signal = pyqtSignal(str)
 
     def __init__(self,
-                 selected_files,
-                 command_input,
-                 output_path,
+                 selected_files: list[tuple[int, str, str]],
+                 command_input: 'CommandInput',
+                 output_path: 'OutputPath',
                  parent=None,
                  command_override: str = None):
         """Initializes the FFmpegWorker thread.
@@ -40,7 +40,7 @@ class FFmpegWorker(QThread):
         self._output_path = output_path
         self._proc = None
         self._is_stopped = False
-        self._cmd_generator = CommandGenerator(selected_files, command_input, output_path)
+        self._cmd_generator = CommandGenerator(self._selected_files, self._command_input, self._output_path)
         self._command_override = command_override
         
     def _get_command_type(self) -> str:

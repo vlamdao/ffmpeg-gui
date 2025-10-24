@@ -92,8 +92,8 @@ class App(QMainWindow):
             QMessageBox.warning(self, "Selection Error", "Please select exactly one video file to cut.")
             return
 
-        _, file_name, file_path = selected_files[0]
-        full_path = os.path.join(file_path, file_name)
+        _, inputfile_name, inputfile_path = selected_files[0]
+        full_path = os.path.join(inputfile_path, inputfile_name)
         
         # Check if it's a video file (basic check)
         video_extensions = ['.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv']
@@ -101,7 +101,7 @@ class App(QMainWindow):
             QMessageBox.warning(self, "Invalid File Type", "Please select a valid video file.")
             return
         
-        output_path = self.output_path.get_completed_output_path(file_path)
+        output_path = self.output_path.get_completed_output_path(inputfile_path)
         logger = self.logger
         dialog = VideoCutter(
             video_path=full_path,
