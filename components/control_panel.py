@@ -3,6 +3,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize
 from utils import resource_path
 
+
 class ControlPanel(QWidget):
     """A widget that contains the main control buttons for the application.
 
@@ -47,12 +48,6 @@ class ControlPanel(QWidget):
                 'tooltip': 'Add files to the list',
                 'connection': lambda: self.parent.file_manager.add_files_dialog()
             },
-            'cut_video': {
-                'text': ' Cut Video',
-                'icon': 'run.png',
-                'tooltip': 'Cut a video into segments',
-                'connection': lambda: self.parent.open_video_cutter()
-            },
             'run': {
                 'text': ' Run',
                 'icon': 'run.png',
@@ -70,6 +65,12 @@ class ControlPanel(QWidget):
                 'icon': 'remove.png',
                 'tooltip': 'Remove selected files',
                 'connection': lambda: self.parent.file_manager.remove_selected_files()
+            },
+            'cut_video': {
+                'text': ' Cut Video',
+                'icon': 'run.png',
+                'tooltip': 'Cut a video into segments',
+                'connection': lambda: self.parent.video_cutter.show()
             },
             'add_preset': {
                 'text': ' Add preset',
