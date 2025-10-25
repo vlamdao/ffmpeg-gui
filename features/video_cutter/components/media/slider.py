@@ -32,20 +32,38 @@ class SeekSlider(QSlider):
         super().mousePressEvent(event)
 
 class MarkerSlider(SeekSlider):
+    """A custom slider that visually indicates video segments and markers.
+
+    This slider extends SeekSlider to paint colored rectangles over the slider
+    groove, representing the defined video segments. It also draws a vertical
+    line to show a pending 'start' marker for a new segment.
+    """
     def __init__(self, orientation, parent=None):
+        """Initializes the MarkerSlider."""
         super().__init__(orientation, parent)
         self.segment_markers = []
         self.current_start_marker = -1
 
     def set_segment_markers(self, segments):
+        """Sets the list of segments to be painted on the slider.
+
+        Args:
+            segments (list[tuple[int, int]]): A list of (start_ms, end_ms) tuples.
+        """
         self.segment_markers = segments
         self.update()
 
     def set_current_start_marker(self, position):
+        """Sets the position of the temporary 'start' marker.
+
+        Args:
+            position (int): The position in milliseconds, or -1 to hide it.
+        """
         self.current_start_marker = position
         self.update()
 
     def paintEvent(self, event):
+        """Overrides the paint event to draw custom markers and segments."""
         super().paintEvent(event)
         if self.maximum() == 0: return # Avoid division by zero
 
@@ -58,7 +76,7 @@ class MarkerSlider(SeekSlider):
         # Draw existing segments
         pen = QPen(Qt.NoPen)
         color = QColor(Qt.blue)
-        color.setAlpha(128) # Đặt độ trong suốt (0-255)
+        color.setAlpha(128) # Set transparency (0-255)
         brush = QBrush(color, Qt.Dense4Pattern)
 
         painter.setPen(pen)

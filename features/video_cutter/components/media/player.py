@@ -15,10 +15,12 @@ class MediaPlayer(QWidget):
     double_clicked = pyqtSignal()
 
     def __init__(self, parent=None):
+        """Initializes the MediaPlayer widget."""
         super().__init__(parent)
+        # A small buffer to correctly detect when media has reached its end.
         self._END_OF_MEDIA_THRESHOLD_MS = 100  # Threshold to consider media as "finished"
         self._is_media_loaded = False
-        self._seek_interval_ms = 1000  # Seek interval: 0.5 seconds
+        self._seek_interval_ms = 1000  # Seek interval: 1 second
         self._media_player = QMediaPlayer(None, QMediaPlayer.VideoSurface)
         self._video_widget = ClickableVideoWidget()
 
@@ -53,20 +55,25 @@ class MediaPlayer(QWidget):
             self.media_loaded.emit(False)
 
     def stop(self):
+        """Stops the media player and resets its position."""
         self._media_player.stop()
 
     def play(self):
+        """Starts or resumes playback."""
         self._media_player.play()
 
     def pause(self):
+        """Pauses playback."""
         self._media_player.pause()
 
     def toggle_play(self):
         """Toggles play/pause state. Restarts if at the end."""
+        # If the video is at the end, restart from the beginning.
         if self.duration() > 0 and self.position() >= self.duration() - self._END_OF_MEDIA_THRESHOLD_MS:
             self.set_position(0)
             self.play()
         elif self.state() == QMediaPlayer.PlayingState:
+            # If playing, pause.
             self.pause()
         else:
             self.play()
@@ -82,16 +89,20 @@ class MediaPlayer(QWidget):
         self.set_position(int(max(0, new_position)))
 
     def set_position(self, position):
+        """Sets the media player's position if it's different from the current one."""
         if self._media_player.isSeekable() and self._media_player.position() != position:
             self._media_player.setPosition(position)
 
     def position(self):
+        """Returns the current playback position in milliseconds."""
         return self._media_player.position()
 
     def duration(self):
+        """Returns the total duration of the media in milliseconds."""
         return self._media_player.duration()
 
     def state(self):
+        """Returns the current state of the media player (e.g., PlayingState)."""
         return self._media_player.state()
     
 class ClickableVideoWidget(QVideoWidget):
@@ -99,6 +110,7 @@ class ClickableVideoWidget(QVideoWidget):
     doubleClicked = pyqtSignal()
 
     def __init__(self, parent=None):
+        """Initializes the ClickableVideoWidget."""
         super().__init__(parent)
 
     def mouseDoubleClickEvent(self, event):

@@ -8,6 +8,13 @@ from helper import ms_to_time_str
 from .slider import MarkerSlider
 
 class MediaControls(QWidget):
+    """A widget providing media playback controls like play/pause, seek, and a position slider.
+
+    This class encapsulates all the interactive elements for controlling the media
+    player. It communicates user actions to the parent widget via signals, allowing
+    for a decoupled architecture.
+    """
+    # Stylesheet for the custom slider to ensure a consistent look.
     _SLIDER_STYLESHEET = """
         QSlider::groove:horizontal {
             height: 16px;
@@ -22,12 +29,18 @@ class MediaControls(QWidget):
     """
     # --- Public Signals ---
     play_clicked = pyqtSignal()
+    """Emitted when the play/pause button is clicked."""
     seek_forward_clicked = pyqtSignal()
+    """Emitted when the seek forward button is clicked."""
     seek_backward_clicked = pyqtSignal()
+    """Emitted when the seek backward button is clicked."""
     slider_pressed = pyqtSignal()
+    """Emitted when the user presses the mouse on the slider."""
     position_changed = pyqtSignal(int)
+    """Emitted when the slider's value is changed by the user."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Initializes the MediaControls widget."""
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
@@ -111,10 +124,12 @@ class MediaControls(QWidget):
 
     @pyqtSlot(list)
     def set_segment_markers(self, segments: list) -> None:
+        """Slot to pass segment data to the underlying slider for painting."""
         self._position_slider.set_segment_markers(segments)
 
     @pyqtSlot(int)
     def set_current_start_marker(self, position: int) -> None:
+        """Slot to pass the current start marker position to the slider for painting."""
         self._position_slider.set_current_start_marker(position)
 
     def set_play_button_enabled(self, enabled: bool) -> None:
