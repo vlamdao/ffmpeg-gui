@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
-from .delegate import FontDelegate
+from helper import FontDelegate
 
 class PresetManager:
     """Manages the creation, loading, editing, and saving of FFmpeg command presets.
@@ -44,7 +44,7 @@ class PresetManager:
         # set minimum height for the preset table
         self.preset_table.setMinimumHeight(100)
         # set monospace font for command template column
-        self.preset_table.setItemDelegateForColumn(1, FontDelegate(font_family="Consolas"))
+        self.preset_table.setItemDelegateForColumn(1, FontDelegate(font_family="Cascadia Mono"))
         # set preset name column width to 300 pixels
         self.preset_table.setColumnWidth(0, 300)
         

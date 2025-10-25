@@ -12,8 +12,7 @@ import json
 import subprocess
 import sys
 
-from .delegate import FontDelegate
-from helper import resource_path
+from helper import resource_path, FontDelegate
 
 class FileInfo:
     """A data class to store and process media file information.

@@ -6,6 +6,7 @@ from PyQt5.QtMultimedia import QMediaPlayer
 from PyQt5.QtGui import QFont
 
 from processor import FFmpegWorker
+from helper import FontDelegate, ms_to_time_str
 from .components.media_controls import MediaControls
 from .components.media_player import MediaPlayer
 from .components.segments import (SegmentControls, SegmentList, SegmentManager,
@@ -65,7 +66,7 @@ class VideoCutter(QDialog):
 
         # Segment list
         self.segment_list_widget = SegmentList()
-        self.segment_list_widget.setFont(QFont("Cascadia Mono", 10))
+        self.segment_list_widget.setItemDelegate(FontDelegate(font_family="Cascade Mono"))
         main_layout.addWidget(self.segment_list_widget)
 
     def _connect_signals(self):
@@ -99,11 +100,6 @@ class VideoCutter(QDialog):
         self.segment_manager.list_item_removed.connect(self.segment_list_widget.takeItem)
         self.segment_manager.list_selection_cleared.connect(self.segment_list_widget.clearSelection)
         self.segment_manager.list_cleared.connect(self.segment_list_widget.clear)
-
-    def ms_to_time_str(self, ms):
-        # This is now only used for file naming, so it stays here.
-        time = QTime(0, 0, 0).addMSecs(ms)
-        return time.toString("HH:mm:ss.zzz")
 
     # --- Media Player Slots ---
     def update_position(self, position):
@@ -158,8 +154,8 @@ class VideoCutter(QDialog):
         base_name, ext = os.path.splitext(os.path.basename(self.video_path))
 
         for start_ms, end_ms in segments_to_process:
-            start_str = self.ms_to_time_str(start_ms)
-            end_str = self.ms_to_time_str(end_ms)
+            start_str = ms_to_time_str(start_ms)
+            end_str = ms_to_time_str(end_ms)
 
             safe_start_str = start_str.replace(':', '-')
             safe_end_str = end_str.replace(':', '-')
