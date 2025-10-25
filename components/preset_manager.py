@@ -44,7 +44,7 @@ class PresetManager:
         # set minimum height for the preset table
         self.preset_table.setMinimumHeight(100)
         # set monospace font for command template column
-        self.preset_table.setItemDelegateForColumn(1, FontDelegate(font_family="Cascadia Mono"))
+        self.preset_table.setItemDelegateForColumn(1, FontDelegate(font_family="Cascadia Mono", font_size=8))
         # set preset name column width to 300 pixels
         self.preset_table.setColumnWidth(0, 300)
         
@@ -55,6 +55,9 @@ class PresetManager:
         preset_table_header.setHighlightSections(False)
         # stretch command template column to fill available space
         preset_table_header.setSectionResizeMode(1, QHeaderView.Stretch)
+
+        vertical_header = self.preset_table.verticalHeader()
+        vertical_header.setHighlightSections(False)
 
         # set minimum height to show 5 rows
         rows_to_show = 2
