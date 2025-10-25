@@ -2,6 +2,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, QTime
 from PyQt5.QtWidgets import QMessageBox, QListWidgetItem, QDialog
 
 from .edit_segment_dialog import EditSegmentDialog
+from helper import ms_to_time_str
 
 class SegmentManager(QObject):
     """Manages the state and logic for video segments."""
@@ -21,10 +22,6 @@ class SegmentManager(QObject):
         self.segments = []
         self.start_time = None
         self.selected_index = -1
-
-    def _ms_to_time_str(self, ms):
-        time = QTime(0, 0, 0).addMSecs(ms)
-        return time.toString("HH:mm:ss.zzz")
 
     def set_start_time(self, current_pos):
         if self.selected_index != -1:  # Editing an existing segment
@@ -133,7 +130,7 @@ class SegmentManager(QObject):
         return self.segments
 
     def _get_item_text(self, start_ms, end_ms):
-        return f"{self._ms_to_time_str(start_ms)} -> {self._ms_to_time_str(end_ms)}"
+        return f"{ms_to_time_str(start_ms)} -> {ms_to_time_str(end_ms)}"
 
     def get_all_item_texts(self):
         return [self._get_item_text(s, e) for s, e in self.segments]

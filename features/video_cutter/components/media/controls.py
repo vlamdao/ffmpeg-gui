@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import QSlider, QStyleOptionSlider
 from PyQt5.QtGui import QPainter, QPen, QBrush
 from PyQt5.QtCore import Qt
 
+from helper import ms_to_time_str
+
 class MediaControls(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -51,10 +53,6 @@ class MediaControls(QWidget):
         layout.addWidget(self.position_slider)
         layout.addWidget(self.time_label)
 
-    def ms_to_time_str(self, ms):
-        time = QTime(0, 0, 0).addMSecs(ms)
-        return time.toString("HH:mm:ss.zzz")
-
     def update_media_state(self, state):
         """Slot to update the play/pause button icon based on media player state."""
         if state == QMediaPlayer.PlayingState:
@@ -67,13 +65,13 @@ class MediaControls(QWidget):
         self.position_slider.blockSignals(True)
         self.position_slider.setValue(position)
         self.position_slider.blockSignals(False)
-        self.time_label.setText(f"{self.ms_to_time_str(position)} / {self.ms_to_time_str(duration)}")
+        self.time_label.setText(f"{ms_to_time_str(position)} / {ms_to_time_str(duration)}")
 
     def update_duration(self, duration):
         """Slot to update the slider range and time label based on media duration."""
         self.position_slider.setRange(0, duration)
         # When duration changes, position is typically 0
-        self.time_label.setText(f"{self.ms_to_time_str(0)} / {self.ms_to_time_str(duration)}")
+        self.time_label.setText(f"{ms_to_time_str(0)} / {ms_to_time_str(duration)}")
 
 class MarkerSlider(QSlider):
     def __init__(self, orientation, parent=None):
