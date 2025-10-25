@@ -79,18 +79,19 @@ class VideoCutter(QDialog):
         self.media_player_widget.media_loaded.connect(self.media_controls.play_button.setEnabled)
         self.media_player_widget.state_changed.connect(self.media_controls.update_media_state)
         self.media_player_widget.position_changed.connect(self.update_position)
-        self.media_player_widget.duration_changed.connect(self.media_controls.update_duration)
+        self.media_player_widget.duration_changed.connect(self.update_duration)
         self.media_player_widget.double_clicked.connect(self.media_player_widget.toggle_play)
 
         # --- Segment Controls and List ---
         self.segment_controls.set_start_button.clicked.connect(lambda: self.segment_manager.set_start_time(self.media_player_widget.position()))
-        self.segment_controls.set_end_button.clicked.connect(lambda: self.segment_manager.set_end_time(self.media_player_widget.position()))
+        self.segment_controls.set_end_button.clicked.connect(lambda: self.segment_manager.create_segment(self.media_player_widget.position()))
         self.segment_controls.cut_button.clicked.connect(self.process_cut)
 
         self.segment_list_widget.itemSelectionChanged.connect(self.on_segment_selection_changed)
         self.segment_list_widget.customContextMenuRequested.connect(self.show_segment_context_menu)
 
         # --- Connect Segment Manager to UI Components ---
+        self.segment_manager.error_occurred.connect(self.show_error_message)
         self.segment_manager.segments_updated.connect(self.media_controls.position_slider.set_segment_markers)
         self.segment_manager.current_start_marker_updated.connect(self.media_controls.position_slider.set_current_start_marker)
         self.segment_manager.labels_updated.connect(self.update_segment_labels)
@@ -107,6 +108,11 @@ class VideoCutter(QDialog):
         # Update segment controls UI (business logic)
         self.segment_manager.update_dynamic_end_label(position)
 
+    def update_duration(self, duration):
+        """Slot to update duration-related UI elements."""
+        self.media_controls.update_duration(duration)
+        self.media_controls.update_position(self.media_player_widget.position(), duration)
+
     # --- Segment Manager Slots ---
     def update_segment_labels(self, updates):
         if updates.get('reset'):
@@ -116,6 +122,10 @@ class VideoCutter(QDialog):
             self.segment_controls.update_start_label(updates['start'])
         if 'end' in updates:
             self.segment_controls.update_end_label(updates['end'])
+
+    def show_error_message(self, title: str, message: str) -> None:
+        """Displays a warning message box."""
+        QMessageBox.warning(self, title, message)
 
     # --- UI Event Handlers ---
     def on_segment_selection_changed(self):
@@ -148,30 +158,34 @@ class VideoCutter(QDialog):
     def process_cut(self):
         segments_to_process = self.segment_manager.get_segments_for_processing()
         if not segments_to_process: return
-
+        
         output_dir = self.output_path
         base_name, ext = os.path.splitext(os.path.basename(self.video_path))
 
         for start_ms, end_ms in segments_to_process:
-            start_str = ms_to_time_str(start_ms)
-            end_str = ms_to_time_str(end_ms)
-
-            safe_start_str = start_str.replace(':', '-')
-            safe_end_str = end_str.replace(':', '-')
-            output_file = os.path.join(output_dir, f"{safe_start_str}--{safe_end_str}--{base_name}{ext}")
-
-            command = f'ffmpeg -loglevel warning -ss {start_str} -to {end_str} -i "{self.video_path}" -c copy "{output_file}"'
-
-            worker = FFmpegWorker(
-                selected_files=[],
-                command_input=None,
-                output_path=None,
-                command_override=command
-            )
-            worker.log_signal.connect(self.logger.append_log)
-            worker.finished.connect(lambda w=worker: self.active_workers.remove(w))
-            self.active_workers.append(worker)
-            worker.start()
+            self._start_cut_worker(start_ms, end_ms, base_name, ext, output_dir)
 
         self.logger.append_log(f"INFO: {len(segments_to_process)} cut operations have been started.")
         self.segment_manager.clear_all()
+
+    def _start_cut_worker(self, start_ms: int, end_ms: int, base_name: str, ext: str, output_dir: str):
+        """Creates and starts an FFmpegWorker for a single segment."""
+        start_str = ms_to_time_str(start_ms)
+        end_str = ms_to_time_str(end_ms)
+
+        safe_start_str = start_str.replace(':', '-').replace('.', '_')
+        safe_end_str = end_str.replace(':', '-').replace('.', '_')
+        output_file = os.path.join(output_dir, f"{base_name}--{safe_start_str}--{safe_end_str}{ext}")
+
+        command = f'ffmpeg -loglevel warning -ss {start_str} -to {end_str} -i "{self.video_path}" -c copy "{output_file}"'
+
+        worker = FFmpegWorker(
+            selected_files=[],
+            command_input=None,
+            output_path=None,
+            command_override=command
+        )
+        worker.log_signal.connect(self.logger.append_log)
+        worker.finished.connect(lambda w=worker: self.active_workers.remove(w))
+        self.active_workers.append(worker)
+        worker.start()
