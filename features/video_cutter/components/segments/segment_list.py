@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt
-from .deselectable_list_widget import DeselectableListWidget
+from ..deselectable_list_widget import DeselectableListWidget
 
 class SegmentList(DeselectableListWidget):
     def __init__(self, parent=None):

@@ -1,3 +1,3 @@
-from .video_cutter import VideoCutterWidget as VideoCutter
+from features.video_cutter import VideoCutter
 
 __all__ = ['VideoCutter']

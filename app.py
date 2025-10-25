@@ -7,7 +7,7 @@ from helper import resource_path
 from components import (PresetManager, Logger, FileManager, ControlPanel,
                         CommandInput, OutputPath)
 
-from features import VideoCutter
+from features.video_cutter import VideoCutter
 from processor import BatchProcessor
 
 class App(QMainWindow):

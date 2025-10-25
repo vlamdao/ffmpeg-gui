@@ -3,17 +3,15 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QWidget, QMessag
                              QListWidgetItem, QMenu)
 from PyQt5.QtCore import Qt, QUrl, QTime, QPoint
 from PyQt5.QtMultimedia import QMediaPlayer
+from PyQt5.QtGui import QFont
 
 from processor import FFmpegWorker
-from components import FontDelegate
 from .components.media_controls import MediaControls
-from .components.segment_controls import SegmentControls
-from .components.segment_list import SegmentList
-from .components.edit_segment_dialog import EditSegmentDialog
-from .components.segment_manager import SegmentManager
 from .components.media_player import MediaPlayer
+from .components.segments import (SegmentControls, SegmentList, SegmentManager,
+                                  EditSegmentDialog)
 
-class VideoCutterWidget(QDialog):
+class VideoCutter(QDialog):
 
     def __init__(self, video_path, output_path, logger, parent=None):
         super().__init__(parent)
@@ -67,7 +65,7 @@ class VideoCutterWidget(QDialog):
 
         # Segment list
         self.segment_list_widget = SegmentList()
-        self.segment_list_widget.setItemDelegate(FontDelegate(font_family="Cascadia Mono"))
+        self.segment_list_widget.setFont(QFont("Cascadia Mono", 10))
         main_layout.addWidget(self.segment_list_widget)
 
     def _connect_signals(self):
@@ -114,6 +112,7 @@ class VideoCutterWidget(QDialog):
         # Update segment controls UI (business logic)
         self.segment_manager.update_dynamic_end_label(position)
 
+    # --- Segment Manager Slots ---
     def update_segment_labels(self, updates):
         if updates.get('reset'):
             self.segment_controls.reset_labels()
