@@ -71,8 +71,8 @@ class VideoCutter(QDialog):
     def _connect_signals(self):
         # --- Media Player and Controls ---
         self.media_controls.play_button.clicked.connect(self.media_player_widget.toggle_play)
-        self.media_controls.previous_frame_button.clicked.connect(self.media_player_widget.previous_frame)
-        self.media_controls.next_frame_button.clicked.connect(self.media_player_widget.next_frame)
+        self.media_controls.seek_backward_button.clicked.connect(self.media_player_widget.seek_backward)
+        self.media_controls.seek_forward_button.clicked.connect(self.media_player_widget.seek_forward)
         self.media_controls.position_slider.sliderPressed.connect(self.media_player_widget.pause)
         self.media_controls.position_slider.valueChanged.connect(self.media_player_widget.set_position)
 

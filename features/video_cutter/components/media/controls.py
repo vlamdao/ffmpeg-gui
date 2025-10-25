@@ -17,15 +17,15 @@ class MediaControls(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.previous_frame_button = QPushButton()
-        self.previous_frame_button.setIcon(self.style().standardIcon(QStyle.SP_MediaSeekBackward))
+        self.seek_backward_button = QPushButton()
+        self.seek_backward_button.setIcon(self.style().standardIcon(QStyle.SP_MediaSeekBackward))
 
         self.play_button = QPushButton()
         self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         self.play_button.setEnabled(False)
 
-        self.next_frame_button = QPushButton()
-        self.next_frame_button.setIcon(self.style().standardIcon(QStyle.SP_MediaSeekForward))
+        self.seek_forward_button = QPushButton()
+        self.seek_forward_button.setIcon(self.style().standardIcon(QStyle.SP_MediaSeekForward))
 
         self.position_slider = MarkerSlider(Qt.Horizontal)
         self.position_slider.setRange(0, 0)
@@ -45,9 +45,9 @@ class MediaControls(QWidget):
 
         self.time_label = QLabel("00:00:00 / 00:00:00")
 
-        layout.addWidget(self.previous_frame_button)
+        layout.addWidget(self.seek_backward_button)
         layout.addWidget(self.play_button)
-        layout.addWidget(self.next_frame_button)
+        layout.addWidget(self.seek_forward_button)
         layout.addWidget(self.position_slider)
         layout.addWidget(self.time_label)
 
