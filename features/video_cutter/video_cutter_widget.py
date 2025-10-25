@@ -2,16 +2,16 @@ import os
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox,
                              QListWidgetItem, QMenu)
 from PyQt5.QtCore import Qt, QUrl, QTime, QPoint
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from PyQt5.QtMultimediaWidgets import QVideoWidget
+from PyQt5.QtMultimedia import QMediaPlayer
 
 from processor import FFmpegWorker
 from components import FontDelegate
 from .components.media_controls import MediaControls
 from .components.segment_controls import SegmentControls
 from .components.segment_list import SegmentList
-from .components.clickable_video_widget import ClickableVideoWidget
 from .components.edit_segment_dialog import EditSegmentDialog
+from .components.segment_manager import SegmentManager
+from .components.media_player import MediaPlayer
 
 class VideoCutterWidget(QDialog):
 
@@ -26,14 +26,8 @@ class VideoCutterWidget(QDialog):
         self.logger = logger
         self.output_path = output_path
 
-        # State
-        self.segments = []
-        self.start_time = None
-        self.end_time = None
-        self._media_loaded = False
+        # Logic and State Management
         self.active_workers = []
-        self.frame_step_ms = 33  # Step for ~30fps
-        self.selected_segment_index = -1  # -1 means no segment is selected for editing
 
         self._setup_ui()
         self._connect_signals()
@@ -41,19 +35,11 @@ class VideoCutterWidget(QDialog):
     def showEvent(self, event):
         """Override showEvent to load media only when the dialog is shown."""
         super().showEvent(event)
-        if not self._media_loaded:
-            if os.path.exists(self.video_path):
-                self.media_player.setMedia(QMediaContent(QUrl.fromLocalFile(self.video_path)))
-                self.media_controls.play_button.setEnabled(True)
-                self._media_loaded = True
-                self.media_player.play()
-            else:
-                QMessageBox.critical(self, "Error", f"Video file not found:\n{self.video_path}")
-                self.media_controls.play_button.setEnabled(False)
+        self.media_player_widget.load_media(self.video_path)
 
     def closeEvent(self, event):
         """Override closeEvent to stop the media player and release resources."""
-        self.media_player.stop()
+        self.media_player_widget.stop()
         super().closeEvent(event)
 
     def _setup_ui(self):
@@ -66,15 +52,10 @@ class VideoCutterWidget(QDialog):
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Video display
-        self.video_widget = ClickableVideoWidget()
-        self.video_widget.setMinimumHeight(300)
-        left_layout.addWidget(self.video_widget, 1) # Give it expanding space
-
-        self.media_player = QMediaPlayer(None, QMediaPlayer.VideoSurface)
-        self.media_player.setVideoOutput(self.video_widget)
-
-        # Media and Segment Controls
+        # Media Player, Media Controls, and Segment Controls
+        self.segment_manager = SegmentManager(self)
+        self.media_player_widget = MediaPlayer()
+        left_layout.addWidget(self.media_player_widget)
         self.media_controls = MediaControls()
         self.segment_controls = SegmentControls()
 
@@ -91,158 +72,65 @@ class VideoCutterWidget(QDialog):
 
     def _connect_signals(self):
         # --- Media Player and Controls ---
-        self.media_controls.play_button.clicked.connect(self.toggle_play)
-        self.video_widget.doubleClicked.connect(self.toggle_play)
-        self.media_controls.previous_frame_button.clicked.connect(self.previous_frame)
-        self.media_controls.next_frame_button.clicked.connect(self.next_frame)
-        self.media_controls.position_slider.sliderPressed.connect(self.media_player.pause)
-        self.media_controls.position_slider.valueChanged.connect(self.set_position)
+        self.media_controls.play_button.clicked.connect(self.media_player_widget.toggle_play)
+        self.media_controls.previous_frame_button.clicked.connect(self.media_player_widget.previous_frame)
+        self.media_controls.next_frame_button.clicked.connect(self.media_player_widget.next_frame)
+        self.media_controls.position_slider.sliderPressed.connect(self.media_player_widget.pause)
+        self.media_controls.position_slider.valueChanged.connect(self.media_player_widget.set_position)
 
-        self.media_player.stateChanged.connect(self.media_controls.update_media_state)
-        self.media_player.positionChanged.connect(self.update_position)
-        self.media_player.durationChanged.connect(self.update_duration)
+        self.media_player_widget.media_loaded.connect(self.media_controls.play_button.setEnabled)
+        self.media_player_widget.state_changed.connect(self.media_controls.update_media_state)
+        self.media_player_widget.position_changed.connect(self.update_position)
+        self.media_player_widget.duration_changed.connect(self.media_controls.update_duration)
+        self.media_player_widget.double_clicked.connect(self.media_player_widget.toggle_play)
 
         # --- Segment Controls and List ---
-        self.segment_controls.set_start_button.clicked.connect(self.set_start_time)
-        self.segment_controls.set_end_button.clicked.connect(self.set_end_time)
+        self.segment_controls.set_start_button.clicked.connect(lambda: self.segment_manager.set_start_time(self.media_player_widget.position()))
+        self.segment_controls.set_end_button.clicked.connect(lambda: self.segment_manager.set_end_time(self.media_player_widget.position()))
         self.segment_controls.cut_button.clicked.connect(self.process_cut)
 
         self.segment_list_widget.itemSelectionChanged.connect(self.on_segment_selection_changed)
         self.segment_list_widget.customContextMenuRequested.connect(self.show_segment_context_menu)
 
+        # --- Connect Segment Manager to UI Components ---
+        self.segment_manager.segments_updated.connect(self.media_controls.position_slider.set_segment_markers)
+        self.segment_manager.current_start_marker_updated.connect(self.media_controls.position_slider.set_current_start_marker)
+        self.segment_manager.labels_updated.connect(self.update_segment_labels)
+        self.segment_manager.list_item_added.connect(self.segment_list_widget.addItem)
+        self.segment_manager.list_item_updated.connect(lambda index, text: self.segment_list_widget.item(index).setText(text))
+        self.segment_manager.list_item_removed.connect(self.segment_list_widget.takeItem)
+        self.segment_manager.list_selection_cleared.connect(self.segment_list_widget.clearSelection)
+        self.segment_manager.list_cleared.connect(self.segment_list_widget.clear)
+
     def ms_to_time_str(self, ms):
+        # This is now only used for file naming, so it stays here.
         time = QTime(0, 0, 0).addMSecs(ms)
         return time.toString("HH:mm:ss.zzz")
 
     # --- Media Player Slots ---
-    def toggle_play(self):
-        if self.media_player.position() >= self.media_player.duration() - 100:
-            self.media_player.setPosition(0)
-            self.media_player.play()
-        elif self.media_player.state() == QMediaPlayer.PlayingState:
-            self.media_player.pause()
-        else:
-            self.media_player.play()
-
     def update_position(self, position):
-        self.media_controls.update_position(position, self.media_player.duration())
-        if self.start_time is not None and self.selected_segment_index == -1:
-            self.segment_controls.end_label.setText(f"End: {self.ms_to_time_str(position)}")
+        # Update media controls UI
+        self.media_controls.update_position(position, self.media_player_widget.duration())
+        # Update segment controls UI (business logic)
+        self.segment_manager.update_dynamic_end_label(position)
 
-    def update_duration(self, duration):
-        self.media_controls.update_duration(duration, self.media_player.position())
-
-    def set_position(self, position):
-        if self.media_player.position() != position:
-            self.media_player.setPosition(position)
-
-    def next_frame(self):
-        self.media_player.pause()
-        current_position = self.media_player.position()
-        new_position = current_position + self.frame_step_ms
-        self.media_player.setPosition(int(new_position))
-
-    def previous_frame(self):
-        self.media_player.pause()
-        current_position = self.media_player.position()
-        new_position = current_position - self.frame_step_ms
-        self.media_player.setPosition(int(max(0, new_position)))
-
-    # --- Segment Handling Slots ---
-    def set_start_time(self):
-        new_start_time = self.media_player.position()
-
-        if self.selected_segment_index != -1:  # Editing an existing segment
-            _, end_time = self.segments[self.selected_segment_index]
-            if new_start_time >= end_time:
-                QMessageBox.warning(self, "Invalid Time", "Start time must be before the segment's end time.")
-                return
-            self.segments[self.selected_segment_index] = (new_start_time, end_time)
-            self.update_segment_item_text(self.selected_segment_index)
-            self.media_controls.position_slider.set_segment_markers(self.segments)
-            self.segment_controls.start_label.setText(f"Start: {self.ms_to_time_str(new_start_time)}")
-        else:  # Setting start for a new segment
-            self.start_time = new_start_time
-            self.media_controls.position_slider.set_current_start_marker(self.start_time)
-            self.segment_controls.start_label.setText(f"Start: {self.ms_to_time_str(self.start_time)}")
-
-    def set_end_time(self):
-        new_end_time = self.media_player.position()
-
-        if self.selected_segment_index != -1:  # Editing an existing segment
-            start_time, _ = self.segments[self.selected_segment_index]
-            if new_end_time <= start_time:
-                QMessageBox.warning(self, "Invalid Time", "End time must be after the segment's start time.")
-                return
-            self.segments[self.selected_segment_index] = (start_time, new_end_time)
-            self.update_segment_item_text(self.selected_segment_index)
-            self.media_controls.position_slider.set_segment_markers(self.segments)
-            self.segment_controls.end_label.setText(f"End: {self.ms_to_time_str(new_end_time)}")
-            self.segment_list_widget.clearSelection()
-            return
-
-        # --- Logic for adding a new segment ---
-        if self.start_time is None:
-            QMessageBox.warning(self, "Incomplete Segment", "Please set a start time for the new segment first.")
-            return
-
-        if self.start_time >= new_end_time:
-            QMessageBox.warning(self, "Invalid Segment", "End time must be after start time.")
-            return
-
-        segment = (self.start_time, new_end_time)
-        self.segments.append(segment)
-
-        item_text = f"{self.ms_to_time_str(self.start_time)} -> {self.ms_to_time_str(new_end_time)}"
-        self.segment_list_widget.addItem(QListWidgetItem(item_text))
-
-        self.media_controls.position_slider.set_segment_markers(self.segments)
-        self.media_controls.position_slider.set_current_start_marker(-1)
-
-        self.start_time = None
-        self.segment_controls.reset_labels()
-
-    def clear_segments_ui(self):
-        self.segments.clear()
-        self.segment_list_widget.clear()
-        self.media_controls.position_slider.set_segment_markers([])
-        self.media_controls.position_slider.set_current_start_marker(-1)
-        self.start_time = None
-        self.end_time = None
-        self.selected_segment_index = -1
-        self.segment_controls.reset_labels()
-
-    def on_segment_selection_changed(self):
-        selected_items = self.segment_list_widget.selectedItems()
-        if not selected_items:
-            self.selected_segment_index = -1
-            self.start_time = None
-            self.media_controls.position_slider.set_current_start_marker(-1)
+    def update_segment_labels(self, updates):
+        if updates.get('reset'):
             self.segment_controls.reset_labels()
             return
+        if 'start' in updates:
+            self.segment_controls.update_start_label(updates['start'])
+        if 'end' in updates:
+            self.segment_controls.update_end_label(updates['end'])
 
-        selected_item = selected_items[0]
-        self.selected_segment_index = self.segment_list_widget.row(selected_item)
-
-        if not (0 <= self.selected_segment_index < len(self.segments)):
-            self.clear_segments_ui()
-            return
-
-        start_ms, end_ms = self.segments[self.selected_segment_index]
-        self.media_player.setPosition(start_ms)
-        self.media_player.pause()
-
-        self.segment_controls.start_label.setText(f"Start: {self.ms_to_time_str(start_ms)}")
-        self.segment_controls.end_label.setText(f"End: {self.ms_to_time_str(end_ms)}")
-
-    def update_segment_item_text(self, row):
-        start_ms, end_ms = self.segments[row]
-        item_text = f"{self.ms_to_time_str(start_ms)} -> {self.ms_to_time_str(end_ms)}"
-        self.segment_list_widget.item(row).setText(item_text)
-
-    def update_all_segment_item_texts(self):
-        for i in range(len(self.segments)):
-            self.update_segment_item_text(i)
+    # --- UI Event Handlers ---
+    def on_segment_selection_changed(self):
+        selected_items = self.segment_list_widget.selectedItems()
+        selected_row = self.segment_list_widget.row(selected_items[0]) if selected_items else -1
+        start_pos, _ = self.segment_manager.handle_selection_change(selected_row)
+        if start_pos != -1:
+            self.media_player_widget.set_position(start_pos)
+            self.media_player_widget.pause()
 
     def show_segment_context_menu(self, pos: QPoint):
         item = self.segment_list_widget.itemAt(pos)
@@ -256,51 +144,21 @@ class VideoCutterWidget(QDialog):
         action = menu.exec_(self.segment_list_widget.mapToGlobal(pos))
 
         if action == edit_action:
-            self.edit_segment_from_context_menu(item)
+            row_to_select = self.segment_manager.edit_segment(self.segment_list_widget.row(item))
+            if row_to_select != -1:
+                self.segment_list_widget.setCurrentRow(row_to_select)
         elif action == delete_action:
-            self.delete_segment_from_context_menu(item)
-
-    def edit_segment_from_context_menu(self, item: QListWidgetItem):
-        row = self.segment_list_widget.row(item)
-        if not (0 <= row < len(self.segments)):
-            return
-
-        initial_start_ms, initial_end_ms = self.segments[row]
-
-        dialog = EditSegmentDialog(self, initial_start_ms, initial_end_ms)
-        if dialog.exec_() == QDialog.Accepted:
-            new_start_ms, new_end_ms = dialog.get_edited_times()
-
-            self.segments[row] = (new_start_ms, new_end_ms)
-            self.update_segment_item_text(row)
-            self.media_controls.position_slider.set_segment_markers(self.segments)
-            self.segment_list_widget.setCurrentItem(item)
-
-    def delete_segment_from_context_menu(self, item: QListWidgetItem):
-        row_to_delete = self.segment_list_widget.row(item)
-        if row_to_delete < 0:
-            return
-
-        self.segments.pop(row_to_delete)
-        self.segment_list_widget.takeItem(row_to_delete)
-        self.media_controls.position_slider.set_segment_markers(self.segments)
-        self.update_all_segment_item_texts()
-
-        if self.selected_segment_index == row_to_delete:
-            self.segment_list_widget.clearSelection()
-        elif self.selected_segment_index > row_to_delete:
-            self.selected_segment_index -= 1
+            self.segment_manager.delete_segment(self.segment_list_widget.row(item))
 
     # --- Processing Slots ---
     def process_cut(self):
-        if not self.segments:
-            QMessageBox.warning(self, "No Segments", "Please add at least one segment to cut.")
-            return
+        segments_to_process = self.segment_manager.get_segments_for_processing()
+        if not segments_to_process: return
 
         output_dir = self.output_path
         base_name, ext = os.path.splitext(os.path.basename(self.video_path))
 
-        for i, (start_ms, end_ms) in enumerate(self.segments):
+        for start_ms, end_ms in segments_to_process:
             start_str = self.ms_to_time_str(start_ms)
             end_str = self.ms_to_time_str(end_ms)
 
@@ -321,5 +179,5 @@ class VideoCutterWidget(QDialog):
             self.active_workers.append(worker)
             worker.start()
 
-        self.logger.append_log(f"INFO: {len(self.segments)} cut operations have been started.")
-        self.clear_segments_ui()
+        self.logger.append_log(f"INFO: {len(segments_to_process)} cut operations have been started.")
+        self.segment_manager.clear_all()

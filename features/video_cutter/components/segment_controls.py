@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QPushButton, QLabel, QSizePolicy)
+from PyQt5.QtCore import QTime
 
 class SegmentControls(QWidget):
     def __init__(self, parent=None):
@@ -25,6 +26,17 @@ class SegmentControls(QWidget):
         layout.addWidget(self.end_label)
         layout.addStretch()
         layout.addWidget(self.cut_button)
+
+    def _ms_to_time_str(self, ms):
+        """Converts milliseconds to a HH:mm:ss.zzz string."""
+        time = QTime(0, 0, 0).addMSecs(ms)
+        return time.toString("HH:mm:ss.zzz")
+
+    def update_start_label(self, ms):
+        self.start_label.setText(f"Start: {self._ms_to_time_str(ms)}")
+
+    def update_end_label(self, ms):
+        self.end_label.setText(f"End: {self._ms_to_time_str(ms)}")
 
     def reset_labels(self):
         self.start_label.setText("Start: --:--:--.---")
