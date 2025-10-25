@@ -1,6 +1,7 @@
 import os
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QApplication
 from PyQt5.QtCore import QUrl, pyqtSignal, Qt
+from PyQt5.QtCore import QUrl, pyqtSignal, Qt, QTimer
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 
@@ -17,8 +18,8 @@ class MediaPlayer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._is_media_loaded = False
-        self.seek_interval_ms = 500  # Seek interval: 0.5 seconds
-        self._pause_after_seek_pending = False # Flag to indicate if we need to pause after a seek
+        self._seek_interval_ms = 500  # Seek interval: 0.5 seconds
+        self._pause_after_seek_pending = False
         self._media_player = QMediaPlayer(None, QMediaPlayer.VideoSurface)
         self._video_widget = ClickableVideoWidget()
 
@@ -28,7 +29,7 @@ class MediaPlayer(QWidget):
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        self._video_widget.setMinimumHeight(300)
+        self._video_widget.setMinimumHeight(200) # Set a reasonable minimum height
         layout.addWidget(self._video_widget, 1) # Give it expanding space
         self._media_player.setVideoOutput(self._video_widget)
 
@@ -74,12 +75,12 @@ class MediaPlayer(QWidget):
 
     def seek_forward(self):
         self.pause()
-        new_position = self.position() + self.seek_interval_ms
+        new_position = self.position() + self._seek_interval_ms
         self.set_position(int(new_position))
 
     def seek_backward(self):
         self.pause()
-        new_position = self.position() - self.seek_interval_ms
+        new_position = self.position() - self._seek_interval_ms
         self.set_position(int(max(0, new_position)))
 
     def set_position(self, position):
@@ -117,12 +118,14 @@ class MediaPlayer(QWidget):
         return self._media_player.state()
     
 class ClickableVideoWidget(QVideoWidget):
-    """A QVideoWidget that emits a doubleClicked signal."""
+    """A QVideoWidget that emits a doubleClicked signal on a left-button double-click."""
     doubleClicked = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
     def mouseDoubleClickEvent(self, event):
-        self.doubleClicked.emit()
+        """Emits the doubleClicked signal if the event was from the left mouse button."""
+        if event.button() == Qt.LeftButton:
+            self.doubleClicked.emit()
         super().mouseDoubleClickEvent(event)
