@@ -67,7 +67,7 @@ class ControlPanel(QWidget):
             },
             'cut_video': {
                 'text': ' Cut Video',
-                'icon': 'run.png',
+                'icon': 'cut_video.png',
                 'tooltip': 'Cut a video into segments',
                 'connection': lambda: self.parent.open_video_cutter()
             },
