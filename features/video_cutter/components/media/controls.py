@@ -36,10 +36,10 @@ class MediaControls(QWidget):
                 background-color: #b5b5b5;
             }
             QSlider::handle:horizontal {
-                background-color: #0078D7;
+                background-color: blue; /* Match the painter's Qt.blue */
                 width: 8px;
-                height: 48px;
-                margin: -3px 0;
+                height: 32px;
+                margin: -8px 0; /* (32px - 16px) / 2 = 8px */
             }
         """)
 
@@ -70,4 +70,3 @@ class MediaControls(QWidget):
         self.position_slider.setRange(0, duration)
         # When duration changes, position is typically 0
         self.time_label.setText(f"{ms_to_time_str(0)} / {ms_to_time_str(duration)}")
-
