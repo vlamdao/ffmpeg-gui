@@ -1,7 +1,6 @@
 import os
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QApplication
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox
 from PyQt5.QtCore import QUrl, pyqtSignal, Qt
-from PyQt5.QtCore import QUrl, pyqtSignal, Qt, QTimer
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 
@@ -17,9 +16,9 @@ class MediaPlayer(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._END_OF_MEDIA_THRESHOLD_MS = 100  # Threshold to consider media as "finished"
         self._is_media_loaded = False
-        self._seek_interval_ms = 500  # Seek interval: 0.5 seconds
-        self._pause_after_seek_pending = False
+        self._seek_interval_ms = 1000  # Seek interval: 0.5 seconds
         self._media_player = QMediaPlayer(None, QMediaPlayer.VideoSurface)
         self._video_widget = ClickableVideoWidget()
 
@@ -34,7 +33,6 @@ class MediaPlayer(QWidget):
         self._media_player.setVideoOutput(self._video_widget)
 
     def _connect_signals(self):
-        self._media_player.positionChanged.connect(self._on_media_player_position_changed) # Internal handler for seek logic
         self._media_player.positionChanged.connect(self.position_changed)
         self._media_player.durationChanged.connect(self.duration_changed)
         self._media_player.stateChanged.connect(self.state_changed)
@@ -65,7 +63,7 @@ class MediaPlayer(QWidget):
 
     def toggle_play(self):
         """Toggles play/pause state. Restarts if at the end."""
-        if self.position() >= self.duration() - 100:
+        if self.duration() > 0 and self.position() >= self.duration() - self._END_OF_MEDIA_THRESHOLD_MS:
             self.set_position(0)
             self.play()
         elif self.state() == QMediaPlayer.PlayingState:
@@ -84,29 +82,8 @@ class MediaPlayer(QWidget):
         self.set_position(int(max(0, new_position)))
 
     def set_position(self, position):
-        """
-        Sets the media player's position.
-
-        This method handles seeking more robustly. It seeks to the desired
-        position and then pauses the video again after the seek is complete
-        to ensure the video frame is stable at the new position. This helps
-        mitigate issues where playback might start from a nearby keyframe.
-        """
         if self._media_player.isSeekable() and self._media_player.position() != position:
-            self._pause_after_seek_pending = True # Set flag before seeking
             self._media_player.setPosition(position)
-
-    def _on_media_player_position_changed(self, position):
-        """
-        Internal slot to handle position changes, specifically for pausing after a seek.
-        This helps to "lock" the video frame after a seek operation.
-        """
-        # Only pause if a seek operation was initiated and we are waiting to pause
-        if self._pause_after_seek_pending:
-            # It's good practice to check if the player is still seeking or has settled
-            # For now, we'll pause immediately.
-            self._media_player.pause()
-            self._pause_after_seek_pending = False # Reset the flag
 
     def position(self):
         return self._media_player.position()

@@ -70,13 +70,13 @@ class VideoCutter(QDialog):
 
     def _connect_signals(self):
         # --- Media Player and Controls ---
-        self.media_controls.play_button.clicked.connect(self.media_player_widget.toggle_play)
-        self.media_controls.seek_backward_button.clicked.connect(self.media_player_widget.seek_backward)
-        self.media_controls.seek_forward_button.clicked.connect(self.media_player_widget.seek_forward)
-        self.media_controls.position_slider.sliderPressed.connect(self.media_player_widget.pause)
-        self.media_controls.position_slider.valueChanged.connect(self.media_player_widget.set_position)
+        self.media_controls.play_clicked.connect(self.media_player_widget.toggle_play)
+        self.media_controls.seek_backward_clicked.connect(self.media_player_widget.seek_backward)
+        self.media_controls.seek_forward_clicked.connect(self.media_player_widget.seek_forward)
+        self.media_controls.slider_pressed.connect(self.media_player_widget.pause)
+        self.media_controls.position_changed.connect(self.media_player_widget.set_position)
 
-        self.media_player_widget.media_loaded.connect(self.media_controls.play_button.setEnabled)
+        self.media_player_widget.media_loaded.connect(self.media_controls.set_play_button_enabled)
         self.media_player_widget.state_changed.connect(self.media_controls.update_media_state)
         self.media_player_widget.position_changed.connect(self.update_position)
         self.media_player_widget.duration_changed.connect(self.update_duration)
@@ -92,8 +92,8 @@ class VideoCutter(QDialog):
 
         # --- Connect Segment Manager to UI Components ---
         self.segment_manager.error_occurred.connect(self.show_error_message)
-        self.segment_manager.segments_updated.connect(self.media_controls.position_slider.set_segment_markers)
-        self.segment_manager.current_start_marker_updated.connect(self.media_controls.position_slider.set_current_start_marker)
+        self.segment_manager.segments_updated.connect(self.media_controls.set_segment_markers)
+        self.segment_manager.current_start_marker_updated.connect(self.media_controls.set_current_start_marker)
         self.segment_manager.labels_updated.connect(self.update_segment_labels)
         self.segment_manager.list_item_added.connect(self.segment_list_widget.addItem)
         self.segment_manager.list_item_updated.connect(lambda index, text: self.segment_list_widget.item(index).setText(text))
@@ -103,13 +103,16 @@ class VideoCutter(QDialog):
 
     # --- Media Player Slots ---
     def update_position(self, position):
-        # Update media controls UI
+        """Receive position signal from player
+           Forward to controls and segment manager
+        """
         self.media_controls.update_position(position, self.media_player_widget.duration())
-        # Update segment controls UI (business logic)
         self.segment_manager.update_dynamic_end_label(position)
 
     def update_duration(self, duration):
-        """Slot to update duration-related UI elements."""
+        """Receive duration signal from player
+           Forward to controls
+        """
         self.media_controls.update_duration(duration)
         self.media_controls.update_position(self.media_player_widget.position(), duration)
 
