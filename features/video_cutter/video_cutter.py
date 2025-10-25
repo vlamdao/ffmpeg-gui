@@ -164,16 +164,18 @@ class VideoCutter(QDialog):
 
     def _show_segment_context_menu(self, pos: QPoint):
         """Shows a context menu for a segment item (Edit, Delete)."""
-        item = self._segment_list.itemAt(pos)
-        if not item:
+        # Get the index of the item at the cursor position.
+        # Working with the row index is safer than holding a reference to the item,
+        # which might be deleted, causing a crash.
+        row = self._segment_list.row(self._segment_list.itemAt(pos))
+        if row == -1:
             return
 
         menu = QMenu(self)
         edit_action = menu.addAction("Edit Segment")
         delete_action = menu.addAction("Delete Segment")
 
-        action = menu.exec_(self._segment_list.mapToGlobal(pos))
-        row = self._segment_list.row(item)
+        action = menu.exec_(self._segment_list.viewport().mapToGlobal(pos))
 
         if action == edit_action:
             row_to_select = self._segment_manager.edit_segment(row)
