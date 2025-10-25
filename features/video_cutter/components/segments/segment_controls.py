@@ -4,13 +4,22 @@ from PyQt5.QtCore import pyqtSignal
 from helper import ms_to_time_str
 
 class SegmentControls(QWidget):
+    """A widget containing the main controls for creating and processing segments.
+
+    This encapsulated widget provides buttons for setting start/end times and
+    initiating the cut process, along with labels to display the current times.
+    It communicates user actions to the parent widget via signals.
+    """
     _DEFAULT_START_TEXT = "Start: --:--:--.---"
     _DEFAULT_END_TEXT = "End: --:--:--.---"
 
     # --- Public Signals ---
     set_start_clicked = pyqtSignal()
+    """Emitted when the 'Set Start' button is clicked."""
     set_end_clicked = pyqtSignal()
+    """Emitted when the 'Set End' button is clicked."""
     cut_clicked = pyqtSignal()
+    """Emitted when the 'Cut Segments' button is clicked."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -60,11 +69,14 @@ class SegmentControls(QWidget):
         self._cut_button.clicked.connect(self.cut_clicked)
 
     def update_start_label(self, ms):
+        """Updates the 'Start' time label with a formatted time string."""
         self._start_label.setText(f"Start: {ms_to_time_str(ms)}")
 
     def update_end_label(self, ms):
+        """Updates the 'End' time label with a formatted time string."""
         self._end_label.setText(f"End: {ms_to_time_str(ms)}")
 
     def reset_labels(self):
+        """Resets the 'Start' and 'End' time labels to their default text."""
         self._start_label.setText(self._DEFAULT_START_TEXT)
         self._end_label.setText(self._DEFAULT_END_TEXT)
