@@ -2,8 +2,7 @@ import os
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox
 from PyQt5.QtCore import QUrl, pyqtSignal
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-
-from .clickable_video_widget import ClickableVideoWidget
+from PyQt5.QtMultimediaWidgets import QVideoWidget
 
 class MediaPlayer(QWidget):
     """A widget that encapsulates QMediaPlayer and QVideoWidget."""
@@ -93,3 +92,14 @@ class MediaPlayer(QWidget):
 
     def state(self):
         return self._media_player.state()
+    
+class ClickableVideoWidget(QVideoWidget):
+    """A QVideoWidget that emits a doubleClicked signal."""
+    doubleClicked = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def mouseDoubleClickEvent(self, event):
+        self.doubleClicked.emit()
+        super().mouseDoubleClickEvent(event)

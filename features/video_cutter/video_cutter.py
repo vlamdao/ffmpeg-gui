@@ -7,11 +7,10 @@ from PyQt5.QtGui import QFont
 
 from processor import FFmpegWorker
 from helper import FontDelegate, ms_to_time_str
-from .components.media_controls import MediaControls
-from .components.media_player import MediaPlayer
-from .components.segments import (SegmentControls, SegmentList, SegmentManager,
-                                  EditSegmentDialog)
 
+from .components import (MediaControls, MediaPlayer, SegmentControls, 
+                         SegmentList, SegmentManager
+)
 class VideoCutter(QDialog):
 
     def __init__(self, video_path, output_path, logger, parent=None):
@@ -66,7 +65,7 @@ class VideoCutter(QDialog):
 
         # Segment list
         self.segment_list_widget = SegmentList()
-        self.segment_list_widget.setItemDelegate(FontDelegate(font_family="Cascade Mono"))
+        self.segment_list_widget.setItemDelegate(FontDelegate(font_family="Cascadia Mono"))
         main_layout.addWidget(self.segment_list_widget)
 
     def _connect_signals(self):
