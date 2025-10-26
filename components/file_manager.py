@@ -370,6 +370,8 @@ class DragDropTable(QTableWidget):
         """Configures table interaction behavior."""
         self.setAcceptDrops(True)
         self.setSelectionBehavior(QTableWidget.SelectRows)
+        # Allow selecting multiple items by dragging the mouse
+        self.setSelectionMode(QTableWidget.ExtendedSelection)
         self.setEditTriggers(QTableWidget.NoEditTriggers)
     
     def _create_table_item(self, text: str, alignment: Qt.AlignmentFlag = Qt.AlignVCenter | Qt.AlignLeft) -> QTableWidgetItem:
