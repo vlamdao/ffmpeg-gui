@@ -33,7 +33,6 @@ class App(QMainWindow):
         self.preset_manager = PresetManager(self, self.preset_table, self.command_input.get_command_widget())
         self.batch_processor = BatchProcessor(self)
         self.control_panel = ControlPanel(self) # Must be after other components
-        self.control_panel.enable_button('cut_video', False)
 
     def _setup_layout(self):
         """Set up the main window layout and add all component widgets."""
@@ -71,7 +70,6 @@ class App(QMainWindow):
     def _connect_signals(self):
         """Connect signals from components to the appropriate slots."""
         self.file_manager.log_signal.connect(self.logger.append_log)
-        self.file_manager.get_widget().itemSelectionChanged.connect(self._update_control_buttons)
         self.batch_processor.log_signal.connect(self.logger.append_log)
         self.preset_table.cellDoubleClicked.connect(self.preset_manager.apply_preset)
         self.preset_table.customContextMenuRequested.connect(self.preset_manager.show_context_menu)
@@ -80,11 +78,6 @@ class App(QMainWindow):
         """Set up global keyboard shortcuts."""
         QShortcut(QKeySequence("Esc"), self).activated.connect(self.close)
         QShortcut(QKeySequence("Ctrl+W"), self).activated.connect(self.close)
-
-    def _update_control_buttons(self):
-        selected_files, _ = self.file_manager.get_selected_files()
-        # Enable cut_video button only if exactly one file is selected
-        self.control_panel.enable_button('cut_video', len(selected_files) == 1)
 
     def _setup_video_cutter(self):
         selected_files, _ = self.file_manager.get_selected_files()
