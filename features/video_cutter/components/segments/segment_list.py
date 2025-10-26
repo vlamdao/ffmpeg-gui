@@ -26,7 +26,10 @@ class SegmentList(DeselectableListWidget):
 
     def _create_item(self, start_ms: int, end_ms: int) -> QListWidgetItem:
         """Creates a QListWidgetItem with embedded segment data."""
-        text = f"{ms_to_time_str(start_ms)} -> {ms_to_time_str(end_ms)}"
+        if end_ms == -1: # Convention for incomplete segment
+            text = f"{ms_to_time_str(start_ms)} -> [creating...]"
+        else:
+            text = f"{ms_to_time_str(start_ms)} -> {ms_to_time_str(end_ms)}"
         item = QListWidgetItem(text)
         item.setData(Qt.UserRole, (start_ms, end_ms))
         return item
@@ -35,10 +38,14 @@ class SegmentList(DeselectableListWidget):
         """Adds a new segment to the list."""
         item = self._create_item(start_ms, end_ms)
         self.addItem(item)
+        self.setCurrentItem(item) # Automatically select the new item
 
     def update_segment(self, row: int, start_ms: int, end_ms: int):
         """Updates an existing segment in the list."""
         item = self.item(row)
         if item:
-            item.setText(f"{ms_to_time_str(start_ms)} -> {ms_to_time_str(end_ms)}")
+            if end_ms == -1: # Convention for incomplete segment
+                item.setText(f"{ms_to_time_str(start_ms)} -> [creating...]")
+            else:
+                item.setText(f"{ms_to_time_str(start_ms)} -> {ms_to_time_str(end_ms)}")
             item.setData(Qt.UserRole, (start_ms, end_ms))

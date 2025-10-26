@@ -121,6 +121,7 @@ class VideoCutter(QDialog):
         self._segment_manager.segment_updated.connect(self._segment_list.update_segment)
         self._segment_manager.segment_removed.connect(self._segment_list.takeItem)
         self._segment_manager.list_cleared.connect(self._segment_list.clear)
+        self._segment_manager.selection_cleared.connect(self._segment_list.clearSelection)
 
     # --- Media Player Slots ---
     def _update_position(self, position):
@@ -156,7 +157,12 @@ class VideoCutter(QDialog):
     def _on_segment_selection_changed(self):
         """Handles selection changes in the segment list."""
         selected_items = self._segment_list.selectedItems()
+        
+        # Check if there are any selected items before trying to access them.
+        # This prevents a crash when an item is deleted, which can trigger
+        # this slot with an empty selection.
         selected_row = self._segment_list.row(selected_items[0]) if selected_items else -1
+
         start_pos, _ = self._segment_manager.handle_selection_change(selected_row)
         if start_pos != -1:
             self._media_player.set_position(start_pos)
@@ -189,7 +195,7 @@ class VideoCutter(QDialog):
         """Initiates the cutting process for all defined segments."""
         segments_to_process = self._segment_manager.get_segments_for_processing()
         if not segments_to_process: return
-        
+
         output_dir = self._output_path
         base_name, ext = os.path.splitext(os.path.basename(self._video_path))
 
