@@ -10,8 +10,6 @@ from components import (PresetManager, Logger, FileManager, ControlPanel,
 from features.video_cutter import VideoCutter
 from processor import BatchProcessor
 
-VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv']
-
 class FFmpegGUI(QMainWindow):
     def __init__(self):
         super().__init__()
