@@ -54,7 +54,7 @@ class OutputPath(QWidget):
         """Sets the output path in the input field."""
         self._path_input.setText(path)
 
-    def get_completed_output_path(self, input_file_folder: str, filename: str | None = None) -> str:
+    def get_completed_output_path(self, input_file_folder: str) -> str:
         """
         Resolves the final output path based on user input and the input file's location.
 
@@ -66,7 +66,6 @@ class OutputPath(QWidget):
 
         Args:
             input_file_folder (str): The folder path of the source file.
-            filename (str | None): An optional filename to append to the path.
 
         Returns:
             str: The absolute, resolved output path.
@@ -83,6 +82,4 @@ class OutputPath(QWidget):
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        if filename:
-            return str(output_dir / filename)
         return str(output_dir)
