@@ -1,13 +1,12 @@
 import os
 
 # Constants for command template placeholders
-PLACEHOLDER_INPUT_PATH = "{input_path}"
-PLACEHOLDER_INPUT_FILE = "{input_file}"
-PLACEHOLDER_OUTPUT_PATH = "{output_path}"
-PLACEHOLDER_FILENAME = "{filename}"
-PLACEHOLDER_EXT = "{ext}"
-PLACEHOLDER_CONCAT_LIST = "{concat_list}"
-PLACEHOLDER_OUTPUT = "{output}"
+PLACEHOLDER_INPUTFILE_FOLDER = "{inputfile_folder}"
+PLACEHOLDER_INPUTFILE_NAME = "{inputfile_name}"
+PLACEHOLDER_INPUTFILE_EXT = "{inputfile_ext}"
+PLACEHOLDER_OUTPUT_FOLDER = "{output_folder}"
+PLACEHOLDER_OUTPUT_FILENAME = "{output_filename}"
+PLACEHOLDER_CONCATFILE_PATH = "{concatfile_path}"
 
 class CommandGenerator(object):
     def __init__(self, selected_files, command_input, output_path):
@@ -74,13 +73,13 @@ class CommandGenerator(object):
 
         _, _, inputfile_folder = self.selected_files[0]
 
-        concat_file_path = self._create_concat_file()
-        output_dir = self.output_path.get_completed_output_path(inputfile_folder, "output")
+        concatfile_path = self._create_concat_file()
+        output_dir = self.output_path.get_completed_output_path(inputfile_folder)
         
         template = self.command_input.get_command()
         replacements = {
-            PLACEHOLDER_CONCAT_LIST: f'{concat_file_path}',
-            PLACEHOLDER_OUTPUT: f'{output_dir}'
+            PLACEHOLDER_OUTPUT_FOLDER: f'{output_dir}',
+            PLACEHOLDER_CONCATFILE_PATH: f'{concatfile_path}',
         }
         cmd = self._populate_template(template, replacements)
 
@@ -92,17 +91,17 @@ class CommandGenerator(object):
             return None
         
         _, filename, inputfile_folder = input_file
-        name, ext = os.path.splitext(filename)
+        inputfile_name, inputfile_ext = os.path.splitext(filename)
 
-        output_dir = self.output_path.get_completed_output_path(inputfile_folder)
+        output_folder = self.output_path.get_completed_output_path(inputfile_folder)
 
         template = self.command_input.get_command()
         replacements = {
-            PLACEHOLDER_INPUT_FILE: f'{os.path.join(inputfile_folder, filename)}',
-            PLACEHOLDER_INPUT_PATH: f'{inputfile_folder}',
-            PLACEHOLDER_OUTPUT_PATH: f'{output_dir}',
-            PLACEHOLDER_FILENAME: name,
-            PLACEHOLDER_EXT: ext.lstrip('.')
+            PLACEHOLDER_INPUTFILE_FOLDER: f'{inputfile_folder}',
+            PLACEHOLDER_INPUTFILE_NAME: f'{inputfile_name}',
+            PLACEHOLDER_OUTPUT_FOLDER: f'{output_folder}',
+            # PLACEHOLDER_OUTPUT_FILENAME: f'',
+            PLACEHOLDER_INPUTFILE_EXT: inputfile_ext.lstrip('.')
         }
         cmd = self._populate_template(template, replacements)
 

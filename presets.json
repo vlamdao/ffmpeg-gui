@@ -1,38 +1,38 @@
 [
   {
     "name": "Convert to MP4",
-    "command": "ffmpeg -i \"{input_path}/{filename}.{ext}\" -c:v copy -c:a copy \"{output_path}/{filename}.mp4\""
+    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -c:v copy -c:a copy \"{outputfile_folder}/{inputfile_name}.mp4\""
   },
   {
     "name": "Convert to MP4 (re-encode)",
-    "command": "ffmpeg -i \"{input_path}/{filename}.{ext}\" -c:v libx264 -c:a aac -strict experimental \"{output_path}/{filename}.mp4\""
+    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -c:v libx264 -c:a aac -strict experimental \"{outputfile_folder}/{inputfile_name}.mp4\""
   },
   {
     "name": "Extract Audio to MP3",
-    "command": "ffmpeg -i \"{input_path}/{filename}.{ext}\" -q:a 0 -map a \"{output_path}/{filename}.mp3\""
+    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -q:a 0 -map a \"{outputfile_folder}/{inputfile_name}.mp3\""
   },
   {
     "name": "Convert to MKV",
-    "command": "ffmpeg -i \"{input_path}/{filename}.{ext}\" -c copy -c:s srt \"{output_path}/{filename}.mkv\""
+    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -c copy -c:s srt \"{outputfile_folder}/{inputfile_name}.mkv\""
   },
   {
     "name": "Extract img at hh:mm:ss",
-    "command": "ffmpeg -ss 00:01:00 -i \"{input_path}/{filename}.{ext}\" -frames:v 1 \"{output_path}/{filename}.jpg\""
+    "command": "ffmpeg -ss 00:01:00 -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -frames:v 1 \"{outputfile_folder}/{inputfile_name}.jpg\""
   },
   {
     "name": "Set thumbnail with img",
-    "command": "ffmpeg -i \"{input_path}/{filename}.{ext}\" -i \"{output_path}/{filename}.jpg\" -map 0 -map 1 -c copy -disposition:v:1 attached_pic \"{output_path}/{filename}.{ext}\""
+    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -i \"{outputfile_folder}/{inputfile_name}.jpg\" -map 0 -map 1 -c copy -disposition:v:1 attached_pic \"{outputfile_folder}/{inputfile_name}.{inputfile_ext}\""
   },
   {
     "name": "Concatenate Videos (Demuxer)",
-    "command": "ffmpeg -f concat -safe 0 -i \"{concat_list}\" -c copy \"{output}.mp4\""
+    "command": "ffmpeg -f concat -safe 0 -i \"{concatfile_path}\" -c copy \"{outputfile_folder}/joined_file.mp4\""
   },
   {
     "name": "Concatenate Videos (Demuxer + Encode H264)",
-    "command": "ffmpeg -f concat -safe 0 -i \"{concat_list}\" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 128k \"{output}.mp4\""
+    "command": "ffmpeg -f concat -safe 0 -i \"{concatfile_path}\" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 128k \"{output_folder}/joined_file.mp4\""
   },
   {
     "name": "Resize video to max 512px (width or height)",
-    "command": "ffmpeg -i \"{input_path}/{filename}.{ext}\" -vf \"scale='if(gt(iw,ih),512,-2)':'if(gt(ih,iw),512,-2)'\" \"{output_path}/512px_{filename}.{ext}\""
+    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -vf \"scale='if(gt(iw,ih),512,-2)':'if(gt(ih,iw),512,-2)'\" \"{output_folder}/512px_{inputfile_name}.{inputfile_ext}\""
   }
 ]
