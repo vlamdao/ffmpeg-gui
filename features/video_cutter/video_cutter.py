@@ -84,7 +84,7 @@ class VideoCutter(QDialog):
 
         # Segment list
         self._segment_list = SegmentList()
-        self._segment_list.setItemDelegate(FontDelegate(font_family="Cascadia Mono"))
+        self._segment_list.setItemDelegate(FontDelegate(font_family="Consolas"))
         main_layout.addWidget(self._segment_list)
 
     def _connect_signals(self):

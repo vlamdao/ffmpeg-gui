@@ -44,7 +44,7 @@ class PresetManager:
         # set minimum height for the preset table
         self.preset_table.setMinimumHeight(100)
         # set monospace font for command template column
-        self.preset_table.setItemDelegateForColumn(1, FontDelegate(font_family="Cascadia Mono", font_size=8))
+        self.preset_table.setItemDelegateForColumn(1, FontDelegate(font_family="Consolas", font_size=9))
         # set preset name column width to 300 pixels
         self.preset_table.setColumnWidth(0, 300)
         
