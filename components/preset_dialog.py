@@ -7,15 +7,11 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
+from helper import FontDelegate
 
 # Import constants directly for consistency
 from helper.command_generator import (
-    PLACEHOLDER_INPUTFILE_FOLDER,
-    PLACEHOLDER_INPUTFILE_NAME,
-    PLACEHOLDER_INPUTFILE_EXT,
-    PLACEHOLDER_OUTPUT_FOLDER,
-    PLACEHOLDER_OUTPUT_FILENAME,
-    PLACEHOLDER_CONCATFILE_PATH
+    PLACEHOLDERS
 )
 
 class PresetDialog(QDialog):
@@ -71,30 +67,25 @@ class PresetDialog(QDialog):
 
     def _create_placeholder_table(self):
         """Creates and populates the placeholder table widget."""
+        placeholders = PLACEHOLDERS
+        
+        num_columns = 3
+        # Calculate the number of rows needed dynamically to avoid magic numbers
+        num_rows = (len(placeholders) + num_columns - 1) // num_columns
+
         table = QTableWidget()
-        table.setFont(QFont("Consolas", 9))
-        table.setColumnCount(3)
-        table.setRowCount(2)
+        table.setColumnCount(num_columns)
+        table.setItemDelegate(FontDelegate(font_family="Consolas", font_size=9))
+        table.setRowCount(num_rows)
         table.horizontalHeader().hide()
         table.verticalHeader().hide()
         table.setEditTriggers(QTableWidget.NoEditTriggers)
-        # Stretch columns to fill the available width
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-        # Use constants from command_generator for consistency
-        placeholders = [
-            PLACEHOLDER_INPUTFILE_FOLDER,
-            PLACEHOLDER_INPUTFILE_NAME,
-            PLACEHOLDER_INPUTFILE_EXT,
-            PLACEHOLDER_OUTPUT_FOLDER,
-            PLACEHOLDER_OUTPUT_FILENAME,
-            PLACEHOLDER_CONCATFILE_PATH,
-        ]
-
         for i, placeholder in enumerate(placeholders):
-            row = i // 3
-            col = i % 3
+            row = i // num_columns
+            col = i % num_columns
             item = QTableWidgetItem(placeholder)
             item.setTextAlignment(Qt.AlignCenter)
             item.setToolTip(f"Double-click to insert {placeholder}")
