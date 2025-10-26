@@ -23,8 +23,8 @@ class OutputPath(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self._path_label = QLabel("Output path:")
-        self._path_label.setFixedWidth(80)
+        self._path_label = QLabel("Output folder")
+        self._path_label.setFixedWidth(85)
         layout.addWidget(self._path_label)
 
         # Path input

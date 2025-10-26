@@ -40,7 +40,7 @@ class CommandInput(QWidget):
         cmd_layout = QHBoxLayout()
         
         cmd_label = QLabel("Command:")
-        cmd_label.setFixedWidth(80)
+        cmd_label.setFixedWidth(85)
         
         self.cmd_input = QTextEdit()
         self.cmd_input.setFixedHeight(60)
