@@ -7,7 +7,16 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
-from helper import FontDelegate
+
+# Import constants directly for consistency
+from helper.command_generator import (
+    PLACEHOLDER_INPUTFILE_FOLDER,
+    PLACEHOLDER_INPUTFILE_NAME,
+    PLACEHOLDER_INPUTFILE_EXT,
+    PLACEHOLDER_OUTPUT_FOLDER,
+    PLACEHOLDER_OUTPUT_FILENAME,
+    PLACEHOLDER_CONCATFILE_PATH
+)
 
 class PresetDialog(QDialog):
     """A dialog for adding or editing a preset (name and command)."""
@@ -25,37 +34,40 @@ class PresetDialog(QDialog):
         """
         super().__init__(parent)
         self.setWindowTitle(title)
-        
-        # =======================================
-        # Create widgets
-        # =======================================
-        self.name_input = QLineEdit(preset_name)
-        self.placeholder_table = self._create_placeholder_table()
-        self.cmd_input = QTextEdit(preset_command)
-        self.cmd_input.setFont(QFont("Consolas", 9))
-        
-        # Set initial sizes (can be adjusted by user)
-        self.name_input.setMinimumWidth(self._INPUT_WIDTH)
-        self.placeholder_table.setMinimumWidth(self._INPUT_WIDTH)
-        self.placeholder_table.setMaximumHeight(65) # Limit height for 2 rows
-        self.cmd_input.setMinimumWidth(self._INPUT_WIDTH)
-        self.cmd_input.setMinimumHeight(self._CMD_INPUT_HEIGHT)
+        self._preset_name = preset_name
+        self._preset_command = preset_command
+        self._setup_ui()
 
-        # =======================================
-        # Create layout and add widgets
-        # =======================================
+    def _setup_ui(self):
+        """Initializes and arranges all UI components."""
+        self._create_widgets()
+        self._setup_layout()
+
+    def _create_widgets(self):
+        """Creates all the widgets needed for the dialog."""
+        self._name_input = QLineEdit(self._preset_name)
+        self._name_input.setMinimumWidth(self._INPUT_WIDTH)
+
+        self._placeholder_table = self._create_placeholder_table()
+        self._placeholder_table.setMinimumWidth(self._INPUT_WIDTH)
+        self._placeholder_table.setMaximumHeight(65) # Limit height for 2 rows
+
+        self._cmd_input = QTextEdit(self._preset_command)
+        self._cmd_input.setFont(QFont("Consolas", 9))
+        self._cmd_input.setMinimumWidth(self._INPUT_WIDTH)
+        self._cmd_input.setMinimumHeight(self._CMD_INPUT_HEIGHT)
+
+        self._button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self._button_box.accepted.connect(self.accept)
+        self._button_box.rejected.connect(self.reject)
+
+    def _setup_layout(self):
+        """Configures the layout and adds widgets to it."""
         layout = QFormLayout(self)
-        layout.addRow("Preset Name:", self.name_input)
-        layout.addRow("Placeholders:", self.placeholder_table)
-        layout.addRow("Command:", self.cmd_input)
-
-        # =======================================
-        # Add standard buttons
-        # =======================================
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        layout.addWidget(self.button_box)
+        layout.addRow("Preset Name:", self._name_input)
+        layout.addRow("Placeholders:", self._placeholder_table)
+        layout.addRow("Command:", self._cmd_input)
+        layout.addWidget(self._button_box)
 
     def _create_placeholder_table(self):
         """Creates and populates the placeholder table widget."""
@@ -70,13 +82,17 @@ class PresetDialog(QDialog):
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
+        # Use constants from command_generator for consistency
         placeholders = [
-            "{inputfile_folder}", "{inputfile_name}", "{inputfile_ext}",
-            "{output_folder}", "{outputfile_name}", "{concatfile_path}",
+            PLACEHOLDER_INPUTFILE_FOLDER,
+            PLACEHOLDER_INPUTFILE_NAME,
+            PLACEHOLDER_INPUTFILE_EXT,
+            PLACEHOLDER_OUTPUT_FOLDER,
+            PLACEHOLDER_OUTPUT_FILENAME,
+            PLACEHOLDER_CONCATFILE_PATH,
         ]
 
         for i, placeholder in enumerate(placeholders):
-            if not placeholder: continue
             row = i // 3
             col = i % 3
             item = QTableWidgetItem(placeholder)
@@ -89,10 +105,10 @@ class PresetDialog(QDialog):
 
     def _on_placeholder_double_clicked(self, row, column):
         """Inserts the placeholder text into the command input at the cursor position."""
-        item = self.placeholder_table.item(row, column)
+        item = self._placeholder_table.item(row, column)
         if item:
-            self.cmd_input.insertPlainText(item.text())
+            self._cmd_input.insertPlainText(item.text())
 
     def get_preset(self):
         """Returns the preset name and command from the input fields."""
-        return self.name_input.text().strip(), self.cmd_input.toPlainText().strip()
+        return self._name_input.text().strip(), self._cmd_input.toPlainText().strip()

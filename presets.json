@@ -1,6 +1,6 @@
 [
   {
-    "name": "Convert to MP4",
+    "name": "Convert to MP4 (copy)",
     "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -c:v copy -c:a copy \"{outputfile_folder}/{inputfile_name}.mp4\""
   },
   {
