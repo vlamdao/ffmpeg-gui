@@ -74,6 +74,14 @@ class App(QMainWindow):
         self.preset_table.cellDoubleClicked.connect(self.preset_manager.apply_preset)
         self.preset_table.customContextMenuRequested.connect(self.preset_manager.show_context_menu)
 
+        # Connect signals from ControlPanel to the appropriate slots/methods
+        self.control_panel.add_files_clicked.connect(self.file_manager.add_files_dialog)
+        self.control_panel.run_clicked.connect(self.batch_processor.run_command)
+        self.control_panel.stop_clicked.connect(self.batch_processor.stop_batch)
+        self.control_panel.remove_clicked.connect(self.file_manager.remove_selected_files)
+        self.control_panel.cut_video_clicked.connect(self.open_video_cutter)
+        self.control_panel.add_preset_clicked.connect(self.preset_manager.add_preset)
+
     def _setup_shortcuts(self):
         """Set up global keyboard shortcuts."""
         QShortcut(QKeySequence("Esc"), self).activated.connect(self.close)

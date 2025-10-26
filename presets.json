@@ -1,31 +1,31 @@
 [
   {
     "name": "Convert to MP4 (copy)",
-    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -c:v copy -c:a copy \"{outputfile_folder}/{inputfile_name}.mp4\""
+    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -c:v copy -c:a copy \"{output_folder}/{inputfile_name}.mp4\""
   },
   {
     "name": "Convert to MP4 (re-encode)",
-    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -c:v libx264 -c:a aac -strict experimental \"{outputfile_folder}/{inputfile_name}.mp4\""
+    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -c:v libx264 -c:a aac -strict experimental \"{output_folder}/{inputfile_name}.mp4\""
   },
   {
     "name": "Extract Audio to MP3",
-    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -q:a 0 -map a \"{outputfile_folder}/{inputfile_name}.mp3\""
+    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -q:a 0 -map a \"{output_folder}/{inputfile_name}.mp3\""
   },
   {
     "name": "Convert to MKV",
-    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -c copy -c:s srt \"{outputfile_folder}/{inputfile_name}.mkv\""
+    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -c copy -c:s srt \"{output_folder}/{inputfile_name}.mkv\""
   },
   {
     "name": "Extract img at hh:mm:ss",
-    "command": "ffmpeg -ss 00:01:00 -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -frames:v 1 \"{outputfile_folder}/{inputfile_name}.jpg\""
+    "command": "ffmpeg -ss 00:01:00 -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -frames:v 1 \"{output_folder}/{inputfile_name}.jpg\""
   },
   {
     "name": "Set thumbnail with img",
-    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -i \"{outputfile_folder}/{inputfile_name}.jpg\" -map 0 -map 1 -c copy -disposition:v:1 attached_pic \"{outputfile_folder}/{inputfile_name}.{inputfile_ext}\""
+    "command": "ffmpeg -i \"{inputfile_folder}/{inputfile_name}.{inputfile_ext}\" -i \"{output_folder}/{inputfile_name}.jpg\" -map 0 -map 1 -c copy -disposition:v:1 attached_pic \"{output_folder}/{inputfile_name}.{inputfile_ext}\""
   },
   {
     "name": "Concatenate Videos (Demuxer)",
-    "command": "ffmpeg -f concat -safe 0 -i \"{concatfile_path}\" -c copy \"{outputfile_folder}/joined_file.mp4\""
+    "command": "ffmpeg -f concat -safe 0 -i \"{concatfile_path}\" -c copy \"{output_folder}/joined_file.mp4\""
   },
   {
     "name": "Concatenate Videos (Demuxer + Encode H264)",

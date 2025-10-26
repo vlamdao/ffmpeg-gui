@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, pyqtSignal
 from helper import resource_path
 
 class ControlPanel(QWidget):
@@ -11,6 +11,14 @@ class ControlPanel(QWidget):
     It provides a centralized location for user interaction with the main
     functionalities of the application.
     """
+    # Define signals for each button action
+    add_files_clicked = pyqtSignal()
+    run_clicked = pyqtSignal()
+    stop_clicked = pyqtSignal()
+    remove_clicked = pyqtSignal()
+    cut_video_clicked = pyqtSignal()
+    add_preset_clicked = pyqtSignal()
+
     def __init__(self, parent=None):
         """Initializes the ControlPanel widget.
 
@@ -19,9 +27,9 @@ class ControlPanel(QWidget):
         """
         super().__init__(parent)
         self.parent = parent
-        self.setup_ui()
+        self._setup_ui()
 
-    def setup_ui(self):
+    def _setup_ui(self):
         """Sets up the user interface for the control panel."""
         self.layout = QHBoxLayout(self)
         self.button_style = """
@@ -32,9 +40,9 @@ class ControlPanel(QWidget):
             }
         """
         self.buttons = {}
-        self.setup_buttons()
+        self._setup_buttons()
 
-    def setup_buttons(self):
+    def _setup_buttons(self):
         """Initializes and configures all the standard control buttons.
 
         This method defines a dictionary of button configurations and uses it
@@ -45,47 +53,47 @@ class ControlPanel(QWidget):
                 'text': ' Add files',
                 'icon': 'addfiles.png',
                 'tooltip': 'Add files to the list',
-                'connection': lambda: self.parent.file_manager.add_files_dialog()
+                'connection': self.add_files_clicked.emit
             },
             'run': {
                 'text': ' Run',
                 'icon': 'run.png',
                 'tooltip': 'Start processing files',
-                'connection': self.parent.batch_processor.run_command
+                'connection': self.run_clicked.emit
             },
             'stop': {
                 'text': ' Stop',
                 'icon': 'stop.png',
                 'tooltip': 'Stop processing',
-                'connection': self.parent.batch_processor.stop_batch
+                'connection': self.stop_clicked.emit
             },
             'remove': {
                 'text': ' Remove',
                 'icon': 'remove.png',
                 'tooltip': 'Remove selected files',
-                'connection': lambda: self.parent.file_manager.remove_selected_files()
+                'connection': self.remove_clicked.emit
             },
             'cut_video': {
                 'text': ' Cut Video',
                 'icon': 'cut_video.png',
                 'tooltip': 'Cut a video into segments',
-                'connection': lambda: self.parent.open_video_cutter()
+                'connection': self.cut_video_clicked.emit
             },
             'add_preset': {
                 'text': ' Add preset',
                 'icon': 'addpreset.png',
                 'tooltip': 'Add new preset',
-                'connection': self.parent.preset_manager.add_preset
+                'connection': self.add_preset_clicked.emit
             }
         }
 
         for btn_id, config in button_configs.items():
-            self.add_button(btn_id, **config)
+            self._add_button(btn_id, **config)
 
-    def add_button(self, btn_id, text, icon, tooltip, connection):
+    def _add_button(self, btn_id, text, icon, tooltip, connection):
         """Creates and adds a single button to the control panel.
 
-        This is a factory method used by `setup_buttons` and `add_custom_button`.
+        This is a factory method used by `_setup_buttons` and `add_custom_button`.
 
         Args:
             btn_id (str): A unique identifier for the button.
@@ -126,7 +134,7 @@ class ControlPanel(QWidget):
             tooltip (str): The tooltip text to show on hover.
             connection (callable): The function to connect to the button's clicked signal.
         """
-        self.add_button(btn_id, text, icon, tooltip, connection)
+        self._add_button(btn_id, text, icon, tooltip, connection)
 
     def remove_button(self, btn_id):
         """Removes a button from the panel by its ID.
