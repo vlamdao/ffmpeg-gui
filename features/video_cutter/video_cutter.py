@@ -106,6 +106,7 @@ class VideoCutter(QDialog):
         self._segment_controls.set_start_clicked.connect(lambda: self._segment_manager.set_start_time(self._media_player.position()))
         self._segment_controls.set_end_clicked.connect(lambda: self._segment_manager.create_segment(self._media_player.position()))
         self._segment_controls.cut_clicked.connect(self._process_cut)
+        self._segment_controls.close_clicked.connect(self.close)
 
         self._segment_list.itemSelectionChanged.connect(self._on_segment_selection_changed)
         self._segment_list.customContextMenuRequested.connect(self._show_segment_context_menu)
@@ -114,7 +115,6 @@ class VideoCutter(QDialog):
         self._segment_manager.error_occurred.connect(self._show_error_message)
         self._segment_manager.segments_updated.connect(self._media_controls.set_segment_markers)
         self._segment_manager.current_start_marker_updated.connect(self._media_controls.set_current_start_marker)
-        self._segment_manager.display_times_updated.connect(self._update_segment_display_times)
         
         # Connect manager to list widget
         self._segment_manager.segment_added.connect(self._segment_list.add_segment)
@@ -131,23 +131,11 @@ class VideoCutter(QDialog):
         segment manager for live end-time previews.
         """
         self._media_controls.update_position(position, self._media_player.duration())
-        self._segment_manager.update_preview_end_time(position)
 
     def _update_duration(self, duration):
         """Slot to handle the player's durationChanged signal."""
         self._media_controls.update_duration(duration)
         self._media_controls.update_position(self._media_player.position(), duration)
-
-    # --- Segment Manager Slots ---
-    def _update_segment_display_times(self, updates):
-        """Slot to handle time display updates from the SegmentManager."""
-        if updates.get('reset'):
-            self._segment_controls.reset_labels()
-            return
-        if 'start' in updates:
-            self._segment_controls.update_start_label(updates['start'])
-        if 'end' in updates:
-            self._segment_controls.update_end_label(updates['end'])
 
     def _show_error_message(self, title: str, message: str) -> None:
         """Displays a warning message box."""

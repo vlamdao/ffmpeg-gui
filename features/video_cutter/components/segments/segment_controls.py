@@ -10,8 +10,6 @@ class SegmentControls(QWidget):
     initiating the cut process, along with labels to display the current times.
     It communicates user actions to the parent widget via signals.
     """
-    _DEFAULT_START_TEXT = "Start: --:--:--.---"
-    _DEFAULT_END_TEXT = "End: --:--:--.---"
 
     # --- Public Signals ---
     set_start_clicked = pyqtSignal()
@@ -20,6 +18,8 @@ class SegmentControls(QWidget):
     """Emitted when the 'Set End' button is clicked."""
     cut_clicked = pyqtSignal()
     """Emitted when the 'Cut Segments' button is clicked."""
+    close_clicked = pyqtSignal()
+    """Emitted when the 'Close' button is clicked."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -27,10 +27,9 @@ class SegmentControls(QWidget):
 
         # Internal widgets, prefixed with _
         self._set_start_button: QPushButton
-        self._start_label: QLabel
         self._set_end_button: QPushButton
-        self._end_label: QLabel
         self._cut_button: QPushButton
+        self._close_button: QPushButton
         
         self._setup_ui()
         self._connect_signals()
@@ -45,38 +44,21 @@ class SegmentControls(QWidget):
         self._set_start_button = QPushButton("Set Start")
         self._set_end_button = QPushButton("Set End")
         self._cut_button = QPushButton("Cut Segments")
-
-        self._start_label = QLabel(self._DEFAULT_START_TEXT)
-        self._start_label.setFixedWidth(120)
-        self._end_label = QLabel(self._DEFAULT_END_TEXT)
-        self._end_label.setFixedWidth(120)
+        self._close_button = QPushButton("Close")
 
     def _setup_layout(self):
         """Sets up the layout for the controls."""
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._set_start_button)
-        layout.addWidget(self._start_label)
         layout.addWidget(self._set_end_button)
-        layout.addWidget(self._end_label)
         layout.addStretch()
         layout.addWidget(self._cut_button)
+        layout.addWidget(self._close_button)
 
     def _connect_signals(self):
         """Connects internal widget signals to the public signals of this class."""
         self._set_start_button.clicked.connect(self.set_start_clicked)
         self._set_end_button.clicked.connect(self.set_end_clicked)
         self._cut_button.clicked.connect(self.cut_clicked)
-
-    def update_start_label(self, ms):
-        """Updates the 'Start' time label with a formatted time string."""
-        self._start_label.setText(f"Start: {ms_to_time_str(ms)}")
-
-    def update_end_label(self, ms):
-        """Updates the 'End' time label with a formatted time string."""
-        self._end_label.setText(f"End: {ms_to_time_str(ms)}")
-
-    def reset_labels(self):
-        """Resets the 'Start' and 'End' time labels to their default text."""
-        self._start_label.setText(self._DEFAULT_START_TEXT)
-        self._end_label.setText(self._DEFAULT_END_TEXT)
+        self._close_button.clicked.connect(self.close_clicked)

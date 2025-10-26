@@ -28,9 +28,6 @@ class SegmentManager(QObject):
     current_start_marker_updated = pyqtSignal(int)
     """Emitted to update the position of the pending 'start' marker on the slider."""
 
-    display_times_updated = pyqtSignal(dict)
-    """Emitted to update the 'Start' and 'End' time labels on the UI."""
-
     error_occurred = pyqtSignal(str, str) # title, message
     """Emitted when a logical error occurs (e.g., end time is before start time)."""
     
@@ -73,7 +70,6 @@ class SegmentManager(QObject):
 
             self.segment_added.emit(time_ms, -1) # Use -1 to indicate incomplete end time
             self.current_start_marker_updated.emit(time_ms)
-            self.display_times_updated.emit({'start': time_ms})
 
     def create_segment(self, end_time_ms: int) -> None:
         """Finalizes a new segment or updates the end time of a selected one.
@@ -92,7 +88,6 @@ class SegmentManager(QObject):
         print(f"State changed to: {self._state}")
         self._active_segment_index = -1
         self.current_start_marker_updated.emit(-1)
-        self.display_times_updated.emit({'reset': True})
         self.selection_cleared.emit()
 
     def _update_selected_segment(self, start_ms: int | None = None, end_ms: int | None = None) -> None:
@@ -113,7 +108,6 @@ class SegmentManager(QObject):
         self.segments[self._active_segment_index] = new_segment
         self.segment_updated.emit(self._active_segment_index, new_start, new_end if new_end is not None else -1)
         self.segments_updated.emit(self.segments)
-        self.display_times_updated.emit({'start': new_start, 'end': new_end})
 
         # If segment is now complete, transition state
         if self._state == SegmentState.CREATING and new_end is not None:
@@ -153,7 +147,6 @@ class SegmentManager(QObject):
         self._state = SegmentState.EDITING
         print(f"State changed to: {self._state}")
         self.current_start_marker_updated.emit(-1)
-        self.display_times_updated.emit({'start': start_ms, 'end': end_ms})
         return start_ms, end_ms # Return position to seek to.
 
     def edit_segment(self, row: int) -> int:
@@ -193,13 +186,6 @@ class SegmentManager(QObject):
         self.list_cleared.emit()
         self.segments_updated.emit([])
         self._reset_to_idle_state()
-
-    def update_preview_end_time(self, position: int) -> None:
-        """Emits a signal to update the 'End' time display for a live preview while
-        creating a new segment.
-        """
-        if self._state == SegmentState.CREATING:
-            self.display_times_updated.emit({'end': position})
 
     def get_segments_for_processing(self) -> list[tuple[int, int]] | None:
         """Gets the list of segments for processing (e.g., for cutting the video)."""
