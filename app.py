@@ -10,7 +10,9 @@ from components import (PresetManager, Logger, FileManager, ControlPanel,
 from features.video_cutter import VideoCutter
 from processor import BatchProcessor
 
-class App(QMainWindow):
+VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv']
+
+class FFmpegGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("FFmpeg GUI")
@@ -87,22 +89,16 @@ class App(QMainWindow):
         QShortcut(QKeySequence("Esc"), self).activated.connect(self.close)
         QShortcut(QKeySequence("Ctrl+W"), self).activated.connect(self.close)
 
-    def _setup_video_cutter(self):
+    def open_video_cutter(self):
         selected_files, _ = self.file_manager.get_selected_files()
         if len(selected_files) != 1:
             QMessageBox.warning(self, "Selection Error", "Please select exactly one video file to cut.")
             return
 
-        _, inputfile_name, inputfile_path = selected_files[0]
-        full_path = os.path.join(inputfile_path, inputfile_name)
-        
-        # Check if it's a video file (basic check)
-        video_extensions = ['.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv']
-        if not any(full_path.lower().endswith(ext) for ext in video_extensions):
-            QMessageBox.warning(self, "Invalid File Type", "Please select a valid video file.")
-            return
-        
-        output_path = self.output_path.get_completed_output_path(inputfile_path)
+        _, inputfile_name, inputfile_folder = selected_files[0]
+        full_path = os.path.join(inputfile_folder, inputfile_name)
+                
+        output_path = self.output_path.get_completed_output_path(inputfile_folder)
         logger = self.logger
         dialog = VideoCutter(
             video_path=full_path,
@@ -111,11 +107,8 @@ class App(QMainWindow):
             parent=self)
         dialog.exec_()
 
-    def open_video_cutter(self):
-        self._setup_video_cutter()
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = App()
+    window = FFmpegGUI()
     window.show()
     sys.exit(app.exec_())
