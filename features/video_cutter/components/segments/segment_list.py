@@ -41,9 +41,9 @@ class SegmentList(DeselectableListWidget):
         self.addItem(item)
         self.setCurrentItem(item) # Automatically select the new item
 
-    def update_segment(self, row: int, start_ms: int, end_ms: int):
+    def update_segment(self, segment_index: int, start_ms: int, end_ms: int):
         """Updates an existing segment in the list."""
-        item = self.item(row)
+        item = self.item(segment_index)
         if item:
             if end_ms == -1: # Convention for incomplete segment
                 item.setText(f"{ms_to_time_str(start_ms)} -> [creating...]")
@@ -51,20 +51,17 @@ class SegmentList(DeselectableListWidget):
                 item.setText(f"{ms_to_time_str(start_ms)} -> {ms_to_time_str(end_ms)}")
             item.setData(Qt.UserRole, (start_ms, end_ms))
 
-    def highlight_row(self, row: int, color: QColor = QColor("#d4edda"), clear_others: bool = True):
+    def highlight_row(self, row: int, color: QColor | None):
         """Applies a background color to a specific row to indicate processing."""
-        if clear_others:
-            self.clear_highlight() # Ensure only one row is highlighted at a time
         item = self.item(row)
-        if item:
+        if item and color:
             item.setBackground(color)
 
-    def clear_highlight(self):
+    def clear_highlights(self):
         """Removes background color from all items."""
         for i in range(self.count()):
             item = self.item(i)
             if item:
-                # Reset to the default transparent background
                 item.setBackground(QColor(Qt.transparent))
 
     def find_segment_by_data(self, segment_data: tuple[int, int]) -> int:

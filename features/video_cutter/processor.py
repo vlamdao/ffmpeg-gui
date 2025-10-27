@@ -17,7 +17,7 @@ class SegmentProcessor(QObject):
     # Signals to report progress to the UI layer
     processing_started = pyqtSignal(int) # Emits the total number of segments to be processed
     processing_stopped = pyqtSignal()    # Emitted when processing stops for any reason
-    segment_processing_started = pyqtSignal(tuple) # Emits the (start, end) tuple of the segment
+    segment_processing = pyqtSignal(tuple) # Emits the (start, end) tuple of the segment
     segment_processed = pyqtSignal(tuple) # Emits the (start, end) tuple of a completed segment
 
     def __init__(self, logger, parent=None):
@@ -63,7 +63,7 @@ class SegmentProcessor(QObject):
 
         # Get the data for the next segment from the queue
         segment_data, command = self._processing_queue.pop(0)
-        self.segment_processing_started.emit(segment_data)
+        self.segment_processing.emit(segment_data)
 
         self._start_cut_worker(segment_data, command)
 
