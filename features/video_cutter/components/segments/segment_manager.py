@@ -225,3 +225,15 @@ class SegmentManager(QObject):
             self.error_occurred.emit("No Segments", "Please add at least one segment to cut.")
             return None
         return complete_segments
+
+    def get_and_remove_segment(self, row: int) -> tuple[int, int] | None:
+        """
+        Retrieves segment data at a specific row and then removes it from the list.
+        This is an atomic operation to ensure the model and view stay in sync during
+        sequential processing.
+        """
+        segment_data = self.get_segment_at(row)
+        if segment_data:
+            self.delete_segment(row)
+            return segment_data
+        return None

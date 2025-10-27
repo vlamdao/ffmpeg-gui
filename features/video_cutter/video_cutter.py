@@ -41,6 +41,7 @@ class VideoCutter(QDialog):
 
         # Logic and State Management
         self._active_workers = []
+        self._processing_queue = []
 
         self._setup_ui()
         self._connect_signals()
@@ -189,30 +190,58 @@ class VideoCutter(QDialog):
 
     # --- Processing Slots ---
     def _process_cut(self):
-        """Initiates the cutting process for all defined segments."""
+        """Initiates the sequential cutting process for all defined segments."""
+        if self._processing_queue:
+            self._show_error_message("In Progress", "A cutting process is already running.")
+            return
+
         segments_to_process = self._segment_manager.get_segments_for_processing()
-        if not segments_to_process: return
+        if not segments_to_process:
+            return
+
+        # Populate the processing queue
+        self._processing_queue = list(segments_to_process)
+
+        self._logger.append_log(f"INFO: Starting to cut {len(self._processing_queue)} segments sequentially.")
+        self._process_next_in_queue()
+
+    def _process_next_in_queue(self):
+        """Processes the next segment in the queue."""
+        if not self._processing_queue:
+            self._logger.append_log("INFO: All segments have been processed.")
+            self._segment_list.clear_highlight()
+            return
+
+        # The segment to process is always the first one in the UI list
+        current_row_in_ui = 0
+        self._segment_list.highlight_row(current_row_in_ui)
+
+        # Get the data for the next segment from the queue
+        start_ms, end_ms = self._processing_queue.pop(0)
+
+        self._start_cut_worker(start_ms, end_ms, current_row_in_ui)
+
+    def _on_worker_finished(self, worker_ref, segment_row_index):
+        """Handles cleanup and triggers the next item in the queue."""
+        self._active_workers.remove(worker_ref)
+        self._segment_manager.delete_segment(segment_row_index)
+        self._process_next_in_queue()
+
+    def _start_cut_worker(self, start_ms, end_ms, segment_row_index):
+        """Creates and starts an FFmpegWorker for a single segment."""
         command_template = self._command_template.get_command_template()
         if not command_template:
             self._show_error_message("Error", "Command template is empty. Please define a command template before cutting.")
             return
-        output_folder = self._output_path
-        inputfile_name, inputfile_ext = os.path.splitext(os.path.basename(self._video_path))
-
-        for start_ms, end_ms in segments_to_process:
-            self._start_cut_worker(start_ms, end_ms, inputfile_name, inputfile_ext, output_folder)
-
-        self._logger.append_log(f"INFO: {len(segments_to_process)} cut operations have been started.")
-        self._segment_manager.clear_all()
-
-    def _start_cut_worker(self, start_ms, end_ms, inputfile_name, inputfile_ext, output_folder):
-        """Creates and starts an FFmpegWorker for a single segment."""
         start_str = ms_to_time_str(start_ms)
         end_str = ms_to_time_str(end_ms)
 
         # Create filesystem-safe versions of the timestamps for use in filenames
         safe_start_str = start_str.replace(":", "-").replace(".", "_")
         safe_end_str = end_str.replace(":", "-").replace(".", "_")
+
+        inputfile_name, inputfile_ext = os.path.splitext(os.path.basename(self._video_path))
+        output_folder = self._output_path
 
         context = CommandContext(
             inputfile_folder=os.path.dirname(self._video_path),
@@ -233,6 +262,10 @@ class VideoCutter(QDialog):
             command_override=command
         )
         worker.log_signal.connect(self._logger.append_log)
-        worker.finished.connect(lambda w=worker: self._active_workers.remove(w))
+        # When the worker finishes, call _on_worker_finished, passing a reference
+        # to the worker itself and the index of the segment it was processing.
+        worker.finished.connect(
+            lambda w=worker, idx=segment_row_index: self._on_worker_finished(w, idx)
+        )
         self._active_workers.append(worker)
         worker.start()

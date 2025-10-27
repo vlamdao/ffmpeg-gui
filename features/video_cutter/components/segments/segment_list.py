@@ -1,5 +1,6 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem
+from PyQt5.QtGui import QColor
 from helper import ms_to_time_str
 
 class DeselectableListWidget(QListWidget):
@@ -49,3 +50,18 @@ class SegmentList(DeselectableListWidget):
             else:
                 item.setText(f"{ms_to_time_str(start_ms)} -> {ms_to_time_str(end_ms)}")
             item.setData(Qt.UserRole, (start_ms, end_ms))
+
+    def highlight_row(self, row: int, color: QColor = QColor("#d4edda")):
+        """Applies a background color to a specific row to indicate processing."""
+        self.clear_highlight() # Ensure only one row is highlighted at a time
+        item = self.item(row)
+        if item:
+            item.setBackground(color)
+
+    def clear_highlight(self):
+        """Removes background color from all items."""
+        for i in range(self.count()):
+            item = self.item(i)
+            if item:
+                # Reset to the default transparent background
+                item.setBackground(QColor(Qt.transparent))
