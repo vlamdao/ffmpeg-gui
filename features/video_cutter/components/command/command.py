@@ -35,10 +35,8 @@ class CommandTemplate(QWidget):
     A widget that provides an editor for an FFmpeg command template, including
     a list of clickable placeholders specific to the video cutter.
     """
-    # Default command template for video cutting. This version explicitly shows
-    # how an output filename can be constructed from other placeholders.
     DEFAULT_COMMAND_TEMPLATE = (
-        f'ffmpeg -i "{PLACEHOLDER_INPUTFILE_FOLDER}/{PLACEHOLDER_INPUTFILE_NAME}.{PLACEHOLDER_INPUTFILE_EXT}" '
+        f'ffmpeg -y -loglevel warning -i "{PLACEHOLDER_INPUTFILE_FOLDER}/{PLACEHOLDER_INPUTFILE_NAME}.{PLACEHOLDER_INPUTFILE_EXT}" '
         f'-ss {PLACEHOLDER_START_TIME} -to {PLACEHOLDER_END_TIME} '
         f'-c copy "{PLACEHOLDER_OUTPUT_FOLDER}/{PLACEHOLDER_INPUTFILE_NAME}--{PLACEHOLDER_SAFE_START_TIME}--'
         f'{PLACEHOLDER_SAFE_END_TIME}.{PLACEHOLDER_INPUTFILE_EXT}"'
@@ -54,9 +52,8 @@ class CommandTemplate(QWidget):
         """Initializes and lays out the UI components."""
         self._placeholder_table = self._create_placeholder_table()
         self._command_template = QTextEdit()
-        self._command_template.setPlaceholderText("e.g., ffmpeg -i \"{input_file}\" -ss {start_time} -to {end_time} -c:v libx264 \"{output_file}\"")
         self._command_template.setText(self.DEFAULT_COMMAND_TEMPLATE)
-        self._command_template.setFixedHeight(60)
+        self._command_template.setFixedHeight(90)
         self._command_template.setFont(QFont("Consolas", 9))
 
         layout = QVBoxLayout(self)
@@ -68,9 +65,7 @@ class CommandTemplate(QWidget):
     def _create_placeholder_table(self) -> QTableWidget:
         """Creates and populates the placeholder table widget."""
         num_columns = 5
-        # Calculate the number of rows needed dynamically
         num_rows = (len(PLACEHOLDERS) + num_columns - 1) // num_columns
-
         table = QTableWidget()
         table.setColumnCount(num_columns)
         table.setRowCount(num_rows)
@@ -79,9 +74,6 @@ class CommandTemplate(QWidget):
         table.setEditTriggers(QTableWidget.NoEditTriggers)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         table.setShowGrid(False)
-        # Make rows only as tall as their content needs. This is the key to keeping them compact.
-        table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-
         for i, placeholder in enumerate(PLACEHOLDERS):
             row = i // num_columns
             col = i % num_columns
@@ -97,7 +89,6 @@ class CommandTemplate(QWidget):
         total_height = 0
         for i in range(table.rowCount()):
             total_height += table.rowHeight(i)
-        # Add the height of the top and bottom frame borders for a perfect fit.
         total_height += table.frameWidth() * 2
         table.setFixedHeight(total_height)
 
