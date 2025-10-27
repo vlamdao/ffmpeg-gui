@@ -204,6 +204,14 @@ class SegmentManager(QObject):
         self._set_state(SegmentState.IDLE)
         self._reset_to_idle_state()
 
+    def delete_segment_by_data(self, segment_data: tuple[int, int]) -> None:
+        """Finds and deletes a segment that matches the given data."""
+        try:
+            segment_index = self.segments.index(segment_data)
+            self.delete_segment(segment_index)
+        except ValueError:
+            print(f"Warning: Could not find segment {segment_data} to delete it.")
+
     def get_segments_for_processing(self) -> list[tuple[int, int]] | None:
         """Gets the list of segments for processing (e.g., for cutting the video)."""
         # Filter out any incomplete segments before processing

@@ -38,7 +38,7 @@ class VideoCutter(QDialog):
         # Dependencies
         self._video_path = video_path
         self._logger = logger
-        self._output_path = output_path
+        self._output_folder = output_path
 
         # Logic and State Management
         self._segment_processor = None # Will be initialized in _setup_ui
@@ -80,7 +80,11 @@ class VideoCutter(QDialog):
         self._media_player = MediaPlayer()
         self._media_controls = MediaControls()
         self._segment_controls = SegmentControls()
-        self._command_template = CommandTemplate()
+        self._command_template = CommandTemplate(
+            video_path=self._video_path,
+            output_path=self._output_folder,
+            parent=self
+        )
 
         # Create a container for the bottom controls (media control + segment + command)
         bottom_controls = QWidget()
@@ -101,11 +105,6 @@ class VideoCutter(QDialog):
         main_layout.addWidget(self._segment_list)
 
         self._segment_processor = SegmentProcessor(
-            video_path=self._video_path,
-            output_path=self._output_path,
-            segment_manager=self._segment_manager,
-            segment_list=self._segment_list,
-            command_template=self._command_template,
             logger=self._logger,
             parent=self
         )
@@ -129,7 +128,7 @@ class VideoCutter(QDialog):
         self._segment_controls.set_start_clicked.connect(lambda: self._segment_manager.set_start_time(self._media_player.position()))
         self._segment_controls.set_end_clicked.connect(lambda: self._segment_manager.set_end_time(self._media_player.position()))
         self._segment_controls.stop_clicked.connect(self._segment_processor.stop_processing)
-        self._segment_controls.cut_clicked.connect(self._segment_processor.start_processing)
+        self._segment_controls.cut_clicked.connect(self._on_cut_clicked)
 
         self._segment_list.itemSelectionChanged.connect(self._on_segment_selected)
         self._segment_list.customContextMenuRequested.connect(self._show_segment_context_menu)
@@ -145,6 +144,12 @@ class VideoCutter(QDialog):
         self._segment_manager.segment_removed.connect(self._segment_list.takeItem)
         self._segment_manager.selection_cleared.connect(self._segment_list.clearSelection)
 
+        # --- Connect Segment Processor to UI ---
+        self._segment_processor.processing_started.connect(self._on_processing_started)
+        self._segment_processor.processing_stopped.connect(self._segment_list.clear_highlight)
+        self._segment_processor.segment_processing_started.connect(self._segment_list.highlight_segment)
+        self._segment_processor.segment_processed.connect(self._segment_manager.delete_segment_by_data)
+
     # --- Media Player Slots ---
     def _update_duration(self, duration):
         """Slot to handle the player's durationChanged signal.
@@ -158,6 +163,29 @@ class VideoCutter(QDialog):
     def _show_error_message(self, title: str, message: str) -> None:
         """Displays a warning message box."""
         QMessageBox.warning(self, title, message)
+
+    # --- Segment Processor Slots ---
+    def _on_processing_started(self, total_segments: int):
+        """Visually mark all segments as pending when processing starts."""
+        pending_color = QColor("#fff3cd")  # A light yellow color
+        for i in range(total_segments):
+            self._segment_list.highlight_row(i, pending_color, clear_others=False)
+
+    def _on_cut_clicked(self):
+        """Handler for the 'Cut All' button click."""
+        segments = self._segment_manager.get_segments_for_processing()
+        if not segments:
+            return
+
+        jobs = []
+        for start_ms, end_ms in segments:
+            command = self._command_template.generate_command(start_ms, end_ms)
+            if not command:
+                self._show_error_message("Command Error", "Could not generate command. Check the command template.")
+                return # Stop if any command fails to generate
+            jobs.append(((start_ms, end_ms), command))
+        self._segment_processor.start_processing(jobs)
+
 
     # --- UI Event Handlers ---
     def _on_segment_selected(self):
