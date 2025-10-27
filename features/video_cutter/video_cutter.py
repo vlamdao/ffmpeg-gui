@@ -10,6 +10,7 @@ from helper import FontDelegate, ms_to_time_str
 
 from .components import (MediaControls, MediaPlayer, SegmentControls, 
                          SegmentList, SegmentManager)
+from .components.command.command import CommandTemplate, CommandContext
 class VideoCutter(QDialog):
     """A dialog for cutting segments from a video file.
 
@@ -31,7 +32,7 @@ class VideoCutter(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Video Cutter")
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
-        self.setMinimumSize(1200, 600)
+        self.setMinimumSize(1200, 750)
 
         # Dependencies
         self._video_path = video_path
@@ -58,6 +59,12 @@ class VideoCutter(QDialog):
                 worker.terminate()
         super().closeEvent(event)
 
+    def keyPressEvent(self, event):
+        """Handle key presses for the dialog."""
+        if event.key() == Qt.Key_Escape:
+            if not self._segment_manager.cancel_creation():
+                super().keyPressEvent(event) # Allow default Esc behavior (close dialog)
+
     def _setup_ui(self):
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
@@ -71,13 +78,27 @@ class VideoCutter(QDialog):
         # Media Player, Media Controls, and Segment Controls
         self._segment_manager = SegmentManager(self)
 
+        # Create individual components
         self._media_player = MediaPlayer()
-        left_layout.addWidget(self._media_player)
         self._media_controls = MediaControls()
         self._segment_controls = SegmentControls()
+        self._command_template = CommandTemplate()
 
-        left_layout.addWidget(self._media_controls)
-        left_layout.addWidget(self._segment_controls)
+        # Add the media player with a stretch factor of 1. This makes it expand
+        # to fill all available vertical space, pushing the other widgets
+        # (with default stretch factor 0) to the bottom.
+        left_layout.addWidget(self._media_player, 1)
+
+        # Group all fixed-size controls into a single container widget.
+        # This ensures they are packed together at the bottom without any gaps.
+        bottom_controls = QWidget()
+        bottom_layout = QVBoxLayout(bottom_controls)
+        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout.setSpacing(5)
+        bottom_layout.addWidget(self._media_controls)
+        bottom_layout.addWidget(self._segment_controls)
+        bottom_layout.addWidget(self._command_template)
+        left_layout.addWidget(bottom_controls)
 
         # Add the left panel to the main layout
         main_layout.addWidget(left_panel, self._LEFT_PANEL_STRETCH)
@@ -103,10 +124,10 @@ class VideoCutter(QDialog):
         self._media_player.double_clicked.connect(self._media_player.toggle_play)
 
         # --- Segment Controls and List ---
+        self._segment_controls.close_clicked.connect(self.close)
         self._segment_controls.set_start_clicked.connect(lambda: self._segment_manager.set_start_time(self._media_player.position()))
         self._segment_controls.set_end_clicked.connect(lambda: self._segment_manager.create_segment(self._media_player.position()))
         self._segment_controls.cut_clicked.connect(self._process_cut)
-        self._segment_controls.close_clicked.connect(self.close)
 
         self._segment_list.itemSelectionChanged.connect(self._on_segment_selection_changed)
         self._segment_list.customContextMenuRequested.connect(self._show_segment_context_menu)
@@ -184,26 +205,36 @@ class VideoCutter(QDialog):
         segments_to_process = self._segment_manager.get_segments_for_processing()
         if not segments_to_process: return
 
-        output_dir = self._output_path
+        output_folder = self._output_path
         base_name, ext = os.path.splitext(os.path.basename(self._video_path))
 
+        command_template = self._command_template.get_command_template()
+        if not command_template:
+            self._show_error_message("Missing Command", "Command template cannot be empty.")
+            return
+
         for start_ms, end_ms in segments_to_process:
-            self._start_cut_worker(start_ms, end_ms, base_name, ext, output_dir)
+            self._start_cut_worker(start_ms, end_ms, base_name, ext, output_folder, command_template)
 
         self._logger.append_log(f"INFO: {len(segments_to_process)} cut operations have been started.")
         self._segment_manager.clear_all()
 
-    def _start_cut_worker(self, start_ms: int, end_ms: int, base_name: str, ext: str, output_dir: str):
+    def _start_cut_worker(self, start_ms: int, end_ms: int, base_name: str, ext: str, output_folder: str, command_template: str):
         """Creates and starts an FFmpegWorker for a single segment."""
         start_str = ms_to_time_str(start_ms)
         end_str = ms_to_time_str(end_ms)
+        
+        context = CommandContext(
+            inputfile_folder=os.path.dirname(self._video_path),
+            inputfile_name=base_name,
+            inputfile_ext=ext.lstrip('.'),
+            start_time=start_str,
+            end_time=end_str,
+            output_folder=output_folder
+        )
 
-        # Create a filesystem-safe filename from the timestamps
-        safe_start_str = start_str.replace(':', '-').replace('.', '_')
-        safe_end_str = end_str.replace(':', '-').replace('.', '_')
-        output_file = os.path.join(output_dir, f"{base_name}--{safe_start_str}--{safe_end_str}{ext}")
-
-        command = f'ffmpeg -loglevel warning -ss {start_str} -to {end_str} -i "{self._video_path}" -c copy "{output_file}"'
+        # Delegate command generation to the CommandTemplate widget
+        command = self._command_template.generate_command(context)
 
         worker = FFmpegWorker(
             selected_files=[],

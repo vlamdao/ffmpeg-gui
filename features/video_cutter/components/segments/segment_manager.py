@@ -74,26 +74,26 @@ class SegmentManager(QObject):
     def create_segment(self, end_time_ms: int) -> None:
         """Finalizes a new segment or updates the end time of a selected one.
         """
+        update_successful = False
         if self._state == SegmentState.CREATING:
-            self._update_selected_segment(end_ms=end_time_ms)
-            # After successfully creating, reset to IDLE state.
-            if self._state != SegmentState.CREATING: # Check if update was successful
-                self._reset_to_idle_state()
+            update_successful = self._update_selected_segment(end_ms=end_time_ms)
+            if update_successful:
+                self._state = SegmentState.IDLE
+                print(f"State changed to: {self._state}")
+                self._reset_to_idle_state() # Resets index and clears selection
         elif self._state == SegmentState.EDITING:
             self._update_selected_segment(end_ms=end_time_ms)
 
     def _reset_to_idle_state(self):
         """Resets the manager to the initial IDLE state."""
-        self._state = SegmentState.IDLE
-        print(f"State changed to: {self._state}")
         self._active_segment_index = -1
         self.current_start_marker_updated.emit(-1)
         self.selection_cleared.emit()
 
-    def _update_selected_segment(self, start_ms: int | None = None, end_ms: int | None = None) -> None:
+    def _update_selected_segment(self, start_ms: int | None = None, end_ms: int | None = None) -> bool:
         """Internal helper to update the data of the currently selected segment."""
         if not (0 <= self._active_segment_index < len(self.segments)):
-            return
+            return False
 
         current_start, current_end = self.segments[self._active_segment_index]
         new_start = start_ms if start_ms is not None else current_start
@@ -102,17 +102,17 @@ class SegmentManager(QObject):
         # Allow end_ms to be None during creation
         if new_end is not None and new_start >= new_end:
             self.error_occurred.emit("Invalid Time", "Start time must be before the end time.")
-            return
+            # If this error happened during creation, it's better to cancel the
+            # operation automatically so the user doesn't have a dangling "[creating...]" item.
+            if self._state == SegmentState.CREATING:
+                self.cancel_creation()
+            return False
         
         new_segment = (new_start, new_end)
         self.segments[self._active_segment_index] = new_segment
         self.segment_updated.emit(self._active_segment_index, new_start, new_end if new_end is not None else -1)
         self.segments_updated.emit(self.segments)
-
-        # If segment is now complete, transition state
-        if self._state == SegmentState.CREATING and new_end is not None:
-            self._state = SegmentState.IDLE  # Mark as complete
-            print(f"State changed to: {self._state}")
+        return True
 
     def handle_selection_change(self, selected_row: int) -> tuple[int, int]:
         """Handles logic when a segment is selected or deselected in the list.
@@ -128,7 +128,9 @@ class SegmentManager(QObject):
             return -1, -1
 
         if selected_row == -1: # Deselection
-            self._reset_to_idle_state()
+            self._state = SegmentState.IDLE
+            print(f"State changed to: {self._state}")
+            self._reset_to_idle_state() # Resets index and clears selection
             return -1, -1 # No position change
 
         # An item was selected:
@@ -163,9 +165,20 @@ class SegmentManager(QObject):
             self._active_segment_index = row
             self._state = SegmentState.EDITING
             print(f"State changed to: {self._state}")
-            self._update_selected_segment(start_ms=new_start, end_ms=new_end)
-            return row # Return the row so the UI can re-select it.
+            if self._update_selected_segment(start_ms=new_start, end_ms=new_end):
+                return row # Return the row so the UI can re-select it.
         return -1
+
+    def cancel_creation(self) -> bool:
+        """Cancels the creation of a new segment if in the CREATING state.
+
+        Returns:
+            bool: True if a creation was cancelled, False otherwise.
+        """
+        if self._state == SegmentState.CREATING and self._active_segment_index != -1:
+            self.delete_segment(self._active_segment_index)
+            return True
+        return False
 
     def delete_segment(self, row: int) -> None:
         """Deletes a segment from the list at a given row."""
@@ -178,6 +191,8 @@ class SegmentManager(QObject):
 
         # After any deletion, always reset to the clean IDLE state
         # which also clears the selection in the view.
+        self._state = SegmentState.IDLE
+        print(f"State changed to: {self._state}")
         self._reset_to_idle_state()
 
     def clear_all(self) -> None:
@@ -185,6 +200,8 @@ class SegmentManager(QObject):
         self.segments.clear()
         self.list_cleared.emit()
         self.segments_updated.emit([])
+        self._state = SegmentState.IDLE
+        print(f"State changed to: {self._state}")
         self._reset_to_idle_state()
 
     def get_segments_for_processing(self) -> list[tuple[int, int]] | None:
