@@ -51,9 +51,10 @@ class SegmentList(DeselectableListWidget):
                 item.setText(f"{ms_to_time_str(start_ms)} -> {ms_to_time_str(end_ms)}")
             item.setData(Qt.UserRole, (start_ms, end_ms))
 
-    def highlight_row(self, row: int, color: QColor = QColor("#d4edda")):
+    def highlight_row(self, row: int, color: QColor = QColor("#d4edda"), clear_others: bool = True):
         """Applies a background color to a specific row to indicate processing."""
-        self.clear_highlight() # Ensure only one row is highlighted at a time
+        if clear_others:
+            self.clear_highlight() # Ensure only one row is highlighted at a time
         item = self.item(row)
         if item:
             item.setBackground(color)

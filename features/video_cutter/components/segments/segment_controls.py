@@ -18,8 +18,8 @@ class SegmentControls(QWidget):
     """Emitted when the 'Set End' button is clicked."""
     cut_clicked = pyqtSignal()
     """Emitted when the 'Cut Segments' button is clicked."""
-    close_clicked = pyqtSignal()
-    """Emitted when the 'Close' button is clicked."""
+    stop_clicked = pyqtSignal()
+    """Emitted when the 'Stop' button is clicked."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -29,7 +29,7 @@ class SegmentControls(QWidget):
         self._set_start_button: QPushButton
         self._set_end_button: QPushButton
         self._cut_button: QPushButton
-        self._close_button: QPushButton
+        self._stop_button: QPushButton
         
         self._setup_ui()
         self._connect_signals()
@@ -44,7 +44,7 @@ class SegmentControls(QWidget):
         self._set_start_button = QPushButton("Set Start")
         self._set_end_button = QPushButton("Set End")
         self._cut_button = QPushButton("Cut Segments")
-        self._close_button = QPushButton("Close")
+        self._stop_button = QPushButton("Stop")
 
     def _setup_layout(self):
         """Sets up the layout for the controls."""
@@ -54,11 +54,11 @@ class SegmentControls(QWidget):
         layout.addWidget(self._set_end_button)
         layout.addStretch(1)  # Pushes the cut and close buttons to the right
         layout.addWidget(self._cut_button)
-        layout.addWidget(self._close_button)
-
+        layout.addWidget(self._stop_button)
+        
     def _connect_signals(self):
         """Connects internal widget signals to the public signals of this class."""
         self._set_start_button.clicked.connect(self.set_start_clicked)
         self._set_end_button.clicked.connect(self.set_end_clicked)
         self._cut_button.clicked.connect(self.cut_clicked)
-        self._close_button.clicked.connect(self.close_clicked)
+        self._stop_button.clicked.connect(self.stop_clicked)

@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QWidget, QMessag
                              QMenu)
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtMultimedia import QMediaPlayer
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QColor
 
 from processor import FFmpegWorker
 from helper import FontDelegate, ms_to_time_str
@@ -115,9 +115,9 @@ class VideoCutter(QDialog):
         self._media_player.double_clicked.connect(self._media_player.toggle_play)
 
         # --- Segment Controls and List ---
-        self._segment_controls.close_clicked.connect(self.close)
         self._segment_controls.set_start_clicked.connect(lambda: self._segment_manager.set_start_time(self._media_player.position()))
         self._segment_controls.set_end_clicked.connect(lambda: self._segment_manager.set_end_time(self._media_player.position()))
+        self._segment_controls.stop_clicked.connect(self._stop_processing)
         self._segment_controls.cut_clicked.connect(self._process_cut)
 
         self._segment_list.itemSelectionChanged.connect(self._on_segment_selected)
@@ -202,8 +202,26 @@ class VideoCutter(QDialog):
         # Populate the processing queue
         self._processing_queue = list(segments_to_process)
 
+        # Visually mark all segments in the list as "pending" (yellow)
+        pending_color = QColor("#fff3cd") # A light yellow color
+        for i in range(len(self._processing_queue)):
+            self._segment_list.highlight_row(i, pending_color, clear_others=False)
+
         self._logger.append_log(f"INFO: Starting to cut {len(self._processing_queue)} segments sequentially.")
         self._process_next_in_queue()
+
+    def _stop_processing(self):
+        """Stops the current cutting process."""
+        if not self._processing_queue and not self._active_workers:
+            self._logger.append_log("INFO: No cutting process is currently running.")
+            return
+
+        self._logger.append_log("INFO: Stopping all cutting processes...")
+        self._processing_queue.clear()
+        for worker in self._active_workers:
+            worker.stop()
+        self._active_workers.clear()
+        self._segment_list.clear_highlight()
 
     def _process_next_in_queue(self):
         """Processes the next segment in the queue."""
@@ -214,7 +232,8 @@ class VideoCutter(QDialog):
 
         # The segment to process is always the first one in the UI list
         current_row_in_ui = 0
-        self._segment_list.highlight_row(current_row_in_ui)
+        # Highlight the current segment as "processing" (green) without clearing other highlights
+        self._segment_list.highlight_row(current_row_in_ui, clear_others=False)
 
         # Get the data for the next segment from the queue
         start_ms, end_ms = self._processing_queue.pop(0)
@@ -223,9 +242,20 @@ class VideoCutter(QDialog):
 
     def _on_worker_finished(self, worker_ref, segment_row_index):
         """Handles cleanup and triggers the next item in the queue."""
-        self._active_workers.remove(worker_ref)
-        self._segment_manager.delete_segment(segment_row_index)
-        self._process_next_in_queue()
+        # Check if the worker is still in the list. It might have been removed
+        # by _stop_processing, which would cause a ValueError.
+        was_stopped = worker_ref not in self._active_workers
+
+        if not was_stopped:
+            # If it wasn't stopped, remove it normally.
+            self._active_workers.remove(worker_ref)
+            # Delete the corresponding segment from the UI.
+            self._segment_manager.delete_segment(segment_row_index)
+            # And process the next item in the queue.
+            self._process_next_in_queue()
+        # If it was stopped, do nothing. _stop_processing has already cleared the queue
+        # and handled cleanup.
+
 
     def _start_cut_worker(self, start_ms, end_ms, segment_row_index):
         """Creates and starts an FFmpegWorker for a single segment."""
