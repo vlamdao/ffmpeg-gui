@@ -1,8 +1,11 @@
+import os
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
                              QHeaderView, QTextEdit, QSizePolicy)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from dataclasses import dataclass
+
+from helper import ms_to_time_str
 # Placeholders specific to the video cutting operation.
 PLACEHOLDER_INPUTFILE_FOLDER = "{inputfile_folder}"
 PLACEHOLDER_INPUTFILE_NAME = "{inputfile_name}"
@@ -33,10 +36,7 @@ class CommandContext:
     safe_end_time: str
 
 class CommandTemplate(QWidget):
-    """
-    A widget that provides an editor for an FFmpeg command template, including
-    a list of clickable placeholders specific to the video cutter.
-    """
+    
     DEFAULT_COMMAND_TEMPLATE = (
         f'ffmpeg -y -loglevel warning -i "{PLACEHOLDER_INPUTFILE_FOLDER}/{PLACEHOLDER_INPUTFILE_NAME}.{PLACEHOLDER_INPUTFILE_EXT}" '
         f'-ss {PLACEHOLDER_START_TIME} -to {PLACEHOLDER_END_TIME} '
@@ -44,10 +44,12 @@ class CommandTemplate(QWidget):
         f'{PLACEHOLDER_SAFE_END_TIME}.{PLACEHOLDER_INPUTFILE_EXT}"'
     )
 
-    def __init__(self, parent=None):
+    def __init__(self, video_path: str, output_path: str, parent=None):
         super().__init__(parent)
         self._placeholder_table: QTableWidget
         self._command_template: QTextEdit
+        self._video_path = video_path
+        self._output_path = output_path
         self._setup_ui()
 
     def _setup_ui(self):
@@ -105,15 +107,7 @@ class CommandTemplate(QWidget):
         if item:
             self._command_template.insertPlainText(item.text())
 
-    def get_command_template(self) -> str:
-        """Returns the command template from the text edit."""
-        return self._command_template.toPlainText().strip()
-
-    def generate_command(self, context: CommandContext) -> str:
-        """
-        Generates a complete command string by replacing placeholders in the
-        template with values from the provided context.
-        """
+    def _replace_placeholders(self, context: CommandContext) -> str:
         template = self.get_command_template()
 
         replacements = {
@@ -126,8 +120,37 @@ class CommandTemplate(QWidget):
             PLACEHOLDER_SAFE_START_TIME: context.safe_start_time,
             PLACEHOLDER_SAFE_END_TIME: context.safe_end_time,
         }
-
         for placeholder, value in replacements.items():
             template = template.replace(placeholder, value)
-        
+            
         return template
+
+    def get_command_template(self) -> str:
+        """Returns the command template from the text edit."""
+        return self._command_template.toPlainText().strip()
+
+    def generate_command(self, start_ms: int, end_ms: int) -> str | None:
+        """Creates a fully rendered FFmpeg command for a given time segment."""
+        template = self.get_command_template()
+        if not template:
+            return None
+
+        start_str = ms_to_time_str(start_ms)
+        end_str = ms_to_time_str(end_ms)
+        safe_start_str = start_str.replace(":", "-").replace(".", "_")
+        safe_end_str = end_str.replace(":", "-").replace(".", "_")
+
+        inputfile_name, inputfile_ext = os.path.splitext(os.path.basename(self._video_path))
+
+        context = CommandContext(
+            inputfile_folder=os.path.dirname(self._video_path),
+            inputfile_name=inputfile_name,
+            inputfile_ext=inputfile_ext.lstrip('.'),
+            start_time=start_str,
+            end_time=end_str,
+            output_folder=self._output_path,
+            safe_start_time=safe_start_str,
+            safe_end_time=safe_end_str
+        )
+        
+        return self._replace_placeholders(context)
