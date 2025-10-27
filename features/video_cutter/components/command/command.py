@@ -152,5 +152,6 @@ class CommandTemplate(QWidget):
             safe_start_time=safe_start_str,
             safe_end_time=safe_end_str
         )
-        
-        return self._replace_placeholders(context)
+        complete_command = self._replace_placeholders(context)
+        return complete_command
+
