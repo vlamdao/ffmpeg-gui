@@ -25,22 +25,24 @@ class SegmentManager(QObject):
     segments_updated = pyqtSignal(list)
     """Emitted whenever the segment list changes (add, update, delete, clear)."""
 
-    current_start_marker_updated = pyqtSignal(int)
+    start_marker_updated = pyqtSignal(int)
     """Emitted to update the position of the pending 'start' marker on the slider."""
 
     error_occurred = pyqtSignal(str, str) # title, message
     """Emitted when a logical error occurs (e.g., end time is before start time)."""
-    
-    # Signals for granular UI updates, allowing the view to update efficiently without
-    # needing to redraw the entire list.
+
     segment_added = pyqtSignal(int, int)
     """Emitted when a new segment is added, containing (start_ms, end_ms)."""
+    
     segment_updated = pyqtSignal(int, int, int)
     """Emitted when a segment is updated, containing (row, new_start_ms, new_end_ms)."""
+    
     segment_removed = pyqtSignal(int)
     """Emitted when a segment is deleted, containing the row index that was removed."""
+    
     list_cleared = pyqtSignal()
     """Emitted when all segments have been cleared."""
+    
     selection_cleared = pyqtSignal()
     """Emitted to explicitly clear selection in the view."""
 
@@ -75,7 +77,7 @@ class SegmentManager(QObject):
             self._set_state(SegmentState.CREATING)
 
             self.segment_added.emit(time_ms, -1) # Use -1 to indicate incomplete end time
-            self.current_start_marker_updated.emit(time_ms)
+            self.start_marker_updated.emit(time_ms)
 
     def set_end_time(self, end_time_ms: int) -> None:
         """Sets the end time, either finalizing a new segment or updating an existing one.
@@ -95,7 +97,7 @@ class SegmentManager(QObject):
     def _reset_to_idle_state(self):
         """Resets the manager to the initial IDLE state."""
         self._current_segment_index = -1
-        self.current_start_marker_updated.emit(-1)
+        self.start_marker_updated.emit(-1)
         self.selection_cleared.emit()
 
     def _update_selected_segment(self, start_ms: int | None = None, end_ms: int | None = None) -> bool:
@@ -147,7 +149,7 @@ class SegmentManager(QObject):
         # If the selection is valid, update the state to EDITING.
         self._current_segment_index = segment_index
         self._set_state(SegmentState.EDITING)
-        self.current_start_marker_updated.emit(-1)
+        self.start_marker_updated.emit(-1)
 
     def get_segment_at(self, segment_index: int) -> tuple[int, int] | None:
         """

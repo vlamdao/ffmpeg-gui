@@ -11,6 +11,7 @@ from helper import FontDelegate, ms_to_time_str
 from .components import (MediaControls, MediaPlayer, SegmentControls, 
                          SegmentList, SegmentManager)
 from .components.command.command import CommandTemplate, CommandContext
+from .processor import SegmentProcessor
 class VideoCutter(QDialog):
     """A dialog for cutting segments from a video file.
 
@@ -40,8 +41,7 @@ class VideoCutter(QDialog):
         self._output_path = output_path
 
         # Logic and State Management
-        self._active_workers = []
-        self._processing_queue = []
+        self._segment_processor = None # Will be initialized in _setup_ui
 
         self._setup_ui()
         self._connect_signals()
@@ -54,10 +54,11 @@ class VideoCutter(QDialog):
     def closeEvent(self, event):
         """Override closeEvent to stop the media player and any active workers."""
         self._media_player.stop()
-        # Terminate any running FFmpeg processes to prevent orphaned processes.
-        for worker in self._active_workers:
-            if worker.isRunning():
-                worker.terminate()
+        if self._segment_processor:
+            # Terminate any running FFmpeg processes to prevent orphaned processes.
+            for worker in self._segment_processor.get_active_workers():
+                if worker.isRunning():
+                    worker.terminate()
         super().closeEvent(event)
 
     def keyPressEvent(self, event):
@@ -99,6 +100,16 @@ class VideoCutter(QDialog):
         main_layout.addWidget(left_panel, self._LEFT_PANEL_STRETCH)
         main_layout.addWidget(self._segment_list)
 
+        self._segment_processor = SegmentProcessor(
+            video_path=self._video_path,
+            output_path=self._output_path,
+            segment_manager=self._segment_manager,
+            segment_list=self._segment_list,
+            command_template=self._command_template,
+            logger=self._logger,
+            parent=self
+        )
+
     def _connect_signals(self):
         """Connects signals and slots between all the components."""
         # --- Media Player and Controls ---
@@ -117,8 +128,8 @@ class VideoCutter(QDialog):
         # --- Segment Controls and List ---
         self._segment_controls.set_start_clicked.connect(lambda: self._segment_manager.set_start_time(self._media_player.position()))
         self._segment_controls.set_end_clicked.connect(lambda: self._segment_manager.set_end_time(self._media_player.position()))
-        self._segment_controls.stop_clicked.connect(self._stop_processing)
-        self._segment_controls.cut_clicked.connect(self._process_cut)
+        self._segment_controls.stop_clicked.connect(self._segment_processor.stop_processing)
+        self._segment_controls.cut_clicked.connect(self._segment_processor.start_processing)
 
         self._segment_list.itemSelectionChanged.connect(self._on_segment_selected)
         self._segment_list.customContextMenuRequested.connect(self._show_segment_context_menu)
@@ -126,7 +137,7 @@ class VideoCutter(QDialog):
         # --- Connect Segment Manager to UI Components ---
         self._segment_manager.error_occurred.connect(self._show_error_message)
         self._segment_manager.segments_updated.connect(self._media_controls.set_segment_markers)
-        self._segment_manager.current_start_marker_updated.connect(self._media_controls.set_current_start_marker)
+        self._segment_manager.start_marker_updated.connect(self._media_controls.set_current_start_marker)
         
         # Connect manager to list widget
         self._segment_manager.segment_added.connect(self._segment_list.add_segment)
@@ -187,115 +198,3 @@ class VideoCutter(QDialog):
                 self._segment_list.setCurrentRow(row_to_select)
         elif action == delete_action:
             self._segment_manager.delete_segment(row)
-
-    # --- Processing Slots ---
-    def _process_cut(self):
-        """Initiates the sequential cutting process for all defined segments."""
-        if self._processing_queue:
-            self._show_error_message("In Progress", "A cutting process is already running.")
-            return
-
-        segments_to_process = self._segment_manager.get_segments_for_processing()
-        if not segments_to_process:
-            return
-
-        # Populate the processing queue
-        self._processing_queue = list(segments_to_process)
-
-        # Visually mark all segments in the list as "pending" (yellow)
-        pending_color = QColor("#fff3cd") # A light yellow color
-        for i in range(len(self._processing_queue)):
-            self._segment_list.highlight_row(i, pending_color, clear_others=False)
-
-        self._logger.append_log(f"INFO: Starting to cut {len(self._processing_queue)} segments sequentially.")
-        self._process_next_in_queue()
-
-    def _stop_processing(self):
-        """Stops the current cutting process."""
-        if not self._processing_queue and not self._active_workers:
-            self._logger.append_log("INFO: No cutting process is currently running.")
-            return
-
-        self._logger.append_log("INFO: Stopping all cutting processes...")
-        self._processing_queue.clear()
-        for worker in self._active_workers:
-            worker.stop()
-        self._active_workers.clear()
-        self._segment_list.clear_highlight()
-
-    def _process_next_in_queue(self):
-        """Processes the next segment in the queue."""
-        if not self._processing_queue:
-            self._logger.append_log("INFO: All segments have been processed.")
-            self._segment_list.clear_highlight()
-            return
-
-        # The segment to process is always the first one in the UI list
-        current_row_in_ui = 0
-        # Highlight the current segment as "processing" (green) without clearing other highlights
-        self._segment_list.highlight_row(current_row_in_ui, clear_others=False)
-
-        # Get the data for the next segment from the queue
-        start_ms, end_ms = self._processing_queue.pop(0)
-
-        self._start_cut_worker(start_ms, end_ms, current_row_in_ui)
-
-    def _on_worker_finished(self, worker_ref, segment_row_index):
-        """Handles cleanup and triggers the next item in the queue."""
-        # Check if the worker is still in the list. It might have been removed
-        # by _stop_processing, which would cause a ValueError.
-        was_stopped = worker_ref not in self._active_workers
-
-        if not was_stopped:
-            # If it wasn't stopped, remove it normally.
-            self._active_workers.remove(worker_ref)
-            # Delete the corresponding segment from the UI.
-            self._segment_manager.delete_segment(segment_row_index)
-            # And process the next item in the queue.
-            self._process_next_in_queue()
-        # If it was stopped, do nothing. _stop_processing has already cleared the queue
-        # and handled cleanup.
-
-
-    def _start_cut_worker(self, start_ms, end_ms, segment_row_index):
-        """Creates and starts an FFmpegWorker for a single segment."""
-        command_template = self._command_template.get_command_template()
-        if not command_template:
-            self._show_error_message("Error", "Command template is empty. Please define a command template before cutting.")
-            return
-        start_str = ms_to_time_str(start_ms)
-        end_str = ms_to_time_str(end_ms)
-
-        # Create filesystem-safe versions of the timestamps for use in filenames
-        safe_start_str = start_str.replace(":", "-").replace(".", "_")
-        safe_end_str = end_str.replace(":", "-").replace(".", "_")
-
-        inputfile_name, inputfile_ext = os.path.splitext(os.path.basename(self._video_path))
-        output_folder = self._output_path
-
-        context = CommandContext(
-            inputfile_folder=os.path.dirname(self._video_path),
-            inputfile_name=inputfile_name,
-            inputfile_ext=inputfile_ext.lstrip('.'),
-            start_time=start_str,
-            end_time=end_str,
-            output_folder=output_folder,
-            safe_start_time=safe_start_str,
-            safe_end_time=safe_end_str
-        )
-        command = self._command_template.generate_command(context)
-
-        worker = FFmpegWorker(
-            selected_files=[],
-            command_input=None,
-            output_path=None,
-            command_override=command
-        )
-        worker.log_signal.connect(self._logger.append_log)
-        # When the worker finishes, call _on_worker_finished, passing a reference
-        # to the worker itself and the index of the segment it was processing.
-        worker.finished.connect(
-            lambda w=worker, idx=segment_row_index: self._on_worker_finished(w, idx)
-        )
-        self._active_workers.append(worker)
-        worker.start()
