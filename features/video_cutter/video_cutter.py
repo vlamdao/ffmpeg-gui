@@ -143,7 +143,6 @@ class VideoCutter(QDialog):
         self._segment_manager.segment_added.connect(self._segment_list.add_segment)
         self._segment_manager.segment_updated.connect(self._segment_list.update_segment)
         self._segment_manager.segment_removed.connect(self._segment_list.takeItem)
-        self._segment_manager.list_cleared.connect(self._segment_list.clear)
         self._segment_manager.selection_cleared.connect(self._segment_list.clearSelection)
 
     # --- Media Player Slots ---

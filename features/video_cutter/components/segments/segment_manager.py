@@ -40,9 +40,6 @@ class SegmentManager(QObject):
     segment_removed = pyqtSignal(int)
     """Emitted when a segment is deleted, containing the row index that was removed."""
     
-    list_cleared = pyqtSignal()
-    """Emitted when all segments have been cleared."""
-    
     selection_cleared = pyqtSignal()
     """Emitted to explicitly clear selection in the view."""
 
@@ -205,16 +202,6 @@ class SegmentManager(QObject):
 
         # After any deletion, always reset to the clean IDLE state
         # which also clears the selection in the view.
-        self._set_state(SegmentState.IDLE)
-        self._reset_to_idle_state()
-
-    def clear_all(self) -> None:
-        """Clears all segments and resets the state to its initial values.
-           Called when starting a new video or after processing is done.
-        """
-        self.segments.clear()
-        self.list_cleared.emit()
-        self.segments_updated.emit([])
         self._set_state(SegmentState.IDLE)
         self._reset_to_idle_state()
 
