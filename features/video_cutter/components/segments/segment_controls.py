@@ -52,7 +52,7 @@ class SegmentControls(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._set_start_button)
         layout.addWidget(self._set_end_button)
-        layout.addStretch()
+        layout.addStretch(1)  # Pushes the cut and close buttons to the right
         layout.addWidget(self._cut_button)
         layout.addWidget(self._close_button)
 
