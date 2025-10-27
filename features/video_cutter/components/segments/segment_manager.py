@@ -55,6 +55,47 @@ class SegmentManager(QObject):
         if self._state != new_state:
             self._state = new_state
             print(f"State changed to: {self._state}")
+    
+    def _reset_to_idle_state(self):
+        """Resets the manager to the initial IDLE state."""
+        self._current_segment_index = -1
+        self.start_marker_updated.emit(-1)
+        self.selection_cleared.emit()
+    
+    def _is_selected_segment_valid(self, segment_index: int) -> bool:
+        """Checks if the currently selected segment index is valid."""
+        return 0 <= segment_index < len(self.segments)
+
+    def _update_selected_segment(self, start_ms: int | None = None, end_ms: int | None = None) -> bool:
+        """Internal helper to update the data of the currently selected segment."""
+        if not self._is_selected_segment_valid(self._current_segment_index):
+            return False
+
+        current_start, current_end = self.segments[self._current_segment_index]
+        new_start = start_ms if start_ms is not None else current_start
+        new_end = end_ms if end_ms is not None else current_end
+
+        # If the new end time is before or equal to the start time
+        # Emit an error and cancel the operation.
+        if new_end is not None and new_end <= new_start:
+            self.error_occurred.emit("Invalid Time", "Start time must be before the end time.")
+            if self._state == SegmentState.CREATING:
+                self.cancel_creation()
+            return False
+        
+        new_segment = (new_start, new_end)
+        self.segments[self._current_segment_index] = new_segment
+        if new_end is not None:
+            self.segment_updated.emit(self._current_segment_index, new_start, new_end)
+        else:
+            self.segment_updated.emit(self._current_segment_index, new_start, -1)
+        self.segments_updated.emit(self.segments)
+
+        # If we just finished creating a segment, transition back to IDLE.
+        if self._state == SegmentState.CREATING and new_end is not None:
+            self._set_state(SegmentState.IDLE)
+            self._reset_to_idle_state()
+        return True
 
     def set_start_time(self, time_ms: int) -> None:
         """Sets the start time for a new segment or updates an existing one.
@@ -80,48 +121,12 @@ class SegmentManager(QObject):
         """Sets the end time, either finalizing a new segment or updating an existing one.
 
         - In `CREATING` state: Finalizes the new segment and returns to `IDLE`.
-        - In `EDITING` state: Updates the end time of the currently selected segment.
+        - In `EDITING` state: Updates the end time of tcurrently selected segment.
         """
-        update_successful = False
-        if self._state == SegmentState.CREATING:
-            update_successful = self._update_selected_segment(end_ms=end_time_ms)
-            if update_successful:
-                self._set_state(SegmentState.IDLE)
-                self._reset_to_idle_state() # Resets index and clears selection
-        elif self._state == SegmentState.EDITING:
+        if self._state == SegmentState.CREATING or self._state == SegmentState.EDITING:
             self._update_selected_segment(end_ms=end_time_ms)
 
-    def _reset_to_idle_state(self):
-        """Resets the manager to the initial IDLE state."""
-        self._current_segment_index = -1
-        self.start_marker_updated.emit(-1)
-        self.selection_cleared.emit()
-
-    def _update_selected_segment(self, start_ms: int | None = None, end_ms: int | None = None) -> bool:
-        """Internal helper to update the data of the currently selected segment."""
-        if not (0 <= self._current_segment_index < len(self.segments)):
-            return False
-
-        current_start, current_end = self.segments[self._current_segment_index]
-        new_start = start_ms if start_ms is not None else current_start
-        new_end = end_ms if end_ms is not None else current_end
-
-        # Allow end_ms to be None during creation
-        if new_end is not None and new_start >= new_end:
-            self.error_occurred.emit("Invalid Time", "Start time must be before the end time.")
-            # If this error happened during creation, it's better to cancel the
-            # operation automatically so the user doesn't have a dangling "[creating...]" item.
-            if self._state == SegmentState.CREATING:
-                self.cancel_creation()
-            return False
-        
-        new_segment = (new_start, new_end)
-        self.segments[self._current_segment_index] = new_segment
-        self.segment_updated.emit(self._current_segment_index, new_start, new_end if new_end is not None else -1)
-        self.segments_updated.emit(self.segments)
-        return True
-
-    def select_segment_for_editing(self, segment_index: int) -> None:
+    def handle_segment_selection(self, segment_index: int) -> None:
         """Prepares the manager for editing a segment based on a row selection.
 
         This function transitions the state machine. If the selection is valid,
@@ -129,16 +134,10 @@ class SegmentManager(QObject):
         it reverts to the IDLE state.
         """
 
-        # If a new segment is currently being created, do not process selection changes.
         if self._state == SegmentState.CREATING:
             return
         
-        # A selection is valid only if its index is within the bounds of the segments list.
-        # This check handles both deselection (segment_index == -1) and any potential
-        # out-of-bounds errors gracefully.
-        is_selection_valid = (0 <= segment_index < len(self.segments))
-        if not is_selection_valid:
-            # If the selection is not valid, reset to the default idle state.
+        if not self._is_selected_segment_valid(segment_index):
             self._set_state(SegmentState.IDLE)
             self._reset_to_idle_state()
             return
@@ -158,26 +157,26 @@ class SegmentManager(QObject):
             A tuple (start_ms, end_ms) if the segment_index is valid and the segment is
             complete, otherwise None.
         """
-        if not (0 <= segment_index < len(self.segments)):
+        if not self._is_selected_segment_valid(segment_index):
             return None
         start_ms, end_ms = self.segments[segment_index]
         return (start_ms, end_ms) if end_ms is not None else None
 
-    def edit_segment(self, row: int) -> int:
+    def edit_segment_with_dialog(self, segment_index: int) -> int:
         """Opens a dialog to edit a segment and updates it if accepted.
         """
-        if not (0 <= row < len(self.segments)):
+        if not self._is_selected_segment_valid(segment_index):
             return -1
 
-        start_ms, end_ms = self.segments[row]
+        start_ms, end_ms = self.segments[segment_index]
         dialog = EditSegmentDialog(self.parent(), start_ms, end_ms)
 
         if dialog.exec_() == QDialog.Accepted:
             new_start, new_end = dialog.get_edited_times()
-            self._current_segment_index = row
+            self._current_segment_index = segment_index
             self._set_state(SegmentState.EDITING)
             if self._update_selected_segment(start_ms=new_start, end_ms=new_end):
-                return row # Return the row so the UI can re-select it.
+                return segment_index # Return the segment_index so the UI can re-select it.
         return -1
 
     def cancel_creation(self) -> bool:
@@ -193,7 +192,7 @@ class SegmentManager(QObject):
 
     def delete_segment(self, segment_index: int) -> None:
         """Deletes a segment from the list at a given segment_index."""
-        if not (0 <= segment_index < len(self.segments)):
+        if not self._is_selected_segment_valid(segment_index):
             return
 
         self.segments.pop(segment_index)

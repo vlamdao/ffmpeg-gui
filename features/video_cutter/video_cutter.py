@@ -164,14 +164,14 @@ class VideoCutter(QDialog):
         """Handles selection changes in the segment list."""
         selected_items = self._segment_list.selectedItems()
         if selected_items:
-            selected_segment_index = self._segment_list.row(selected_items[0])
+            segment_index = self._segment_list.row(selected_items[0])
         else:
-            selected_segment_index = -1
+            segment_index = -1
         
         # First, notify the manager of the selection change to update its state.
-        self._segment_manager.select_segment_for_editing(selected_segment_index)
+        self._segment_manager.handle_segment_selection(segment_index)
         # get selected segment and seek to its start time
-        selected_segment = self._segment_manager.get_segment_at(selected_segment_index)
+        selected_segment = self._segment_manager.get_segment_at(segment_index)
         if selected_segment:
             self._media_player.set_position(selected_segment[0])
             self._media_player.pause()
@@ -192,7 +192,7 @@ class VideoCutter(QDialog):
         action = menu.exec_(self._segment_list.viewport().mapToGlobal(pos))
 
         if action == edit_action:
-            row_to_select = self._segment_manager.edit_segment(row)
+            row_to_select = self._segment_manager.edit_segment_with_dialog(row)
             if row_to_select != -1:
                 self._segment_list.setCurrentRow(row_to_select)
         elif action == delete_action:
