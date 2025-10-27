@@ -66,3 +66,15 @@ class SegmentList(DeselectableListWidget):
             if item:
                 # Reset to the default transparent background
                 item.setBackground(QColor(Qt.transparent))
+
+    def find_segment_by_data(self, segment_data: tuple[int, int]) -> int:
+        """Finds the segment index for a given segment data tuple.
+
+        Returns:
+            int: The segment index if found, otherwise -1.
+        """
+        for i in range(self.count()):
+            item = self.item(i)
+            if item and item.data(Qt.UserRole) == segment_data:
+                return i
+        return -1

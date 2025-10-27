@@ -147,7 +147,7 @@ class VideoCutter(QDialog):
         # --- Connect Segment Processor to UI ---
         self._segment_processor.processing_started.connect(self._on_processing_started)
         self._segment_processor.processing_stopped.connect(self._segment_list.clear_highlight)
-        self._segment_processor.segment_processing_started.connect(self._segment_list.highlight_segment)
+        self._segment_processor.segment_processing_started.connect(self._on_segment_processing_started)
         self._segment_processor.segment_processed.connect(self._segment_manager.delete_segment_by_data)
 
     # --- Media Player Slots ---
@@ -170,6 +170,16 @@ class VideoCutter(QDialog):
         pending_color = QColor("#fff3cd")  # A light yellow color
         for i in range(total_segments):
             self._segment_list.highlight_row(i, pending_color, clear_others=False)
+
+    def _on_segment_processing_started(self, segment_data: tuple[int, int]):
+        """Finds the segment in the list and highlights it as 'processing'."""
+        row = self._segment_list.find_row_by_data(segment_data)
+        if row != -1:
+            # A light green color to indicate active processing
+            processing_color = QColor("#d4edda")
+            self._segment_list.highlight_row(row, processing_color, clear_others=True)
+        else:
+            self._logger.append_log(f"Warning: Could not find segment {segment_data} in the list to highlight.")
 
     def _on_cut_clicked(self):
         """Handler for the 'Cut All' button click."""
