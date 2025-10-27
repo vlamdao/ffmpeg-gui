@@ -29,6 +29,8 @@ class CommandContext:
     start_time: str
     end_time: str
     output_folder: str
+    safe_start_time: str
+    safe_end_time: str
 
 class CommandTemplate(QWidget):
     """
@@ -121,8 +123,8 @@ class CommandTemplate(QWidget):
             PLACEHOLDER_START_TIME: context.start_time,
             PLACEHOLDER_END_TIME: context.end_time,
             PLACEHOLDER_OUTPUT_FOLDER: context.output_folder,
-            PLACEHOLDER_SAFE_START_TIME: context.start_time.replace(":", "-").replace(".", "_"),
-            PLACEHOLDER_SAFE_END_TIME: context.end_time.replace(":", "-").replace(".", "_"),
+            PLACEHOLDER_SAFE_START_TIME: context.safe_start_time,
+            PLACEHOLDER_SAFE_END_TIME: context.safe_end_time,
         }
 
         for placeholder, value in replacements.items():

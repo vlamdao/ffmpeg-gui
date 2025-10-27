@@ -47,16 +47,23 @@ class SegmentManager(QObject):
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.segments: list[tuple[int, int | None]] = []
-        self._state: SegmentState = SegmentState.IDLE
-        print(f"State changed to: {self._state}")
-        self._active_segment_index: int = -1
+        self._state: SegmentState = SegmentState.IDLE # Initial state
+        self._set_state(SegmentState.IDLE) # Set initial state via the new method
+        self._current_segment_index: int = -1
+
+    def _set_state(self, new_state: SegmentState):
+        """Centralized method for changing the state and logging it."""
+        if self._state != new_state:
+            self._state = new_state
+            print(f"State changed to: {self._state}")
 
     def set_start_time(self, time_ms: int) -> None:
         """Sets the start time for a new segment or updates an existing one.
 
         This method has a dual purpose:
-        1. If a segment is currently selected, it updates that segment's start time.
-        2. Otherwise, it begins the creation of a new segment by storing the start time.
+        - In `EDITING` state: Updates the start time of the currently selected segment.
+        - In `IDLE` state: Begins the creation of a new segment, transitioning the
+          state to `CREATING`.
         """
         if self._state == SegmentState.EDITING:
             self._update_selected_segment(start_ms=time_ms)
@@ -64,38 +71,39 @@ class SegmentManager(QObject):
             # Create a new segment with a start time and a placeholder for the end time.
             new_segment = (time_ms, None)
             self.segments.append(new_segment)
-            self._active_segment_index = len(self.segments) - 1
-            self._state = SegmentState.CREATING
-            print(f"State changed to: {self._state}")
+            self._current_segment_index = len(self.segments) - 1
+            self._set_state(SegmentState.CREATING)
 
             self.segment_added.emit(time_ms, -1) # Use -1 to indicate incomplete end time
             self.current_start_marker_updated.emit(time_ms)
 
-    def create_segment(self, end_time_ms: int) -> None:
-        """Finalizes a new segment or updates the end time of a selected one.
+    def set_end_time(self, end_time_ms: int) -> None:
+        """Sets the end time, either finalizing a new segment or updating an existing one.
+
+        - In `CREATING` state: Finalizes the new segment and returns to `IDLE`.
+        - In `EDITING` state: Updates the end time of the currently selected segment.
         """
         update_successful = False
         if self._state == SegmentState.CREATING:
             update_successful = self._update_selected_segment(end_ms=end_time_ms)
             if update_successful:
-                self._state = SegmentState.IDLE
-                print(f"State changed to: {self._state}")
+                self._set_state(SegmentState.IDLE)
                 self._reset_to_idle_state() # Resets index and clears selection
         elif self._state == SegmentState.EDITING:
             self._update_selected_segment(end_ms=end_time_ms)
 
     def _reset_to_idle_state(self):
         """Resets the manager to the initial IDLE state."""
-        self._active_segment_index = -1
+        self._current_segment_index = -1
         self.current_start_marker_updated.emit(-1)
         self.selection_cleared.emit()
 
     def _update_selected_segment(self, start_ms: int | None = None, end_ms: int | None = None) -> bool:
         """Internal helper to update the data of the currently selected segment."""
-        if not (0 <= self._active_segment_index < len(self.segments)):
+        if not (0 <= self._current_segment_index < len(self.segments)):
             return False
 
-        current_start, current_end = self.segments[self._active_segment_index]
+        current_start, current_end = self.segments[self._current_segment_index]
         new_start = start_ms if start_ms is not None else current_start
         new_end = end_ms if end_ms is not None else current_end
 
@@ -109,47 +117,52 @@ class SegmentManager(QObject):
             return False
         
         new_segment = (new_start, new_end)
-        self.segments[self._active_segment_index] = new_segment
-        self.segment_updated.emit(self._active_segment_index, new_start, new_end if new_end is not None else -1)
+        self.segments[self._current_segment_index] = new_segment
+        self.segment_updated.emit(self._current_segment_index, new_start, new_end if new_end is not None else -1)
         self.segments_updated.emit(self.segments)
         return True
 
-    def handle_selection_change(self, selected_row: int) -> tuple[int, int]:
-        """Handles logic when a segment is selected or deselected in the list.
+    def select_segment_for_editing(self, segment_index: int) -> None:
+        """Prepares the manager for editing a segment based on a row selection.
+
+        This function transitions the state machine. If the selection is valid,
+        it enters the EDITING state. If the selection is invalid (or deselected),
+        it reverts to the IDLE state.
+        """
+
+        # If a new segment is currently being created, do not process selection changes.
+        if self._state == SegmentState.CREATING:
+            return
+        
+        # A selection is valid only if its index is within the bounds of the segments list.
+        # This check handles both deselection (segment_index == -1) and any potential
+        # out-of-bounds errors gracefully.
+        is_selection_valid = (0 <= segment_index < len(self.segments))
+        if not is_selection_valid:
+            # If the selection is not valid, reset to the default idle state.
+            self._set_state(SegmentState.IDLE)
+            self._reset_to_idle_state()
+            return
+
+        # If the selection is valid, update the state to EDITING.
+        self._current_segment_index = segment_index
+        self._set_state(SegmentState.EDITING)
+        self.current_start_marker_updated.emit(-1)
+
+    def get_segment_at(self, segment_index: int) -> tuple[int, int] | None:
+        """
+        Retrieves the segment data at a specific segment_index.
+
+        This is a pure "query" method that does not change any state.
 
         Returns:
-            A tuple (start_ms, end_ms) of the selected segment to seek to,
-            or (-1, -1) if no action is needed.
+            A tuple (start_ms, end_ms) if the segment_index is valid and the segment is
+            complete, otherwise None.
         """
-        # If a new segment is currently being created, do not process selection changes.
-        # This prevents the selection of the newly added "[creating...]" item from
-        # immediately switching the state to EDITING.
-        if self._state == SegmentState.CREATING:
-            return -1, -1
-
-        if selected_row == -1: # Deselection
-            self._state = SegmentState.IDLE
-            print(f"State changed to: {self._state}")
-            self._reset_to_idle_state() # Resets index and clears selection
-            return -1, -1 # No position change
-
-        # An item was selected:
-        self._active_segment_index = selected_row
-        if not (0 <= self._active_segment_index < len(self.segments)):
-            self.clear_all()
-            return -1, -1
-
-        start_ms, end_ms = self.segments[self._active_segment_index]
-
-        # If the selected segment is incomplete, it's an error state. Reset.
-        if end_ms is None:
-            self.clear_all()
-            return -1, -1
-
-        self._state = SegmentState.EDITING
-        print(f"State changed to: {self._state}")
-        self.current_start_marker_updated.emit(-1)
-        return start_ms, end_ms # Return position to seek to.
+        if not (0 <= segment_index < len(self.segments)):
+            return None
+        start_ms, end_ms = self.segments[segment_index]
+        return (start_ms, end_ms) if end_ms is not None else None
 
     def edit_segment(self, row: int) -> int:
         """Opens a dialog to edit a segment and updates it if accepted.
@@ -162,9 +175,8 @@ class SegmentManager(QObject):
 
         if dialog.exec_() == QDialog.Accepted:
             new_start, new_end = dialog.get_edited_times()
-            self._active_segment_index = row
-            self._state = SegmentState.EDITING
-            print(f"State changed to: {self._state}")
+            self._current_segment_index = row
+            self._set_state(SegmentState.EDITING)
             if self._update_selected_segment(start_ms=new_start, end_ms=new_end):
                 return row # Return the row so the UI can re-select it.
         return -1
@@ -175,33 +187,33 @@ class SegmentManager(QObject):
         Returns:
             bool: True if a creation was cancelled, False otherwise.
         """
-        if self._state == SegmentState.CREATING and self._active_segment_index != -1:
-            self.delete_segment(self._active_segment_index)
+        if self._state == SegmentState.CREATING and self._current_segment_index != -1:
+            self.delete_segment(self._current_segment_index)
             return True
         return False
 
-    def delete_segment(self, row: int) -> None:
-        """Deletes a segment from the list at a given row."""
-        if not (0 <= row < len(self.segments)):
+    def delete_segment(self, segment_index: int) -> None:
+        """Deletes a segment from the list at a given segment_index."""
+        if not (0 <= segment_index < len(self.segments)):
             return
 
-        self.segments.pop(row)
-        self.segment_removed.emit(row)
+        self.segments.pop(segment_index)
+        self.segment_removed.emit(segment_index)
         self.segments_updated.emit(self.segments)
 
         # After any deletion, always reset to the clean IDLE state
         # which also clears the selection in the view.
-        self._state = SegmentState.IDLE
-        print(f"State changed to: {self._state}")
+        self._set_state(SegmentState.IDLE)
         self._reset_to_idle_state()
 
     def clear_all(self) -> None:
-        """Clears all segments and resets the state to its initial values."""
+        """Clears all segments and resets the state to its initial values.
+           Called when starting a new video or after processing is done.
+        """
         self.segments.clear()
         self.list_cleared.emit()
         self.segments_updated.emit([])
-        self._state = SegmentState.IDLE
-        print(f"State changed to: {self._state}")
+        self._set_state(SegmentState.IDLE)
         self._reset_to_idle_state()
 
     def get_segments_for_processing(self) -> list[tuple[int, int]] | None:
