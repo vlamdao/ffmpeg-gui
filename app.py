@@ -49,9 +49,10 @@ class FFmpegGUI(QMainWindow):
         top_layout.addWidget(file_manager_widget, 2)
 
         logger_widget = self.logger.get_widget()
-        logger_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        logger_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        # logger_widget.setFixedWidth(450)
         top_layout.addWidget(logger_widget, 1)
-
+    
         main_layout.addLayout(top_layout)
 
         # Bottom components
