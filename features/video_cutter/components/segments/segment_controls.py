@@ -62,3 +62,11 @@ class SegmentControls(QWidget):
         self._set_end_button.clicked.connect(self.set_end_clicked)
         self._cut_button.clicked.connect(self.cut_clicked)
         self._stop_button.clicked.connect(self.stop_clicked)
+
+    def set_processing_state(self, is_processing: bool):
+        """Sets the enabled state of buttons based on processing status."""
+        is_not_processing = not is_processing
+        self._set_start_button.setEnabled(is_not_processing)
+        self._set_end_button.setEnabled(is_not_processing)
+        self._cut_button.setEnabled(is_not_processing)
+        self._stop_button.setEnabled(is_processing)
