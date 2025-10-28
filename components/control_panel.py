@@ -51,7 +51,7 @@ class ControlPanel(QWidget):
         button_configs = {
             'add_files': {
                 'text': ' Add files',
-                'icon': 'addfiles.png',
+                'icon': 'add-files.png',
                 'tooltip': 'Add files to the list',
                 'connection': self.add_files_clicked.emit
             },
@@ -75,13 +75,13 @@ class ControlPanel(QWidget):
             },
             'cut_video': {
                 'text': ' Cut Video',
-                'icon': 'cut_video.png',
+                'icon': 'cut-video.png',
                 'tooltip': 'Cut a video into segments',
                 'connection': self.cut_video_clicked.emit
             },
             'add_preset': {
                 'text': ' Add preset',
-                'icon': 'addpreset.png',
+                'icon': 'add-preset.png',
                 'tooltip': 'Add new preset',
                 'connection': self.add_preset_clicked.emit
             }
