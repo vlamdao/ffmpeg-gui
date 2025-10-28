@@ -186,22 +186,22 @@ class VideoCutter(QDialog):
     # ==================================================================
     # Processor Slots
     # ==================================================================
-    def _set_ui_processing_state(self, is_processing: bool):
+    def _disable_ui_when_processing(self, is_processing: bool):
         """Enables or disables UI components based on processing state."""
         self._media_controls.setEnabled(not is_processing)
         self._segment_list.setEnabled(not is_processing)
         self._command_template.setEnabled(not is_processing)
-        self._segment_controls.set_processing_state(is_processing)
+        self._segment_controls.set_enable(not is_processing)
 
     def _on_processing_started(self, total_segments: int):
         """Handles the start of the segment processing task."""
-        self._set_ui_processing_state(True)
+        self._disable_ui_when_processing(True)
         for i in range(total_segments):
             self._segment_list.highlight_row(i, self._PENDING_COLOR)
 
     def _on_processing_stopped(self):
         """Handles the end of the segment processing task."""
-        self._set_ui_processing_state(False)
+        self._disable_ui_when_processing(False)
         self._segment_list.clear_highlights()
 
     def _on_segment_processing(self, segment_data: tuple[int, int]):
