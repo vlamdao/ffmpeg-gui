@@ -2,8 +2,6 @@ from enum import Enum, auto
 from PyQt5.QtCore import QObject, pyqtSignal, QTime
 from PyQt5.QtWidgets import QDialog
 
-from .edit_segment_dialog import EditSegmentDialog
-
 class SegmentState(Enum):
     """Defines the possible states for the segment management logic."""
     IDLE = auto()  # Ready to create a new segment.
@@ -161,22 +159,21 @@ class SegmentManager(QObject):
         start_ms, end_ms = self.segments[segment_index]
         return (start_ms, end_ms) if end_ms is not None else None
 
-    def edit_segment_with_dialog(self, segment_index: int) -> int:
-        """Opens a dialog to edit a segment and updates it if accepted.
-        """
+    def update_segment(self, segment_index: int, new_start: int, new_end: int) -> bool:
+        """Updates the start and end times for a given segment."""
         if not self._is_selected_segment_valid(segment_index):
-            return -1
+            return False
 
-        start_ms, end_ms = self.segments[segment_index]
-        dialog = EditSegmentDialog(self.parent(), start_ms, end_ms)
+        if new_end <= new_start:
+            self.error_occurred.emit("Invalid Time", "End time must be after start time.")
+            return False
 
-        if dialog.exec_() == QDialog.Accepted:
-            new_start, new_end = dialog.get_edited_times()
-            self._current_segment_index = segment_index
-            self._set_state(SegmentState.EDITING)
-            if self._update_selected_segment(start_ms=new_start, end_ms=new_end):
-                return segment_index # Return the segment_index so the UI can re-select it.
-        return -1
+        self.segments[segment_index] = (new_start, new_end)
+        self.segment_updated.emit(segment_index, new_start, new_end)
+        self.segments_updated.emit(self.segments)
+        # Ensure state is correct after an edit
+        self.handle_segment_selection(segment_index)
+        return True
 
     def cancel_creation(self) -> bool:
         """Cancels the creation of a new segment if in the CREATING state.

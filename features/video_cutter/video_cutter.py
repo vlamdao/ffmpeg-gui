@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor
 
 from .components import (MediaControls, MediaPlayer, SegmentControls, 
-                         SegmentList, SegmentManager)
+                         SegmentList, SegmentManager, EditSegmentDialog)
 from .components import CommandTemplate
 from .processor import SegmentProcessor
 from helper import FontDelegate
@@ -243,8 +243,20 @@ class VideoCutter(QDialog):
         action = menu.exec_(self._segment_list.viewport().mapToGlobal(pos))
 
         if action == edit_action:
-            row_to_select = self._segment_manager.edit_segment_with_dialog(row)
-            if row_to_select != -1:
-                self._segment_list.setCurrentRow(row_to_select)
+            self._edit_segment(row)
         elif action == delete_action:
             self._segment_manager.delete_segment(row)
+
+    def _edit_segment(self, row: int):
+        """Handles the logic for editing a segment via a dialog."""
+        segment = self._segment_manager.get_segment_at(row)
+        if not segment:
+            return
+
+        start_ms, end_ms = segment
+        dialog = EditSegmentDialog(self, start_ms, end_ms)
+
+        if dialog.exec_() == QDialog.Accepted:
+            new_start, new_end = dialog.get_edited_times()
+            if self._segment_manager.update_segment(row, new_start, new_end):
+                self._segment_list.setCurrentRow(row)
