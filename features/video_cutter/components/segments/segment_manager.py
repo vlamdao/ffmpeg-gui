@@ -3,7 +3,6 @@ from PyQt5.QtCore import QObject, pyqtSignal, QTime
 from PyQt5.QtWidgets import QDialog
 
 from .edit_segment_dialog import EditSegmentDialog
-from helper import ms_to_time_str
 
 class SegmentState(Enum):
     """Defines the possible states for the segment management logic."""

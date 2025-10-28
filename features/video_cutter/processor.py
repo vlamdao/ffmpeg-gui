@@ -1,9 +1,6 @@
 from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtGui import QColor
 
 from processor import FFmpegWorker
-
-from .components import SegmentManager, SegmentList, CommandTemplate
 
 class SegmentProcessor(QObject):
     """
