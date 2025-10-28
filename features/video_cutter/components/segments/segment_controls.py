@@ -42,29 +42,28 @@ class SegmentControls(QWidget):
 
     def _create_widgets(self):
         """Creates the individual widgets for the controls."""
-        icon_size = QSize(20, 20)
         min_height = 36
 
         self._set_start_button = QPushButton(" Set Start")
         self._set_start_button.setIcon(QIcon(resource_path("icon/set-start.png")))
-        self._set_start_button.setIconSize(icon_size)
+        self._set_start_button.setIconSize(QSize(20, 20))
         self._set_start_button.setMinimumHeight(min_height)
 
         self._set_end_button = QPushButton("Set End ")
         self._set_end_button.setIcon(QIcon(resource_path("icon/set-end.png")))
-        self._set_end_button.setIconSize(icon_size)
+        self._set_end_button.setIconSize(QSize(20, 20))
         self._set_end_button.setLayoutDirection(Qt.RightToLeft)
         self._set_end_button.setMinimumHeight(min_height)
 
         self._cut_button = QPushButton(" Cut Segments")
         self._cut_button.setIcon(QIcon(resource_path("icon/cut-segments.png")))
-        self._cut_button.setIconSize(icon_size)
+        self._cut_button.setIconSize(QSize(25, 25))
         self._cut_button.setStyleSheet("padding-left: 12px; padding-right: 12px;")
         self._cut_button.setMinimumHeight(min_height)
 
         self._stop_button = QPushButton(" Stop")
         self._stop_button.setIcon(QIcon(resource_path("icon/stop.png")))
-        self._stop_button.setIconSize(icon_size)
+        self._stop_button.setIconSize(QSize(19, 19))
         self._stop_button.setMinimumHeight(min_height)
 
     def _setup_layout(self):
