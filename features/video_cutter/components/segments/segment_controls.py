@@ -1,7 +1,8 @@
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QPushButton, QLabel, QSizePolicy)
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QPushButton, QLabel, QSizePolicy, QStyle)
+from PyQt5.QtCore import pyqtSignal, QSize, Qt
+from PyQt5.QtGui import QIcon
 
-from helper import ms_to_time_str
+from helper import ms_to_time_str, resource_path
 
 class SegmentControls(QWidget):
     """A widget containing the main controls for creating and processing segments.
@@ -41,10 +42,30 @@ class SegmentControls(QWidget):
 
     def _create_widgets(self):
         """Creates the individual widgets for the controls."""
-        self._set_start_button = QPushButton("Set Start")
-        self._set_end_button = QPushButton("Set End")
-        self._cut_button = QPushButton("Cut Segments")
-        self._stop_button = QPushButton("Stop")
+        icon_size = QSize(20, 20)
+        min_height = 36
+
+        self._set_start_button = QPushButton(" Set Start")
+        self._set_start_button.setIcon(QIcon(resource_path("icon/set-start.png")))
+        self._set_start_button.setIconSize(icon_size)
+        self._set_start_button.setMinimumHeight(min_height)
+
+        self._set_end_button = QPushButton("Set End ")
+        self._set_end_button.setIcon(QIcon(resource_path("icon/set-end.png")))
+        self._set_end_button.setIconSize(icon_size)
+        self._set_end_button.setLayoutDirection(Qt.RightToLeft)
+        self._set_end_button.setMinimumHeight(min_height)
+
+        self._cut_button = QPushButton(" Cut Segments")
+        self._cut_button.setIcon(QIcon(resource_path("icon/cut-segments.png")))
+        self._cut_button.setIconSize(icon_size)
+        self._cut_button.setStyleSheet("padding-left: 12px; padding-right: 12px;")
+        self._cut_button.setMinimumHeight(min_height)
+
+        self._stop_button = QPushButton(" Stop")
+        self._stop_button.setIcon(QIcon(resource_path("icon/stop.png")))
+        self._stop_button.setIconSize(icon_size)
+        self._stop_button.setMinimumHeight(min_height)
 
     def _setup_layout(self):
         """Sets up the layout for the controls."""
@@ -52,7 +73,7 @@ class SegmentControls(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._set_start_button)
         layout.addWidget(self._set_end_button)
-        layout.addStretch(1)  # Pushes the cut and close buttons to the right
+        layout.addStretch(1)
         layout.addWidget(self._cut_button)
         layout.addWidget(self._stop_button)
         
