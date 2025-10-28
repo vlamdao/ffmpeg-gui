@@ -82,6 +82,7 @@ class PresetDialog(QDialog):
         table.setEditTriggers(QTableWidget.NoEditTriggers)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        table.setShowGrid(False)
 
         for i, placeholder in enumerate(placeholders):
             row = i // num_columns
