@@ -144,21 +144,6 @@ class SegmentManager(QObject):
         self._set_state(SegmentState.EDITING)
         self.start_marker_updated.emit(-1)
 
-    def get_segment_at(self, segment_index: int) -> tuple[int, int] | None:
-        """
-        Retrieves the segment data at a specific segment_index.
-
-        This is a pure "query" method that does not change any state.
-
-        Returns:
-            A tuple (start_ms, end_ms) if the segment_index is valid and the segment is
-            complete, otherwise None.
-        """
-        if not self._is_selected_segment_valid(segment_index):
-            return None
-        start_ms, end_ms = self.segments[segment_index]
-        return (start_ms, end_ms) if end_ms is not None else None
-
     def update_segment(self, segment_index: int, new_start: int, new_end: int) -> bool:
         """Updates the start and end times for a given segment."""
         if not self._is_selected_segment_valid(segment_index):
@@ -182,11 +167,11 @@ class SegmentManager(QObject):
             bool: True if a creation was cancelled, False otherwise.
         """
         if self._state == SegmentState.CREATING and self._current_segment_index != -1:
-            self.delete_segment(self._current_segment_index)
+            self.delete_segment_by_index(self._current_segment_index)
             return True
         return False
 
-    def delete_segment(self, segment_index: int) -> None:
+    def delete_segment_by_index(self, segment_index: int) -> None:
         """Deletes a segment from the list at a given segment_index."""
         if not self._is_selected_segment_valid(segment_index):
             return
@@ -208,9 +193,16 @@ class SegmentManager(QObject):
                 segment_index = i
                 break
         if segment_index != -1:
-            self.delete_segment(segment_index)
+            self.delete_segment_by_index(segment_index)
         else:
             print(f"Warning: Could not find segment {segment_data} to delete it.")
+
+    def get_segment_by_index(self, segment_index: int) -> tuple[int, int] | None:
+        """Gets the segment data (start_ms, end_ms) for a given segment_index."""
+        if not self._is_selected_segment_valid(segment_index):
+            return None
+        start_ms, end_ms = self.segments[segment_index]
+        return (start_ms, end_ms) if end_ms is not None else None
 
     def get_segments_for_processing(self) -> list[tuple[int, int]] | None:
         """Gets the list of segments for processing (e.g., for cutting the video)."""

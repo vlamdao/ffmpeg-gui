@@ -239,7 +239,7 @@ class VideoCutter(QDialog):
         # First, notify the manager of the selection change to update its state.
         self._segment_manager.handle_segment_selection(segment_index)
         # get selected segment and seek to its start time
-        selected_segment = self._segment_manager.get_segment_at(segment_index)
+        selected_segment = self._segment_manager.get_segment_by_index(segment_index)
         if selected_segment:
             self._media_player.set_position(selected_segment[0])
             self._media_player.pause()
@@ -259,11 +259,11 @@ class VideoCutter(QDialog):
         if action == edit_action:
             self._edit_segment(row)
         elif action == delete_action:
-            self._segment_manager.delete_segment(row)
+            self._segment_manager.delete_segment_by_index(row)
 
     def _edit_segment(self, row: int):
         """Handles the logic for editing a segment via a dialog."""
-        segment = self._segment_manager.get_segment_at(row)
+        segment = self._segment_manager.get_segment_by_index(row)
         if not segment:
             return
 
