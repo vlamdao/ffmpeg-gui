@@ -42,6 +42,7 @@ class FileInfo:
         return {
             "duration": format_info.get('duration'),
             "size": format_info.get('size'),
+            "bitrate": format_info.get('bit_rate'),
             "video_stream": {
                 "codec": video_stream.get('codec_name'),
                 "width": video_stream.get('width'),
@@ -95,7 +96,8 @@ class FileInfo:
                  "1.50 Mbps"), or "N/A" if not available or invalid.
         """
         if self._info.get("video_stream"):
-            bitrate_val = self._info["video_stream"].get("bitrate")
+            # bitrate_val = self._info["video_stream"].get("bitrate") # get bitrate in stream dict
+            bitrate_val = self._info.get("bitrate") # get bitrate in format dict
             if bitrate_val:
                 try:
                     bitrate_val = float(bitrate_val)
