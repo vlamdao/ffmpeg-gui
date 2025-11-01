@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QSlider, QStyle, QStyleOptionSlider
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QPainter, QPen, QBrush, QColor
 
 class SeekSlider(QSlider):
@@ -12,6 +12,8 @@ class SeekSlider(QSlider):
     "seek" functionality. This is different from the standard QSlider
     behavior which might require dragging the handle.
     """
+    seek_requested = pyqtSignal(int)
+
     def __init__(self, orientation, parent=None):
         super().__init__(orientation, parent)
 
@@ -28,6 +30,7 @@ class SeekSlider(QSlider):
         if event.button() == Qt.LeftButton:
             value = QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), event.x(), self.width())
             self.setValue(value)
+            self.seek_requested.emit(value)
 
         super().mousePressEvent(event)
 

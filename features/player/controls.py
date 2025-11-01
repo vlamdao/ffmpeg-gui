@@ -38,6 +38,8 @@ class MediaControls(QWidget):
     """Emitted when the user presses the mouse on the slider."""
     position_changed = pyqtSignal(int)
     """Emitted when the slider's value is changed by the user."""
+    seek_requested = pyqtSignal(int)
+    """Emitted when the slider's value is changed by the user."""
 
     def __init__(self, parent: QWidget | None = None, slider_class: type[QSlider] = SeekSlider) -> None:
         """Initializes the MediaControls widget."""
@@ -96,6 +98,7 @@ class MediaControls(QWidget):
         self._seek_forward_button.clicked.connect(self.seek_forward_clicked)
         self._position_slider.sliderPressed.connect(self.slider_pressed)
         self._position_slider.valueChanged.connect(self.position_changed)
+        self._position_slider.seek_requested.connect(self.seek_requested)
 
     @pyqtSlot(QMediaPlayer.State)
     def update_media_state(self, state: QMediaPlayer.State) -> None:

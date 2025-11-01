@@ -120,7 +120,10 @@ class VideoCutter(QDialog):
         self._media_controls.seek_backward_clicked.connect(self._media_player.seek_backward)
         self._media_controls.seek_forward_clicked.connect(self._media_player.seek_forward)
         # self._media_controls.slider_pressed.connect(self._media_player.pause)
-        self._media_controls.position_changed.connect(self._media_player.set_position)
+        
+        # Use the new seek_requested signal for immediate seeking on click.
+        # The original position_changed is now only for dragging.
+        self._media_controls.seek_requested.connect(self._media_player.set_position)
 
         self._media_player.media_loaded.connect(self._media_controls.set_play_button_enabled)
         self._media_player.state_changed.connect(self._media_controls.update_media_state)
