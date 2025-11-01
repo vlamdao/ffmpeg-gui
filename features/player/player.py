@@ -146,15 +146,23 @@ class MediaPlayer(QWidget):
 
     def seek_forward(self):
         """Seeks forward by a fixed interval."""
-        self.pause()
+        was_playing = self.state() == QtMediaPlayerState.PlayingState
+        if was_playing:
+            self.pause()
         new_pos = self.position() + self._seek_interval_ms
         self.set_position(new_pos)
+        if was_playing:
+            self.play()
 
     def seek_backward(self):
         """Seeks backward by a fixed interval."""
-        self.pause()
+        was_playing = self.state() == QtMediaPlayerState.PlayingState
+        if was_playing:
+            self.pause()
         new_pos = self.position() - self._seek_interval_ms
         self.set_position(max(0, new_pos))
+        if was_playing:
+            self.play()
 
     def set_position(self, position_ms: int):
         """Sets the media player's position in milliseconds."""
