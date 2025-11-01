@@ -2,7 +2,6 @@ from __future__ import annotations
 import os
 import subprocess
 from PyQt5.QtCore import QThread, pyqtSignal
-from helper import CommandGenerator
 
 class FFmpegWorker(QThread):
     """
@@ -17,66 +16,28 @@ class FFmpegWorker(QThread):
     update_status = pyqtSignal(int, str)
     log_signal = pyqtSignal(str)
 
-    def __init__(self,
-                 selected_files: list[tuple[int, str, str]],
-                 command_input: 'CommandInput',
-                 output_path: 'OutputPath',
-                 parent=None,
-                 command_override: str = None):
+    def __init__(self, jobs: list[tuple[int, list[str]]], parent=None):
         """Initializes the FFmpegWorker thread.
 
         Args:
-            selected_files (list[tuple[int, str, str]]): A list of files to be processed.
-                Each tuple contains (row_index, filename, folder_path).
-            command_input (CommandInput): The widget containing the FFmpeg command template.
-            output_path (OutputPath): The widget managing the output path.
+            jobs (list[tuple[int, list[str]]]): A list of jobs to process. Each tuple
+                contains (row_index, list_of_commands). A row_index of -1
+                signifies a command that applies to all files (e.g., concat).
             parent (QObject, optional): The parent object. Defaults to None.
-            command_override (str, optional): A specific command to run, bypassing generation.
         """
 
         super().__init__(parent)
-        self._selected_files = selected_files
-        self._command_input = command_input
-        self._output_path = output_path
+        self._jobs = jobs
         self._proc = None
         self._is_stopped = False
-        self._cmd_generator = CommandGenerator(self._selected_files, self._command_input, self._output_path)
-        self._command_override = command_override
-        
-    def _get_command_type(self) -> str:
-        """Determines the command type based on the command template.
-
-        Inspects the user-provided command string to see if it contains flags
-        specific to certain operations, like the concat demuxer.
-
-        Returns:
-            str: A string identifying the command type, e.g., "concat_demuxer"
-                 or "others_command".
-        """
-        cmd_template = self._command_input.get_command()
-        if "-f concat" in cmd_template and "-filter_complex" not in cmd_template:
-            return "concat_demuxer"
-        return "others_command"
-
-    def _update_all_status(self, status: str):
-        """Updates the status for all selected files simultaneously.
-
-        This is a convenience method used for batch operations like 'concat'
-        where all files share the same processing state.
-
-        Args:
-            status (str): The new status to set for all files (e.g., "Processing", "Success").
-        """
-        for row_index, _, _ in self._selected_files:
-            self.update_status.emit(row_index, status)
 
     def _process_command(self, cmd: str) -> str:
         """
         Executes a single FFmpeg command, captures its output, and handles termination.
 
         This method runs the command in a subprocess, reading stdout/stderr line by
-        line and emitting it via the `log_signal`. It continuously checks the `_is_stopped`
-        flag to allow for graceful termination of the process.
+        line and emitting it via the `log_signal`. It continuously checks the
+        `_is_stopped` flag to allow for graceful termination of the process.
 
         Args:
             cmd (str): The complete FFmpeg command string to execute.
@@ -128,49 +89,37 @@ class FFmpegWorker(QThread):
 
     def run(self):
         """
-        The main execution method of the thread, called when `start()` is invoked.
-
-        It determines the type of command to be executed (e.g., a single concat
-        operation or multiple individual file operations). It then generates the
-        appropriate FFmpeg command(s) and processes them, updating the UI with
-        status changes along the way.
+        The main execution method of the thread.
+        It iterates through the jobs it was given and executes the FFmpeg commands.
         """
         self._is_stopped = False
 
-        if self._command_override:
-            self._process_command(self._command_override)
-            return
+        jobs_to_process = list(self._jobs)
 
-        command_type = self._get_command_type()
+        while jobs_to_process:
+            row_index, commands = jobs_to_process.pop(0)
 
-        if command_type == "concat_demuxer":
-            cmd = self._cmd_generator.generate_concat_command()
-            if not cmd:
-                return
-            self._update_all_status("Processing")
-            final_status = self._process_command(cmd)
-            self._update_all_status(final_status)
-
-        elif command_type == "others_command":
-            files_to_process = list(self._selected_files)
-            while files_to_process:
-                # Get the next file from the front of the list to process
-                row_index, filename, folder = files_to_process.pop(0)
-
-                if self._is_stopped:
-                    # Mark this and all remaining files as "Stopped"
+            if self._is_stopped:
+                # Mark this and all remaining files as "Stopped"
+                if row_index != -1:
                     self.update_status.emit(row_index, "Stopped")
-                    for rem_row, _, _ in files_to_process:
+                for rem_row, _ in jobs_to_process:
+                    if rem_row != -1:
                         self.update_status.emit(rem_row, "Stopped")
-                    break  # Exit the loop
+                break  # Exit the loop
 
-                current_file_tuple = (row_index, filename, folder)
-                cmd = self._cmd_generator.generate_others_command(current_file_tuple)
-                if cmd:
-                    self.update_status.emit(row_index, "Processing")
-                    final_status = self._process_command(cmd)
-                    self.update_status.emit(row_index, final_status)
-    
+            self.update_status.emit(row_index, "Processing")
+            
+            final_status = "Success"
+            for i, cmd in enumerate(commands):
+                self.log_signal.emit(f'<br><i>Running command {i+1} of {len(commands)} for job {row_index}...</i>')
+                status = self._process_command(cmd)
+                if status != "Success":
+                    final_status = status
+                    break  # Stop processing commands for this job if one fails or is stopped
+
+            self.update_status.emit(row_index, final_status)
+
     def stop(self):
         """
         Signals the worker to stop processing.

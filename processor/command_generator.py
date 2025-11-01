@@ -1,5 +1,4 @@
 import os
-import tempfile
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from components import CommandInput, OutputPath
@@ -29,33 +28,6 @@ class CommandGenerator(object):
         self._command_input = command_input
         self._output_path = output_path
         self._concat_file_path = None # To store the path of the temporary concat file
-
-    def _create_concat_file(self) -> str:
-        """Creates a temporary text file listing files for FFmpeg's concat demuxer.
-
-        This method creates the file only once per CommandGenerator instance
-        and stores its path. It uses the `tempfile` module for robust,
-        cross-platform temporary file creation.
-
-        Returns:
-            str: The absolute path to the temporary concat list file.
-        """
-        # Only create the file if it hasn't been created yet for this instance.
-        if self._concat_file_path and os.path.exists(self._concat_file_path):
-            return self._concat_file_path
-
-        concat_content = []
-        for _, fname, fpath in self._selected_files:
-            full_path = os.path.join(fpath, fname)
-            concat_content.append(f"file '{full_path}'")
-
-        # Create a named temporary file that won't be deleted on close,
-        # so FFmpeg can access it. We are responsible for cleaning it up later.
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8', suffix='.txt', prefix='ffmpeg-concat-') as f:
-            f.write("\n".join(concat_content))
-            self._concat_file_path = f.name
-
-        return self._concat_file_path
 
     def _replace_placeholders(self, template: str, replacements: dict) -> str:
         """Replaces placeholders in a command template with actual values."""
@@ -125,19 +97,7 @@ class CommandGenerator(object):
             cmd = cmd.replace("ffmpeg ", "ffmpeg -loglevel warning ", 1)
         return cmd
     
-    def generate_concat_command(self) -> str | None:
-        """Generates the full command for a concat operation."""
-        if not self._selected_files:
-            return None
-
-        template = self._command_input.get_command()
-        # Get all possible replacements, using the first file for context
-        replacements = self._get_replacement_values()
-        cmd = self._replace_placeholders(template, replacements)
-
-        return self._finalize_command(cmd)
-
-    def generate_others_command(self, input_file: tuple[int, str, str]) -> str | None:
+    def generate_command(self, input_file: tuple[int, str, str]) -> str | None:
         """Generates a command for a single-file operation."""
         if not input_file:
             return None

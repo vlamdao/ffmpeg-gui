@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt
 from helper import FontDelegate
 
 # Import constants directly for consistency
-from helper.command_generator import (
+from processor.command_generator import (
     PLACEHOLDERS
 )
 
