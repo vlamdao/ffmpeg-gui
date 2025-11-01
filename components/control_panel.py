@@ -85,7 +85,7 @@ class ControlPanel(QWidget):
                 'text': ' Join Video',
                 'icon': 'join-video.png',
                 'tooltip': 'Join multiple videos into one',
-                'connection': self.cut_video_clicked.emit
+                'connection': self.join_video_clicked.emit
             },
             'set_thumbnail': {
                 'text': ' Set Thumbnail',

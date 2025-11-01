@@ -7,7 +7,7 @@ from helper import resource_path
 from components import (PresetManager, Logger, FileManager, ControlPanel,
                         CommandInput, OutputPath)
 
-from features import VideoCutter, ThumbnailSetter
+from features import VideoCutter, ThumbnailSetter, VideoJoiner
 from processor import BatchProcessor
 
 class FFmpegGUI(QMainWindow):
@@ -81,6 +81,7 @@ class FFmpegGUI(QMainWindow):
         self.control_panel.stop_clicked.connect(self.batch_processor.stop_batch)
         self.control_panel.remove_clicked.connect(self.file_manager.remove_selected_files)
         self.control_panel.cut_video_clicked.connect(self.open_video_cutter)
+        self.control_panel.join_video_clicked.connect(self.open_video_joiner)
         self.control_panel.set_thumbnail_clicked.connect(self.open_thumbnail_setter)
         self.control_panel.add_preset_clicked.connect(self.preset_manager.add_preset)
 
@@ -122,6 +123,27 @@ class FFmpegGUI(QMainWindow):
             output_path=output_path,
             logger=self.logger,
             parent=self)
+        dialog.exec_()
+
+    def open_video_joiner(self):
+        selected_files, _ = self.file_manager.get_selected_files()
+        if len(selected_files) < 2:
+            QMessageBox.warning(self, "Selection Error", "Please select at least two video files to join.")
+            return
+        
+        same_folder = all(inputfile_folder == selected_files[0][2] for _, _, inputfile_folder in selected_files)
+        if same_folder:
+            output_folder = self.output_path.get_completed_output_path(selected_files[0][2])
+        else:
+            QMessageBox.warning(self, "Output Error", "Please select specific folders for output")
+            return
+        
+        dialog = VideoJoiner(
+            selected_files=selected_files,
+            output_path=output_folder,
+            logger=self.logger,
+            parent=self
+        )
         dialog.exec_()
 
 if __name__ == "__main__":
