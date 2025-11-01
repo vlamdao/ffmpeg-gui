@@ -6,22 +6,12 @@ from PyQt5.QtGui import QFont
 from dataclasses import dataclass
 
 from helper import ms_to_time_str
-# Placeholders specific to the video cutting operation.
-PLACEHOLDER_INPUTFILE_FOLDER = "{inputfile_folder}"
-PLACEHOLDER_INPUTFILE_NAME = "{inputfile_name}"
-PLACEHOLDER_INPUTFILE_EXT = "{inputfile_ext}"
-PLACEHOLDER_START_TIME = "{start_time}"
-PLACEHOLDER_END_TIME = "{end_time}"
-PLACEHOLDER_OUTPUT_FOLDER = "{output_folder}"
-# New placeholders for filesystem-safe timestamps
-PLACEHOLDER_SAFE_START_TIME = "{safe_start_time}"
-PLACEHOLDER_SAFE_END_TIME = "{safe_end_time}"
-
-PLACEHOLDERS = [
+from helper.placeholders import (
     PLACEHOLDER_INPUTFILE_FOLDER, PLACEHOLDER_INPUTFILE_NAME, PLACEHOLDER_INPUTFILE_EXT,
     PLACEHOLDER_START_TIME, PLACEHOLDER_END_TIME, PLACEHOLDER_OUTPUT_FOLDER,
     PLACEHOLDER_SAFE_START_TIME, PLACEHOLDER_SAFE_END_TIME,
-]
+    VIDEO_CUTTER_PLACEHOLDERS
+)
 
 @dataclass
 class CommandContext:
@@ -69,7 +59,7 @@ class CommandTemplate(QWidget):
     def _create_placeholder_table(self) -> QTableWidget:
         """Creates and populates the placeholder table widget."""
         num_columns = 5
-        num_rows = (len(PLACEHOLDERS) + num_columns - 1) // num_columns
+        num_rows = (len(VIDEO_CUTTER_PLACEHOLDERS) + num_columns - 1) // num_columns
         table = QTableWidget()
         table.setColumnCount(num_columns)
         table.setRowCount(num_rows)
@@ -78,7 +68,7 @@ class CommandTemplate(QWidget):
         table.setEditTriggers(QTableWidget.NoEditTriggers)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         table.setShowGrid(False)
-        for i, placeholder in enumerate(PLACEHOLDERS):
+        for i, placeholder in enumerate(VIDEO_CUTTER_PLACEHOLDERS):
             row = i // num_columns
             col = i % num_columns
             item = QTableWidgetItem(placeholder)
@@ -154,4 +144,3 @@ class CommandTemplate(QWidget):
         )
         complete_command = self._replace_placeholders(context)
         return complete_command
-
