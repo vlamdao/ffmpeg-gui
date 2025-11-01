@@ -163,9 +163,16 @@ class MediaPlayer(QWidget):
 
     def set_position(self, position_ms: int):
         """Sets the media player's position in milliseconds."""
-        if self._media_player.is_seekable():
-            self._media_player.set_time(position_ms)
-            # Manually emit signal after seeking
+        # Avoid seeking if the position is the same or media is not seekable
+        if not self._media_player.is_seekable() or self.position() == position_ms:
+            return
+
+        self._media_player.set_time(position_ms)
+
+        # Manually emit the signal to ensure immediate UI feedback, especially
+        # when paused. When playing, the VLC event is usually sufficient, but
+        # emitting here provides a more consistent and responsive feel.
+        if self.state() != QtMediaPlayerState.PlayingState:
             self.position_changed.emit(position_ms)
 
     def position(self) -> int:
