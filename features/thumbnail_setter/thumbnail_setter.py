@@ -32,16 +32,17 @@ class ThumbnailSetter(QDialog):
         # Dependencies
         self._video_path = video_path
         self._logger = logger
+        self._output_path = output_path
 
         # UI Components
         self._media_player: MediaPlayer
         self._media_controls: MediaControls
         self._timestamp_edit: QLineEdit
+        self._go_to_button: QPushButton
         self._set_thumbnail_button: QPushButton
 
         # FFmpeg worker
         self._worker: FFmpegWorker | None = None
-        self._output_path = output_path
 
         self._setup_ui()
         self._connect_signals()
@@ -74,12 +75,14 @@ class ThumbnailSetter(QDialog):
         timestamp_label = QLabel("Timestamp:")
         self._timestamp_edit = QLineEdit()
         self._timestamp_edit.setPlaceholderText("00:00:00.000")
-        self._timestamp_edit.setFixedWidth(120)
+        self._timestamp_edit.setFixedWidth(100)
+        self._go_to_button = QPushButton("Go to Timestamp")
         self._set_thumbnail_button = QPushButton("Set Thumbnail")
 
         thumbnail_controls_layout.addStretch()
         thumbnail_controls_layout.addWidget(timestamp_label)
         thumbnail_controls_layout.addWidget(self._timestamp_edit)
+        thumbnail_controls_layout.addWidget(self._go_to_button)
         thumbnail_controls_layout.addWidget(self._set_thumbnail_button)
 
         # --- Assemble Layout ---
@@ -93,9 +96,6 @@ class ThumbnailSetter(QDialog):
         self._media_controls.play_clicked.connect(self._media_player.toggle_play)
         self._media_controls.seek_backward_clicked.connect(self._media_player.seek_backward)
         self._media_controls.seek_forward_clicked.connect(self._media_player.seek_forward)
-
-        # Use the new seek_requested signal for immediate seeking on click.
-        # The original position_changed is now only for dragging (if implemented).
         self._media_controls.seek_requested.connect(self._media_player.set_position)
 
         self._media_player.media_loaded.connect(self._media_controls.set_play_button_enabled)
@@ -104,37 +104,26 @@ class ThumbnailSetter(QDialog):
         self._media_player.duration_changed.connect(self._media_controls.update_duration)
         self._media_player.double_clicked.connect(self._media_player.toggle_play)
 
-        # --- Thumbnail Controls ---
-        self._media_player.position_changed.connect(self._update_timestamp_display)
-        self._timestamp_edit.editingFinished.connect(self._on_timestamp_edited)
+        # --- Custom Controls ---
+        self._go_to_button.clicked.connect(self._on_go_to_timestamp)
         self._set_thumbnail_button.clicked.connect(self._on_set_thumbnail)
 
     @pyqtSlot('qint64')
     def _on_position_changed(self, position):
         """Updates the media controls when the player's position changes."""
         self._media_controls.update_position(position, self._media_player.duration())
-    
-    @pyqtSlot()
-    def _update_timestamp_display(self):
-        """Updates the timestamp QLineEdit with the current player position."""
-        # Only update if the user is not currently editing it
-        if not self._timestamp_edit.hasFocus():
-            self._timestamp_edit.setText(ms_to_time_str(self._media_player.position()))
 
     @pyqtSlot()
-    def _on_timestamp_edited(self):
-        """When the user manually edits the timestamp, seek the player to that time."""
+    def _on_go_to_timestamp(self):
+        """When the user clicks 'Go', seek the player to the manually entered time."""
         time_str = self._timestamp_edit.text()
         try:
             pos_ms = time_str_to_ms(time_str)
-            if 0 <= pos_ms <= self._media_player.duration():
-                self._media_player.set_position(pos_ms)
-            else:
+            if not (0 <= pos_ms <= self._media_player.duration()):
                 raise ValueError("Time is out of video duration range.")
+            self._media_player.set_position(pos_ms)
         except ValueError as e:
             QMessageBox.warning(self, "Invalid Time", f"Invalid timestamp format or value: {time_str}\n{e}")
-            # Revert to current player time
-            self._timestamp_edit.setText(ms_to_time_str(self._media_player.position()))
 
     @pyqtSlot()
     def _on_set_thumbnail(self):
@@ -146,11 +135,10 @@ class ThumbnailSetter(QDialog):
             QMessageBox.warning(self, "In Progress", "A thumbnail operation is already in progress.")
             return
         
-        timestamp = self._timestamp_edit.text()
-        if not timestamp:
-            QMessageBox.warning(self, "No Frame Selected", "Please select a frame first.")
-            return
+        # Always use the current player position for setting the thumbnail
+        timestamp = ms_to_time_str(self._media_player.position())
         
+        # disable button and pause video when processing
         self._set_thumbnail_button.setEnabled(False)
         self._media_player.pause()
         
@@ -206,10 +194,9 @@ class ThumbnailSetter(QDialog):
         if status in ["Success", "Failed", "Stopped"]:
             if status == "Success":
                 QMessageBox.information(self, "Success", "Thumbnail has been set successfully.")
-                self._set_thumbnail_button.setEnabled(True)
             else:
                 QMessageBox.critical(self, "Error", f"Failed to set thumbnail. Status: {status}")
-                self._set_thumbnail_button.setEnabled(True)
+            self._set_thumbnail_button.setEnabled(True)
 
     def _on_worker_thread_finished(self, temp_thumb_path: str):
         """Slot called when the FFmpeg worker thread has finished."""

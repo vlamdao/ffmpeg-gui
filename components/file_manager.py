@@ -191,6 +191,7 @@ class FileManager(QObject):
     def add_files_dialog(self):
         """Opens a file dialog to allow the user to select one or more files."""
         default_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.MoviesLocation)
+        default_dir = "C:/Users/lamdv/Videos/Love.in.the.Clouds/mp4/output"
         files, _ = QFileDialog.getOpenFileNames(
             self.parent,
             "Select files",
