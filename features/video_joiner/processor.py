@@ -1,5 +1,6 @@
 import os
 import tempfile
+from typing import TYPE_CHECKING
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from processor import FFmpegWorker
 
@@ -10,6 +11,9 @@ class VideoJoinerProcessor(QObject):
     log_signal = pyqtSignal(str)
     processing_finished = pyqtSignal(bool, str)  # success (bool), status_message (str)
 
+    if TYPE_CHECKING:
+        from .command import CommandTemplate
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._worker: FFmpegWorker | None = None
@@ -19,14 +23,21 @@ class VideoJoinerProcessor(QObject):
         """Checks if a join process is currently active."""
         return self._worker is not None and self._worker.isRunning()
 
-    def start(self, selected_files: list[tuple[int, str, str]], output_folder: str, command_template: str, join_method: str):
+    def start(self, 
+              selected_files: list[tuple[int, str, str]], 
+              output_folder: str, 
+              cmd_template: 'CommandTemplate', 
+              join_method: str):
         """Starts the process of joining videos."""
         if self.is_running():
             self.log_signal.emit("Video joining is already in progress.")
             return
 
         try:
-            command = self._create_command(selected_files, output_folder, command_template, join_method)
+            command, self._temp_concat_file_path = cmd_template.generate_command(selected_files, output_folder, join_method)
+            if not command:
+                raise ValueError("Command template is empty or failed to generate.")
+
             self._start_worker(command)
             self.log_signal.emit(f"Starting to join {len(selected_files)} files...")
         except Exception as e:
@@ -34,33 +45,6 @@ class VideoJoinerProcessor(QObject):
             self.log_signal.emit(f"Error preparing join job: {e}")
             self.processing_finished.emit(False, error_msg)
             self._cleanup()
-
-    def _create_command(self, selected_files: list[tuple[int, str, str]], output_folder: str, command_template: str, join_method: str) -> str:
-        """Creates the final FFmpeg command string."""
-        replacements = {"output_folder": output_folder}
-
-        if join_method == "demuxer":
-            # Create a temporary file listing all videos to be concatenated
-            concat_fd, concat_path = tempfile.mkstemp(suffix=".txt", text=True)
-            with os.fdopen(concat_fd, 'w', encoding='utf-8') as f:
-                for _, filename, folder in selected_files:
-                    full_path = os.path.join(folder, filename).replace('\\', '/')
-                    f.write(f"file '{full_path}'\n")
-            self._temp_concat_file_path = concat_path
-            replacements["concatfile_path"] = concat_path
-
-        elif join_method == "filter":
-            inputs = " ".join([f'-i "{os.path.join(folder, filename)}"' for _, filename, folder in selected_files])
-            filter_script = "".join([f"[{i}:v:0][{i}:a:0]" for i in range(len(selected_files))])
-            filter_script += f"concat=n={len(selected_files)}:v=1:a=1[v][a]"
-            replacements["inputs"] = inputs
-            replacements["filter_script"] = filter_script
-
-        # Replace placeholders in the user-provided command template
-        for placeholder, value in replacements.items():
-            command_template = command_template.replace(f"{{{placeholder}}}", value)
-
-        return command_template
 
     def _start_worker(self, command: str):
         """Initializes and starts the FFmpegWorker."""

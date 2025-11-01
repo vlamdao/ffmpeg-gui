@@ -37,7 +37,7 @@ class VideoJoiner(QDialog):
         self._concat_filter_radio = QRadioButton("Concat Filter (Slower, Re-encodes)")
         self._concat_demuxer_radio.setChecked(True)
 
-        self._command_template = CommandTemplate(self)
+        self._cmd_template = CommandTemplate(self)
 
         # --- Action Buttons ---
         self._join_video_button = QPushButton("Join Videos")
@@ -58,7 +58,7 @@ class VideoJoiner(QDialog):
         button_layout.addWidget(self._join_video_button)
 
         self.main_layout.addWidget(method_group)
-        self.main_layout.addWidget(self._command_template)
+        self.main_layout.addWidget(self._cmd_template)
         self.main_layout.addLayout(button_layout)
 
     def _connect_signals(self):
@@ -72,17 +72,12 @@ class VideoJoiner(QDialog):
     def _on_method_changed(self):
         """Updates the command template based on the selected join method."""
         method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
-        self._command_template.set_command_for_method(method)
+        self._cmd_template.set_command_for_method(method)
 
     def _start_join_process(self):
         """Initiates the video joining process."""
         if self._processor.is_running():
             QMessageBox.warning(self, "In Progress", "A joining process is already running.")
-            return
-
-        command_template = self._command_template.get_command()
-        if not command_template:
-            QMessageBox.critical(self, "Error", "Command template cannot be empty.")
             return
 
         join_method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
@@ -93,7 +88,7 @@ class VideoJoiner(QDialog):
         self._processor.start(
             selected_files=self._selected_files,
             output_folder=self._output_folder,
-            command_template=command_template,
+            cmd_template=self._cmd_template,
             join_method=join_method
         )
 
