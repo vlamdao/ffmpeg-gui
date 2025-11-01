@@ -19,14 +19,14 @@ class VideoJoinerProcessor(QObject):
         """Checks if a join process is currently active."""
         return self._worker is not None and self._worker.isRunning()
 
-    def start(self, selected_files: list[tuple[int, str, str]], output_path: str, command_template: str, join_method: str):
+    def start(self, selected_files: list[tuple[int, str, str]], output_folder: str, command_template: str, join_method: str):
         """Starts the process of joining videos."""
         if self.is_running():
             self.log_signal.emit("Video joining is already in progress.")
             return
 
         try:
-            command = self._create_command(selected_files, output_path, command_template, join_method)
+            command = self._create_command(selected_files, output_folder, command_template, join_method)
             self._start_worker(command)
             self.log_signal.emit(f"Starting to join {len(selected_files)} files...")
         except Exception as e:
@@ -35,9 +35,9 @@ class VideoJoinerProcessor(QObject):
             self.processing_finished.emit(False, error_msg)
             self._cleanup()
 
-    def _create_command(self, selected_files: list[tuple[int, str, str]], output_path: str, command_template: str, join_method: str) -> str:
+    def _create_command(self, selected_files: list[tuple[int, str, str]], output_folder: str, command_template: str, join_method: str) -> str:
         """Creates the final FFmpeg command string."""
-        replacements = {"output_folder": output_path}
+        replacements = {"output_folder": output_folder}
 
         if join_method == "demuxer":
             # Create a temporary file listing all videos to be concatenated

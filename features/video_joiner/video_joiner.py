@@ -66,14 +66,18 @@ class VideoJoiner(QDialog):
         command_group.setLayout(command_layout)
 
         # --- Action Buttons ---
+        button_layout = QHBoxLayout()
         self._join_video_button = QPushButton("Join Videos")
         self._join_video_button.setMinimumHeight(40)
 
+        # Add a spacer to push the button to the right
+        button_layout.addStretch()
+        button_layout.addWidget(self._join_video_button)
 
         layout.addWidget(method_group)
         layout.addWidget(placeholder_group)
         layout.addWidget(command_group)
-        layout.addWidget(self._join_video_button)
+        layout.addLayout(button_layout)
 
 
         self.log_signal.connect(self._logger.append_log)
@@ -144,8 +148,8 @@ class VideoJoiner(QDialog):
 
         join_method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
 
-        self._join_button.setEnabled(False)
-        self._join_button.setText("Joining...")
+        self._join_video_button.setEnabled(False)
+        self._join_video_button.setText("Joining...")
 
         self._processor.start(
             selected_files=self._selected_files,
@@ -156,8 +160,8 @@ class VideoJoiner(QDialog):
 
     def _on_processing_finished(self, success: bool, message: str):
         """Handles the completion of the joining process."""
-        self._join_button.setEnabled(True)
-        self._join_button.setText("Join Videos")
+        self._join_video_button.setEnabled(True)
+        self._join_video_button.setText("Join Videos")
         if success:
             QMessageBox.information(self, "Success", message)
         else:
