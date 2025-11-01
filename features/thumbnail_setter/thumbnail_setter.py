@@ -3,10 +3,12 @@ import tempfile
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QWidget, 
                              QPushButton, QLabel, QLineEdit, QMessageBox)
 from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtGui import QIcon, QFont
+from PyQt5.QtCore import QSize
 
 from features.player import MediaPlayer, MediaControls
 from processor import FFmpegWorker
-from helper import ms_to_time_str, time_str_to_ms
+from helper import ms_to_time_str, time_str_to_ms, resource_path
 
 class ThumbnailSetter(QDialog):
     """
@@ -72,15 +74,28 @@ class ThumbnailSetter(QDialog):
         thumbnail_controls_layout = QHBoxLayout(thumbnail_controls_widget)
         thumbnail_controls_layout.setContentsMargins(0, 0, 0, 0)
         
-        timestamp_label = QLabel("Timestamp:")
+        min_height = 32
         self._timestamp_edit = QLineEdit()
         self._timestamp_edit.setPlaceholderText("00:00:00.000")
-        self._timestamp_edit.setFixedWidth(100)
-        self._go_to_button = QPushButton("Go to Timestamp")
-        self._set_thumbnail_button = QPushButton("Set Thumbnail")
+        self._timestamp_edit.setFixedWidth(120)
+        self._timestamp_edit.setMinimumHeight(min_height)
+        self._timestamp_edit.setFont(QFont("Consolas", 9))
+
+        self._go_to_button = QPushButton("Go ")
+        self._go_to_button.setIcon(QIcon(resource_path("icon/go.png")))
+        self._go_to_button.setIconSize(QSize(20, 20))
+        self._go_to_button.setLayoutDirection(Qt.RightToLeft)
+        self._go_to_button.setMinimumHeight(min_height)
+        self._go_to_button.setToolTip("Seek to the entered timestamp")
+
+        self._set_thumbnail_button = QPushButton(" Set Thumbnail")
+        self._set_thumbnail_button.setIcon(QIcon(resource_path("icon/run-set-thumbnail.png")))
+        self._set_thumbnail_button.setIconSize(QSize(20, 20))
+        self._set_thumbnail_button.setStyleSheet("padding-left: 12px; padding-right: 12px;")
+        self._set_thumbnail_button.setMinimumHeight(min_height)
+        self._set_thumbnail_button.setToolTip("Set the thumbnail at the current frame")
 
         thumbnail_controls_layout.addStretch()
-        thumbnail_controls_layout.addWidget(timestamp_label)
         thumbnail_controls_layout.addWidget(self._timestamp_edit)
         thumbnail_controls_layout.addWidget(self._go_to_button)
         thumbnail_controls_layout.addWidget(self._set_thumbnail_button)
