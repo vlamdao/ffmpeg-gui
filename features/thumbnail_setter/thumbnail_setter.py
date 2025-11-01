@@ -76,11 +76,13 @@ class ThumbnailSetter(QDialog):
         
         min_height = 32
         self._timestamp_edit = QLineEdit()
-        self._timestamp_edit.setPlaceholderText("00:00:00.000")
+        self._timestamp_edit.setInputMask("00:00:00.000")
+        self._timestamp_edit.setText("00:00:00.000")
         self._timestamp_edit.setFixedWidth(120)
         self._timestamp_edit.setMinimumHeight(min_height)
         self._timestamp_edit.setFont(QFont("Consolas", 9))
-
+        self._timestamp_edit.setAlignment(Qt.AlignCenter)
+        
         self._go_to_button = QPushButton("Go ")
         self._go_to_button.setIcon(QIcon(resource_path("icon/go.png")))
         self._go_to_button.setIconSize(QSize(20, 20))
