@@ -127,20 +127,20 @@ class FFmpegGUI(QMainWindow):
 
     def open_video_joiner(self):
         selected_files, _ = self.file_manager.get_selected_files()
-        if len(selected_files) < 2:
-            QMessageBox.warning(self, "Selection Error", "Please select at least two video files to join.")
-            return
+        # if len(selected_files) < 2:
+        #     QMessageBox.warning(self, "Selection Error", "Please select at least two video files to join.")
+        #     return
         
-        same_folder = all(inputfile_folder == selected_files[0][2] for _, _, inputfile_folder in selected_files)
-        if same_folder:
-            output_folder = self.output_path.get_completed_output_path(selected_files[0][2])
-        else:
-            QMessageBox.warning(self, "Output Error", "Please select specific folders for output")
-            return
-        
+        # same_folder = all(inputfile_folder == selected_files[0][2] for _, _, inputfile_folder in selected_files)
+        # if same_folder:
+        #     output_folder = self.output_path.get_completed_output_path(selected_files[0][2])
+        # else:
+        #     QMessageBox.warning(self, "Output Error", "Please select specific folders for output")
+        #     return
+        output_folder = ""
         dialog = VideoJoiner(
             selected_files=selected_files,
-            output_path=output_folder,
+            output_folder=output_folder,
             logger=self.logger,
             parent=self
         )
