@@ -1,13 +1,11 @@
 
 import json, os
 from PyQt5.QtWidgets import (
-    QTableWidget, QTableWidgetItem, QFormLayout, QLabel,
-    QMessageBox, QMenu, QDialog, QTextEdit,
-    QLineEdit, QHeaderView,  QDialogButtonBox
+    QFormLayout, QDialog, QTextEdit,
+    QLineEdit, QDialogButtonBox
 )
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt
-from helper import FontDelegate
+from .placeholder_table import PlaceholderTable
 
 # Import constants directly for consistency
 from helper.placeholders import GENERAL_PLACEHOLDERS
@@ -42,9 +40,13 @@ class PresetDialog(QDialog):
         self._name_input = QLineEdit(self._preset_name)
         self._name_input.setMinimumWidth(self._INPUT_WIDTH)
 
-        self._placeholder_table = self._create_placeholder_table()
+        self._placeholder_table = PlaceholderTable(
+            placeholders=GENERAL_PLACEHOLDERS,
+            num_columns=3,
+            parent=self
+        )
         self._placeholder_table.setMinimumWidth(self._INPUT_WIDTH)
-        self._placeholder_table.setMaximumHeight(65) # Limit height for 2 rows
+        self._placeholder_table.set_compact_height()
 
         self._cmd_input = QTextEdit(self._preset_command)
         self._cmd_input.setFont(QFont("Consolas", 9))
@@ -54,6 +56,8 @@ class PresetDialog(QDialog):
         self._button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self._button_box.accepted.connect(self.accept)
         self._button_box.rejected.connect(self.reject)
+        
+        self._placeholder_table.placeholder_double_clicked.connect(self._cmd_input.insertPlainText)
 
     def _setup_layout(self):
         """Configures the layout and adds widgets to it."""
@@ -62,42 +66,6 @@ class PresetDialog(QDialog):
         layout.addRow("Placeholders:", self._placeholder_table)
         layout.addRow("Command:", self._cmd_input)
         layout.addWidget(self._button_box)
-
-    def _create_placeholder_table(self):
-        """Creates and populates the placeholder table widget."""
-        placeholders = GENERAL_PLACEHOLDERS
-        
-        num_columns = 3
-        # Calculate the number of rows needed dynamically to avoid magic numbers
-        num_rows = (len(placeholders) + num_columns - 1) // num_columns
-
-        table = QTableWidget()
-        table.setColumnCount(num_columns)
-        table.setItemDelegate(FontDelegate(font_family="Consolas", font_size=9))
-        table.setRowCount(num_rows)
-        table.horizontalHeader().hide()
-        table.verticalHeader().hide()
-        table.setEditTriggers(QTableWidget.NoEditTriggers)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        table.setShowGrid(False)
-
-        for i, placeholder in enumerate(placeholders):
-            row = i // num_columns
-            col = i % num_columns
-            item = QTableWidgetItem(placeholder)
-            item.setTextAlignment(Qt.AlignCenter)
-            item.setToolTip(f"Double-click to insert {placeholder}")
-            table.setItem(row, col, item)
-
-        table.cellDoubleClicked.connect(self._on_placeholder_double_clicked)
-        return table
-
-    def _on_placeholder_double_clicked(self, row, column):
-        """Inserts the placeholder text into the command input at the cursor position."""
-        item = self._placeholder_table.item(row, column)
-        if item:
-            self._cmd_input.insertPlainText(item.text())
 
     def get_preset(self):
         """Returns the preset name and command from the input fields."""

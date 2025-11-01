@@ -1,11 +1,10 @@
 import os
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
-                             QHeaderView, QTextEdit, QSizePolicy)
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTextEdit)
 from PyQt5.QtGui import QFont
 from dataclasses import dataclass
 
 from helper import ms_to_time_str
+from components import PlaceholderTable
 from helper.placeholders import (
     PLACEHOLDER_INPUTFILE_FOLDER, PLACEHOLDER_INPUTFILE_NAME, PLACEHOLDER_INPUTFILE_EXT,
     PLACEHOLDER_START_TIME, PLACEHOLDER_END_TIME, PLACEHOLDER_OUTPUT_FOLDER,
@@ -36,7 +35,7 @@ class CommandTemplate(QWidget):
 
     def __init__(self, video_path: str, output_path: str, parent=None):
         super().__init__(parent)
-        self._placeholder_table: QTableWidget
+        self._placeholder_table: PlaceholderTable
         self._command_template: QTextEdit
         self._video_path = video_path
         self._output_path = output_path
@@ -44,7 +43,13 @@ class CommandTemplate(QWidget):
 
     def _setup_ui(self):
         """Initializes and lays out the UI components."""
-        self._placeholder_table = self._create_placeholder_table()
+        self._placeholder_table = PlaceholderTable(
+            placeholders=VIDEO_CUTTER_PLACEHOLDERS,
+            num_columns=5,
+            parent=self
+        )
+        self._placeholder_table.set_compact_height()
+
         self._command_template = QTextEdit()
         self._command_template.setText(self.DEFAULT_COMMAND_TEMPLATE)
         self._command_template.setFixedHeight(90)
@@ -55,47 +60,7 @@ class CommandTemplate(QWidget):
         layout.setSpacing(5)
         layout.addWidget(self._placeholder_table)
         layout.addWidget(self._command_template)
-
-    def _create_placeholder_table(self) -> QTableWidget:
-        """Creates and populates the placeholder table widget."""
-        num_columns = 5
-        num_rows = (len(VIDEO_CUTTER_PLACEHOLDERS) + num_columns - 1) // num_columns
-        table = QTableWidget()
-        table.setColumnCount(num_columns)
-        table.setRowCount(num_rows)
-        table.horizontalHeader().hide()
-        table.verticalHeader().hide()
-        table.setEditTriggers(QTableWidget.NoEditTriggers)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        table.setShowGrid(False)
-        for i, placeholder in enumerate(VIDEO_CUTTER_PLACEHOLDERS):
-            row = i // num_columns
-            col = i % num_columns
-            item = QTableWidgetItem(placeholder)
-            item.setTextAlignment(Qt.AlignCenter)
-            item.setToolTip(f"Double-click to insert {placeholder}")
-            item.setFont(QFont("Consolas", 9))
-            table.setItem(row, col, item)
-
-        # Explicitly calculate and set the fixed height for the table
-        # to ensure it's perfectly compact.
-        table.resizeRowsToContents()
-        total_height = 0
-        for i in range(table.rowCount()):
-            total_height += table.rowHeight(i)
-        total_height += table.frameWidth() * 2
-        table.setFixedHeight(total_height)
-
-        table.cellDoubleClicked.connect(self._on_placeholder_double_clicked)
-        return table
-
-    def _on_placeholder_double_clicked(self, row: int, column: int):
-        """
-        Inserts the placeholder text into the command input at the cursor position.
-        """
-        item = self._placeholder_table.item(row, column)
-        if item:
-            self._command_template.insertPlainText(item.text())
+        self._placeholder_table.placeholder_double_clicked.connect(self._command_template.insertPlainText)
 
     def _replace_placeholders(self, context: CommandContext) -> str:
         template = self.get_command_template()
