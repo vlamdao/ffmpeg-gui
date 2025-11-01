@@ -220,12 +220,14 @@ class VideoCutter(QDialog):
             return
 
         jobs = []
-        for start_ms, end_ms in segments:
+        for segment_data in segments:
+            start_ms, end_ms = segment_data
+            row = self._segment_list.find_segment_by_data(segment_data)
             command = self._command_template.generate_command(start_ms, end_ms)
             if not command:
                 self._show_error_message("Command Error", "Could not generate command. Check the command template.")
                 return # Stop if any command fails to generate
-            jobs.append(((start_ms, end_ms), command))
+            jobs.append({'row': row, 'data': segment_data, 'command': command})
         self._segment_processor.start_processing(jobs)
 
     # ==================================================================
