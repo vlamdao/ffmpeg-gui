@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 from processor import FFmpegWorker
 from components import FileManager, CommandInput, OutputPath, Logger
+from .command_generator import CommandGenerator
 
 class BatchProcessor(QObject):
     """
@@ -29,29 +30,38 @@ class BatchProcessor(QObject):
         self._output_path: OutputPath = self.parent.output_path
         self._logger: Logger = self.parent.logger
 
-    def _start_batch(self, selected_files: list, selected_rows: set):
+    def _create_jobs(self, selected_files: list) -> list[tuple[int, list[str]]]:
+        """Creates a list of FFmpeg commands to be executed."""
+        cmd_generator = CommandGenerator(selected_files, self._command_input, self._output_path)
+        jobs = []
+
+        # Standard command for each file
+        for row_index, filename, folder in selected_files:
+            current_file_tuple = (row_index, filename, folder)
+            command = cmd_generator.generate_command(current_file_tuple)
+            if command:
+                jobs.append((row_index, [command]))
+        return jobs
+
+    def _start_batch(self, jobs: list[tuple[int, list[str]]], selected_rows: set):
         """
         Initializes and starts the FFmpegWorker for the batch job.
 
-        This method updates the status of selected files to "Pending", clears the
-        status for unselected files, creates a new FFmpegWorker instance, connects
-        its signals, and starts the background thread.
-
         Args:
-            selected_files (list): A list of tuples containing file information.
+            jobs (list): A list of tuples (row_index, command_string).
             selected_rows (set): A set of row indices for the selected files.
         """
-        # Update status to "Pending" for selected files
+        # Update status to "Pending" for all selected files in the jobs
         for row in selected_rows:
             self._file_manager.update_status(row, "Pending")
 
-        # Clear status for unselected files
+        # Clear status for any previously selected but now unselected files
         for row in range(self._file_manager.file_table.rowCount()):
             if row not in selected_rows:
                 self._file_manager.update_status(row, "")
 
         # Create and start worker
-        self._ffmpeg_worker = FFmpegWorker(selected_files, self._command_input, self._output_path)
+        self._ffmpeg_worker = FFmpegWorker(jobs)
         self._ffmpeg_worker.update_status.connect(self._file_manager.update_status)
         self._ffmpeg_worker.log_signal.connect(self.log_signal.emit)
         self._ffmpeg_worker.finished.connect(self._on_worker_finished)
@@ -83,7 +93,11 @@ class BatchProcessor(QObject):
             self.log_signal.emit("No items selected to process.")
             return
         
-        self._start_batch(selected_files, selected_rows)
+        jobs = self._create_jobs(selected_files)
+        if not jobs:
+            self.log_signal.emit("Could not generate any commands to run.")
+            return
+        self._start_batch(jobs, selected_rows)
 
     def is_processing(self):
         """
