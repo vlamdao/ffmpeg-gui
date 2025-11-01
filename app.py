@@ -116,8 +116,10 @@ class FFmpegGUI(QMainWindow):
         _, inputfile_name, inputfile_folder = selected_files[0]
         full_path = os.path.join(inputfile_folder, inputfile_name)
 
+        output_path = self.output_path.get_completed_output_path(inputfile_folder)
         dialog = ThumbnailSetter(
             video_path=full_path,
+            output_path=output_path,
             logger=self.logger,
             parent=self)
         dialog.exec_()

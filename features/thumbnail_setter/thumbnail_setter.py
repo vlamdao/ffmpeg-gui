@@ -1,8 +1,11 @@
+import os
+import tempfile
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QWidget, 
                              QPushButton, QLabel, QLineEdit, QMessageBox)
 from PyQt5.QtCore import Qt, pyqtSlot
 
 from features.player import MediaPlayer, MediaControls
+from processor import FFmpegWorker
 from helper import ms_to_time_str, time_str_to_ms
 
 class ThumbnailSetter(QDialog):
@@ -10,12 +13,13 @@ class ThumbnailSetter(QDialog):
     A dialog for selecting a frame from a video to be used as a thumbnail.
     """
 
-    def __init__(self, video_path: str, logger, parent=None):
+    def __init__(self, video_path: str, output_path: str, logger, parent=None):
         """
         Initializes the ThumbnailSetter dialog.
 
         Args:
             video_path (str): The absolute path to the video file.
+            output_path (str): The path to the output directory.
             logger (Logger): An instance of the logger for displaying messages.
             parent (QWidget, optional): The parent widget. Defaults to None.
         """
@@ -23,6 +27,7 @@ class ThumbnailSetter(QDialog):
         self.setWindowTitle("Set Thumbnail")
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
         self.setMinimumSize(800, 600)
+        self.setModal(False) # Allow interaction with main window
 
         # Dependencies
         self._video_path = video_path
@@ -31,9 +36,12 @@ class ThumbnailSetter(QDialog):
         # UI Components
         self._media_player: MediaPlayer
         self._media_controls: MediaControls
-        self._select_frame_button: QPushButton
         self._timestamp_edit: QLineEdit
         self._set_thumbnail_button: QPushButton
+
+        # FFmpeg worker
+        self._worker: FFmpegWorker | None = None
+        self._output_path = output_path
 
         self._setup_ui()
         self._connect_signals()
@@ -58,30 +66,26 @@ class ThumbnailSetter(QDialog):
         self._media_player = MediaPlayer()
         self._media_controls = MediaControls()
 
-        # --- Frame Selection Controls ---
-        selection_widget = QWidget()
-        selection_layout = QHBoxLayout(selection_widget)
-        selection_layout.setContentsMargins(0, 0, 0, 0)
-
-        self._select_frame_button = QPushButton("Select Frame")
+        # --- Thumbnail Controls ---
+        thumbnail_controls_widget = QWidget()
+        thumbnail_controls_layout = QHBoxLayout(thumbnail_controls_widget)
+        thumbnail_controls_layout.setContentsMargins(0, 0, 0, 0)
+        
         timestamp_label = QLabel("Timestamp:")
         self._timestamp_edit = QLineEdit()
         self._timestamp_edit.setPlaceholderText("00:00:00.000")
         self._timestamp_edit.setFixedWidth(120)
-
-        selection_layout.addWidget(self._select_frame_button)
-        selection_layout.addStretch()
-        selection_layout.addWidget(timestamp_label)
-        selection_layout.addWidget(self._timestamp_edit)
-
-        # --- Set Thumbnail Button ---
         self._set_thumbnail_button = QPushButton("Set Thumbnail")
+
+        thumbnail_controls_layout.addStretch()
+        thumbnail_controls_layout.addWidget(timestamp_label)
+        thumbnail_controls_layout.addWidget(self._timestamp_edit)
+        thumbnail_controls_layout.addWidget(self._set_thumbnail_button)
 
         # --- Assemble Layout ---
         main_layout.addWidget(self._media_player, 1) # Player takes expanding space
         main_layout.addWidget(self._media_controls)
-        main_layout.addWidget(selection_widget)
-        main_layout.addWidget(self._set_thumbnail_button)
+        main_layout.addWidget(thumbnail_controls_widget)
 
     def _connect_signals(self):
         """Connects signals and slots for the dialog's components."""
@@ -99,7 +103,7 @@ class ThumbnailSetter(QDialog):
         self._media_player.double_clicked.connect(self._media_player.toggle_play)
 
         # --- Thumbnail Controls ---
-        self._select_frame_button.clicked.connect(self._on_select_frame)
+        self._media_player.position_changed.connect(self._update_timestamp_display)
         self._timestamp_edit.editingFinished.connect(self._on_timestamp_edited)
         self._set_thumbnail_button.clicked.connect(self._on_set_thumbnail)
 
@@ -107,13 +111,13 @@ class ThumbnailSetter(QDialog):
     def _on_position_changed(self, position):
         """Updates the media controls when the player's position changes."""
         self._media_controls.update_position(position, self._media_player.duration())
-
+    
     @pyqtSlot()
-    def _on_select_frame(self):
-        """Captures the current player time and updates the timestamp field."""
-        self._media_player.pause()
-        current_pos_ms = self._media_player.position()
-        self._timestamp_edit.setText(ms_to_time_str(current_pos_ms))
+    def _update_timestamp_display(self):
+        """Updates the timestamp QLineEdit with the current player position."""
+        # Only update if the user is not currently editing it
+        if not self._timestamp_edit.hasFocus():
+            self._timestamp_edit.setText(ms_to_time_str(self._media_player.position()))
 
     @pyqtSlot()
     def _on_timestamp_edited(self):
@@ -132,11 +136,37 @@ class ThumbnailSetter(QDialog):
 
     @pyqtSlot()
     def _on_set_thumbnail(self):
-        """Placeholder for the logic to set the thumbnail."""
+        """
+        Generates and executes FFmpeg commands to extract a thumbnail image
+        and then embed it into the video file.
+        """
         timestamp = self._timestamp_edit.text()
         if not timestamp:
             QMessageBox.warning(self, "No Frame Selected", "Please select a frame first.")
             return
+        
+        self._set_thumbnail_button.setEnabled(False)
+        self._media_player.pause()
+
+        input_folder = os.path.dirname(self._video_path)
+        filename, ext = os.path.splitext(os.path.basename(self._video_path))
+        ext = ext.lstrip('.')
+
+        # Create a temporary file for the thumbnail image
+        thumb_fd, thumb_path = tempfile.mkstemp(suffix=".jpg", prefix=f"{filename}_thumb_")
+        os.close(thumb_fd) # Close the file handle
+
+        # Command 1: Extract the thumbnail image
+        cmd1 = (f'ffmpeg -ss {timestamp} -i "{self._video_path}" '
+                f'-frames:v 1 -y "{thumb_path}"')
+
+        # Command 2: Embed the thumbnail
+        # Create a temporary output file to avoid read/write conflicts on the same file
+        output_fd, output_path = tempfile.mkstemp(suffix=f".{ext}", prefix=f"{filename}_thumbed_")
+        os.close(output_fd)
+
+        # cmd2 = (f'ffmpeg -i "{self._video_path}" -i "{thumb_path}" '
+        #         f'-map 0 -map 1 -c copy -disposition:v:1 attached_pic -y "{output_path}"')
         
         self._logger.append_log(f"Thumbnail to be set at: {timestamp} for video: {self._video_path}")
         QMessageBox.information(self, "Set Thumbnail", f"Logic to set thumbnail at {timestamp} goes here.")
