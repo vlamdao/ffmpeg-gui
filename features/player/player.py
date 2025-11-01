@@ -1,5 +1,7 @@
 import os
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox
+import tempfile
+import subprocess
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QApplication
 from PyQt5.QtCore import QUrl, pyqtSignal, Qt
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget
@@ -20,6 +22,7 @@ class MediaPlayer(QWidget):
         # A small buffer to correctly detect when media has reached its end.
         self._END_OF_MEDIA_THRESHOLD_MS = 100  # Threshold to consider media as "finished"
         self._is_media_loaded = False
+        self._temp_cfr_video_path = None
         self._seek_interval_ms = 1000  # Seek interval: 1 second
         self._media_player = QMediaPlayer(None, QMediaPlayer.VideoSurface)
         self._video_widget = ClickableVideoWidget()
@@ -40,19 +43,75 @@ class MediaPlayer(QWidget):
         self._media_player.stateChanged.connect(self.state_changed)
         self._video_widget.doubleClicked.connect(self.double_clicked)
 
+    def _create_cfr_copy(self, video_path: str) -> str | None:
+        """
+        Creates a temporary copy of the video with a constant frame rate (CFR)
+        to prevent sync issues with VFR videos in QMediaPlayer.
+        """
+        try:
+            # Create a temporary file with the same extension
+            _, extension = os.path.splitext(video_path)
+            fd, temp_path = tempfile.mkstemp(suffix=extension)
+            os.close(fd)
+
+            # Use FFmpeg to create a CFR copy without re-encoding (fast)
+            command = [
+                'ffmpeg', '-y', '-i', video_path,
+                '-vsync', 'cfr', '-c:v', 'copy', '-c:a', 'copy',
+                temp_path
+            ]
+            
+            # Hide console window on Windows
+            startupinfo = None
+            if os.name == 'nt':
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+            # Show a "please wait" cursor
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            
+            process = subprocess.run(command, check=True, capture_output=True, text=True, startupinfo=startupinfo)
+            
+            QApplication.restoreOverrideCursor()
+            return temp_path
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            QApplication.restoreOverrideCursor()
+            error_message = f"Failed to create CFR copy for playback: {e}"
+            if isinstance(e, subprocess.CalledProcessError):
+                error_message += f"\nFFmpeg stderr:\n{e.stderr}"
+            QMessageBox.warning(self, "Playback Warning", error_message)
+            return None
+
     def load_media(self, video_path):
         """Loads the media from the given path."""
-        if self._is_media_loaded:
-            return
+        self.cleanup() # Clean up any previous temp file
 
         if os.path.exists(video_path):
-            self._media_player.setMedia(QMediaContent(QUrl.fromLocalFile(video_path)))
+            # Create a CFR copy to handle VFR videos correctly
+            self._temp_cfr_video_path = self._create_cfr_copy(video_path)
+            
+            # Play the temp file if created, otherwise fall back to original
+            path_to_play = self._temp_cfr_video_path if self._temp_cfr_video_path else video_path
+            
+            self._media_player.setMedia(QMediaContent(QUrl.fromLocalFile(path_to_play)))
             self._is_media_loaded = True
             self.media_loaded.emit(True)
             self.play()
         else:
             QMessageBox.critical(self, "Error", f"Video file not found:\n{video_path}")
             self.media_loaded.emit(False)
+
+    def cleanup(self):
+        """Cleans up temporary files."""
+        self.stop()
+        self._media_player.setMedia(QMediaContent()) # Release the file lock
+        if self._temp_cfr_video_path and os.path.exists(self._temp_cfr_video_path):
+            try:
+                os.remove(self._temp_cfr_video_path)
+            except OSError as e:
+                print(f"Error removing temp file: {e}") # Or log this
+        self._temp_cfr_video_path = None
+        self._is_media_loaded = False
 
     def stop(self):
         """Stops the media player and resets its position."""
@@ -118,4 +177,3 @@ class ClickableVideoWidget(QVideoWidget):
         if event.button() == Qt.LeftButton:
             self.doubleClicked.emit()
         super().mouseDoubleClickEvent(event)
-
