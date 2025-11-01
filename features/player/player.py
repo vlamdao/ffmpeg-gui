@@ -24,7 +24,14 @@ class MediaPlayer(QWidget):
         super().__init__(parent)
 
         # --- VLC Setup ---
-        self._vlc_instance = vlc.Instance("--no-xlib")
+        vlc_options = [
+            "--no-xlib",  # Prevent VLC from creating its own X window on Linux
+            "--no-video-title-show", # Don't show the video title
+            "--no-stats", # Disable statistics gathering
+            "--avcodec-hw=any", # Try to use hardware decoding
+            "--file-caching=300" # Set file caching to 300ms
+        ]
+        self._vlc_instance = vlc.Instance(" ".join(vlc_options))
         self._media_player = self._vlc_instance.media_player_new()
 
         # --- UI Setup ---
@@ -101,13 +108,6 @@ class MediaPlayer(QWidget):
 
         media = self._vlc_instance.media_new(video_path)
         self._media_player.set_media(media)
-        
-        # The media needs to be parsed to get duration, etc.
-        # This happens asynchronously. We play and then immediately pause
-        # to trigger parsing.
-        self.play()
-        self.pause()
-        
         self._is_media_loaded = True
         self.media_loaded.emit(True)
         self.play()
@@ -153,23 +153,13 @@ class MediaPlayer(QWidget):
 
     def seek_forward(self):
         """Seeks forward by a fixed interval."""
-        was_playing = self.state() == QtMediaPlayerState.PlayingState
-        if was_playing:
-            self.pause()
         new_pos = self.position() + self._seek_interval_ms
         self.set_position(new_pos)
-        if was_playing:
-            self.play()
 
     def seek_backward(self):
         """Seeks backward by a fixed interval."""
-        was_playing = self.state() == QtMediaPlayerState.PlayingState
-        if was_playing:
-            self.pause()
         new_pos = self.position() - self._seek_interval_ms
         self.set_position(max(0, new_pos))
-        if was_playing:
-            self.play()
 
     def set_position(self, position_ms: int):
         """Sets the media player's position in milliseconds."""
