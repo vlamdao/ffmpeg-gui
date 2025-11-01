@@ -1,11 +1,11 @@
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QPushButton, QLabel, QStyle,
-    QSizePolicy)
+    QSizePolicy, QSlider)
 from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal
 from PyQt5.QtMultimedia import QMediaPlayer
 
 from helper import ms_to_time_str
-from .slider import MarkerSlider
+from .slider import SeekSlider
 
 class MediaControls(QWidget):
     """A widget providing media playback controls like play/pause, seek, and a position slider.
@@ -39,16 +39,17 @@ class MediaControls(QWidget):
     position_changed = pyqtSignal(int)
     """Emitted when the slider's value is changed by the user."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, slider_class: type[QSlider] = SeekSlider) -> None:
         """Initializes the MediaControls widget."""
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self._slider_class = slider_class
 
         # Internal widgets, prefixed with _
         self._seek_backward_button: QPushButton
         self._play_button: QPushButton
         self._seek_forward_button: QPushButton
-        self._position_slider: MarkerSlider
+        self._position_slider: QSlider
         self._time_label: QLabel
         
         self._setup_ui()
@@ -71,7 +72,7 @@ class MediaControls(QWidget):
         self._seek_forward_button = QPushButton()
         self._seek_forward_button.setIcon(self.style().standardIcon(QStyle.SP_MediaSeekForward))
 
-        self._position_slider = MarkerSlider(Qt.Horizontal)
+        self._position_slider = self._slider_class(Qt.Horizontal)
         self._position_slider.setRange(0, 0)
         self._position_slider.setPageStep(1000)  # Jump 1 second
         self._position_slider.setStyleSheet(self._SLIDER_STYLESHEET)
