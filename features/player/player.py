@@ -45,6 +45,7 @@ class MediaPlayer(QWidget):
         # --- State Management ---
         self._is_media_loaded = False
         self._current_state = QtMediaPlayerState.StoppedState
+        self._is_cleaned_up = False
         self._seek_interval_ms = 1000
 
         # --- VLC Event Handling ---
@@ -113,14 +114,20 @@ class MediaPlayer(QWidget):
 
     def cleanup(self):
         """Stops playback and releases VLC resources."""
-        # This method is called when the widget is being closed.
-        # We need to fully release the player instance.
+        if self._is_cleaned_up:
+            return
+
+        self.stop_and_release_player()
+        self._vlc_instance.release()
+        self._is_cleaned_up = True
+
+    def stop_and_release_player(self):
+        """Stops playback and releases the media player object, but not the VLC instance."""
         if self._media_player is not None:
             self.stop()
             self._media_player.release()
             self._media_player = None
         self._is_media_loaded = False
-        self._vlc_instance.release()
 
     def stop(self):
         """Stops the media player."""
