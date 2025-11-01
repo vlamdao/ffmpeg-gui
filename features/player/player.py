@@ -47,15 +47,10 @@ class MediaPlayer(QWidget):
         self._current_state = QtMediaPlayerState.StoppedState
         self._seek_interval_ms = 1000
 
-        # --- Signal Emulation ---
-        # VLC doesn't have direct signals like Qt, so we use its event manager
-        # and a QTimer to poll for position changes.
+        # --- VLC Event Handling ---
+        # Connect to VLC's event manager to emit Qt signals.
         self._event_manager = self._media_player.event_manager()
         self._connect_vlc_events()
-
-        self._pos_timer = QTimer(self)
-        self._pos_timer.setInterval(100) # Poll every 100ms
-        self._pos_timer.timeout.connect(self._poll_position)
 
     def _connect_vlc_events(self):
         """Connects to VLC's internal event system to emit Qt signals."""
@@ -63,7 +58,12 @@ class MediaPlayer(QWidget):
         self._event_manager.event_attach(vlc.EventType.MediaPlayerPaused, self._on_vlc_state_change)
         self._event_manager.event_attach(vlc.EventType.MediaPlayerStopped, self._on_vlc_state_change)
         self._event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, self._on_vlc_state_change)
+        self._event_manager.event_attach(vlc.EventType.MediaPlayerPositionChanged, self._on_vlc_position_change)
         self._event_manager.event_attach(vlc.EventType.MediaPlayerLengthChanged, self._on_vlc_duration_change)
+
+    def _on_vlc_position_change(self, event):
+        """Handles position changes from VLC and emits a Qt signal."""
+        self.position_changed.emit(self.position())
 
     def _on_vlc_state_change(self, event):
         """Handles state changes from VLC and maps them to Qt states."""
@@ -87,11 +87,6 @@ class MediaPlayer(QWidget):
         # event.u.new_length is the new length in ms
         self.duration_changed.emit(self.duration())
 
-    def _poll_position(self):
-        """Polls the media player for position and emits a signal if it changed."""
-        if self._media_player.is_playing():
-            self.position_changed.emit(self.position())
-
     def load_media(self, video_path: str):
         """Loads media from a file path."""
         # Stop any currently playing media before loading a new one.
@@ -114,6 +109,7 @@ class MediaPlayer(QWidget):
         
         self._is_media_loaded = True
         self.media_loaded.emit(True)
+        self.play()
 
     def cleanup(self):
         """Stops playback and releases VLC resources."""
@@ -130,19 +126,16 @@ class MediaPlayer(QWidget):
         """Stops the media player."""
         if self._media_player:
             self._media_player.stop()
-            self._pos_timer.stop()
 
     def play(self):
         """Starts or resumes playback."""
         if self._media_player and self._is_media_loaded:
             self._media_player.play()
-            self._pos_timer.start()
 
     def pause(self):
         """Pauses playback."""
         if self._media_player:
             self._media_player.pause() # This is a toggle in VLC
-            self._pos_timer.stop()
 
     def toggle_play(self):
         """Toggles play/pause state."""
