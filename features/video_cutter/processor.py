@@ -1,5 +1,4 @@
 from PyQt5.QtCore import QObject, pyqtSignal
-
 from processor import FFmpegWorker
 
 class SegmentProcessor(QObject):
@@ -24,7 +23,7 @@ class SegmentProcessor(QObject):
         self._active_workers = []
         self._processing_queue = []
 
-    def start_processing(self, segments_to_process: list[tuple[int, int]]):
+    def start_processing(self, segments_to_process: list[dict]):
         """Initiates the sequential cutting process for all defined segments."""
         if self._processing_queue or self._active_workers:
             self._logger.append_log("WARNING: A cutting process is already running.")
@@ -59,10 +58,11 @@ class SegmentProcessor(QObject):
             return
 
         # Get the data for the next segment from the queue
-        segment_data, command = self._processing_queue.pop(0)
-        self.segment_processing.emit(segment_data)
+        job = self._processing_queue.pop(0)
+        row, segment_data, command = job['row'], job['data'], job['command']
+        self.segment_processing.emit(segment_data) # Signal still uses segment data
 
-        self._start_cut_worker(segment_data, command)
+        self._start_cut_worker(row, segment_data, command)
 
     def _on_worker_finished(self, worker_ref, segment_data):
         """Handles cleanup and triggers the next item in the queue."""
@@ -73,21 +73,18 @@ class SegmentProcessor(QObject):
             self.segment_processed.emit(segment_data)
             self._process_next_in_queue()
 
-    def _start_cut_worker(self, segment_data: tuple[int, int], command: str):
+    def _start_cut_worker(self, row: int, segment_data: tuple[int, int], command: str):
         """Creates and starts an FFmpegWorker for a single segment."""
-        worker = FFmpegWorker(
-            selected_files=[],
-            command_input=None,
-            output_path=None,
-            command_override=command
-        )
+        # The worker expects a list of jobs. For segment cutting, it's one job at a time.
+        job = (row, [command])
+        worker = FFmpegWorker([job])
         worker.log_signal.connect(self._logger.append_log)
         worker.finished.connect(
             lambda w=worker, data=segment_data: self._on_worker_finished(w, data)
         )
         self._active_workers.append(worker)
         worker.start()
-
+    
     def get_active_workers(self):
         """Returns the list of active workers."""
         return self._active_workers
