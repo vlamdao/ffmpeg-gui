@@ -93,7 +93,7 @@ class ThumbnailSetter(QDialog):
         self._media_controls.play_clicked.connect(self._media_player.toggle_play)
         self._media_controls.seek_backward_clicked.connect(self._media_player.seek_backward)
         self._media_controls.seek_forward_clicked.connect(self._media_player.seek_forward)
-        self._media_controls.slider_pressed.connect(self._media_player.pause)
+        # self._media_controls.slider_pressed.connect(self._media_player.pause)
         self._media_controls.position_changed.connect(self._media_player.set_position)
 
         self._media_player.media_loaded.connect(self._media_controls.set_play_button_enabled)
