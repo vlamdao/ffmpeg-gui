@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt
 from helper import FontDelegate
 
 # Import constants directly for consistency
-from helper.placeholders import PLACEHOLDERS
+from helper.placeholders import GENERAL_PLACEHOLDERS
 
 class PresetDialog(QDialog):
     """A dialog for adding or editing a preset (name and command)."""
@@ -65,7 +65,7 @@ class PresetDialog(QDialog):
 
     def _create_placeholder_table(self):
         """Creates and populates the placeholder table widget."""
-        placeholders = PLACEHOLDERS
+        placeholders = GENERAL_PLACEHOLDERS
         
         num_columns = 3
         # Calculate the number of rows needed dynamically to avoid magic numbers
