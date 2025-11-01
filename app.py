@@ -7,7 +7,7 @@ from helper import resource_path
 from components import (PresetManager, Logger, FileManager, ControlPanel,
                         CommandInput, OutputPath)
 
-from features.video_cutter import VideoCutter
+from features import VideoCutter
 from processor import BatchProcessor
 
 class FFmpegGUI(QMainWindow):

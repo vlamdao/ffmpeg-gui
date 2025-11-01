@@ -1,12 +1,15 @@
 import os
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox,
-                             QMenu)
+from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, 
+                             QWidget, QMessageBox, QMenu
+                             )
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor
 
-from .components import (MediaControls, MediaPlayer, SegmentControls, 
-                         SegmentList, SegmentManager, EditSegmentDialog)
-from .components import CommandTemplate
+from features.player import MediaPlayer, MediaControls, MarkerSlider
+from .components import (SegmentControls, SegmentList,
+                         SegmentManager, EditSegmentDialog,
+                         CommandTemplate
+                         )
 from .processor import SegmentProcessor
 from helper import FontDelegate
 
@@ -79,7 +82,7 @@ class VideoCutter(QDialog):
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
         self._media_player = MediaPlayer()
-        self._media_controls = MediaControls()
+        self._media_controls = MediaControls(slider_class=MarkerSlider)
         self._segment_controls = SegmentControls()
         self._command_template = CommandTemplate(
             video_path=self._video_path,
