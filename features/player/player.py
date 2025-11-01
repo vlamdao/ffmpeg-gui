@@ -139,13 +139,15 @@ class MediaPlayer(QWidget):
 
     def play(self):
         """Starts or resumes playback."""
-        if self._media_player and self._is_media_loaded:
+        # Only play if media is loaded and not already playing
+        if self._media_player and self._is_media_loaded and self.state() != QtMediaPlayerState.PlayingState:
             self._media_player.play()
 
     def pause(self):
-        """Pauses playback."""
-        if self._media_player:
-            self._media_player.pause() # This is a toggle in VLC
+        """Pauses playback if it is currently playing."""
+        # Only pause if the player is actually playing to avoid accidental resume
+        if self._media_player and self.state() == QtMediaPlayerState.PlayingState:
+            self._media_player.pause()
 
     def toggle_play(self):
         """Toggles play/pause state."""
