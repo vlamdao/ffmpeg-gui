@@ -115,7 +115,7 @@ class MediaControls(QWidget):
         if duration > 0:
             self._time_label.setText(f"{ms_to_time_str(position)} / {ms_to_time_str(duration)}")
 
-    @pyqtSlot(int)
+    @pyqtSlot('qint64')
     def update_duration(self, duration: int) -> None:
         """Slot to update the slider range and time label based on media duration."""
         self._position_slider.setRange(0, duration)
