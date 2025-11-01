@@ -1,179 +1,188 @@
 import os
-import tempfile
-import subprocess
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QApplication
-from PyQt5.QtCore import QUrl, pyqtSignal, Qt
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from PyQt5.QtMultimediaWidgets import QVideoWidget
+import sys
+import vlc
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame, QMessageBox
+from PyQt5.QtCore import pyqtSignal, QTimer
+from PyQt5.QtMultimedia import QMediaPlayer as QtMediaPlayerState # For state enum
 
 class MediaPlayer(QWidget):
-    """A widget that encapsulates QMediaPlayer and QVideoWidget."""
+    """
+    A media player widget using python-vlc for robust playback.
+    This class is designed as a drop-in replacement for the QMediaPlayer-based player,
+    providing the same public API (signals and methods).
+    """
 
-    # Signals to communicate with the parent widget
+    # Signals mimicking QMediaPlayer for compatibility
     media_loaded = pyqtSignal(bool)
     position_changed = pyqtSignal('qint64')
     duration_changed = pyqtSignal('qint64')
-    state_changed = pyqtSignal(QMediaPlayer.State)
+    state_changed = pyqtSignal(QtMediaPlayerState.State)
     double_clicked = pyqtSignal()
 
     def __init__(self, parent=None):
-        """Initializes the MediaPlayer widget."""
+        """Initializes the VlcMediaPlayer widget."""
         super().__init__(parent)
-        # A small buffer to correctly detect when media has reached its end.
-        self._END_OF_MEDIA_THRESHOLD_MS = 100  # Threshold to consider media as "finished"
-        self._is_media_loaded = False
-        self._temp_cfr_video_path = None
-        self._seek_interval_ms = 1000  # Seek interval: 1 second
-        self._media_player = QMediaPlayer(None, QMediaPlayer.VideoSurface)
-        self._video_widget = ClickableVideoWidget()
 
-        self._setup_ui()
-        self._connect_signals()
+        # --- VLC Setup ---
+        self._vlc_instance = vlc.Instance("--no-xlib")
+        self._media_player = self._vlc_instance.media_player_new()
 
-    def _setup_ui(self):
+        # --- UI Setup ---
+        self._video_frame = QFrame()
+        self._video_frame.setStyleSheet("background-color: black;")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        self._video_widget.setMinimumHeight(200) # Set a reasonable minimum height
-        layout.addWidget(self._video_widget, 1) # Give it expanding space
-        self._media_player.setVideoOutput(self._video_widget)
+        layout.addWidget(self._video_frame)
 
-    def _connect_signals(self):
-        self._media_player.positionChanged.connect(self.position_changed)
-        self._media_player.durationChanged.connect(self.duration_changed)
-        self._media_player.stateChanged.connect(self.state_changed)
-        self._video_widget.doubleClicked.connect(self.double_clicked)
+        # Set the window handle for VLC to draw on
+        if sys.platform.startswith('linux'):
+            self._media_player.set_xwindow(self._video_frame.winId())
+        elif sys.platform == 'win32':
+            self._media_player.set_hwnd(self._video_frame.winId())
+        elif sys.platform == 'darwin':
+            self._media_player.set_nsobject(int(self._video_frame.winId()))
 
-    def _create_cfr_copy(self, video_path: str) -> str | None:
-        """
-        Creates a temporary copy of the video with a constant frame rate (CFR)
-        to prevent sync issues with VFR videos in QMediaPlayer.
-        """
-        try:
-            # Create a temporary file with the same extension
-            _, extension = os.path.splitext(video_path)
-            fd, temp_path = tempfile.mkstemp(suffix=extension)
-            os.close(fd)
+        # --- State Management ---
+        self._is_media_loaded = False
+        self._current_state = QtMediaPlayerState.StoppedState
+        self._seek_interval_ms = 1000
 
-            # Use FFmpeg to create a CFR copy without re-encoding (fast)
-            command = [
-                'ffmpeg', '-y', '-i', video_path,
-                '-vsync', 'cfr', '-c:v', 'copy', '-c:a', 'copy',
-                temp_path
-            ]
-            
-            # Hide console window on Windows
-            startupinfo = None
-            if os.name == 'nt':
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        # --- Signal Emulation ---
+        # VLC doesn't have direct signals like Qt, so we use its event manager
+        # and a QTimer to poll for position changes.
+        self._event_manager = self._media_player.event_manager()
+        self._connect_vlc_events()
 
-            # Show a "please wait" cursor
-            QApplication.setOverrideCursor(Qt.WaitCursor)
-            
-            process = subprocess.run(command, check=True, capture_output=True, text=True, startupinfo=startupinfo)
-            
-            QApplication.restoreOverrideCursor()
-            return temp_path
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            QApplication.restoreOverrideCursor()
-            error_message = f"Failed to create CFR copy for playback: {e}"
-            if isinstance(e, subprocess.CalledProcessError):
-                error_message += f"\nFFmpeg stderr:\n{e.stderr}"
-            QMessageBox.warning(self, "Playback Warning", error_message)
-            return None
+        self._pos_timer = QTimer(self)
+        self._pos_timer.setInterval(100) # Poll every 100ms
+        self._pos_timer.timeout.connect(self._poll_position)
 
-    def load_media(self, video_path):
-        """Loads the media from the given path."""
-        self.cleanup() # Clean up any previous temp file
+    def _connect_vlc_events(self):
+        """Connects to VLC's internal event system to emit Qt signals."""
+        self._event_manager.event_attach(vlc.EventType.MediaPlayerPlaying, self._on_vlc_state_change)
+        self._event_manager.event_attach(vlc.EventType.MediaPlayerPaused, self._on_vlc_state_change)
+        self._event_manager.event_attach(vlc.EventType.MediaPlayerStopped, self._on_vlc_state_change)
+        self._event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, self._on_vlc_state_change)
+        self._event_manager.event_attach(vlc.EventType.MediaPlayerLengthChanged, self._on_vlc_duration_change)
 
-        if os.path.exists(video_path):
-            # Create a CFR copy to handle VFR videos correctly
-            self._temp_cfr_video_path = self._create_cfr_copy(video_path)
-            
-            # Play the temp file if created, otherwise fall back to original
-            path_to_play = self._temp_cfr_video_path if self._temp_cfr_video_path else video_path
-            
-            self._media_player.setMedia(QMediaContent(QUrl.fromLocalFile(path_to_play)))
-            self._is_media_loaded = True
-            self.media_loaded.emit(True)
-            self.play()
+    def _on_vlc_state_change(self, event):
+        """Handles state changes from VLC and maps them to Qt states."""
+        new_state = self._media_player.get_state()
+        qt_state = QtMediaPlayerState.StoppedState
+
+        if new_state in (vlc.State.Playing, vlc.State.Opening):
+            qt_state = QtMediaPlayerState.PlayingState
+        elif new_state == vlc.State.Paused:
+            qt_state = QtMediaPlayerState.PausedState
+        # For Stopped, Ended, Error
         else:
+            qt_state = QtMediaPlayerState.StoppedState
+
+        if self._current_state != qt_state:
+            self._current_state = qt_state
+            self.state_changed.emit(self._current_state)
+
+    def _on_vlc_duration_change(self, event):
+        """Handles duration changes from VLC."""
+        # event.u.new_length is the new length in ms
+        self.duration_changed.emit(self.duration())
+
+    def _poll_position(self):
+        """Polls the media player for position and emits a signal if it changed."""
+        if self._media_player.is_playing():
+            self.position_changed.emit(self.position())
+
+    def load_media(self, video_path: str):
+        """Loads media from a file path."""
+        # Stop any currently playing media before loading a new one.
+        if self._media_player.is_playing():
+            self.stop()
+
+        if not os.path.exists(video_path):
             QMessageBox.critical(self, "Error", f"Video file not found:\n{video_path}")
             self.media_loaded.emit(False)
+            return
+
+        media = self._vlc_instance.media_new(video_path)
+        self._media_player.set_media(media)
+        
+        # The media needs to be parsed to get duration, etc.
+        # This happens asynchronously. We play and then immediately pause
+        # to trigger parsing.
+        self.play()
+        self.pause()
+        
+        self._is_media_loaded = True
+        self.media_loaded.emit(True)
 
     def cleanup(self):
-        """Cleans up temporary files."""
-        self.stop()
-        self._media_player.setMedia(QMediaContent()) # Release the file lock
-        if self._temp_cfr_video_path and os.path.exists(self._temp_cfr_video_path):
-            try:
-                os.remove(self._temp_cfr_video_path)
-            except OSError as e:
-                print(f"Error removing temp file: {e}") # Or log this
-        self._temp_cfr_video_path = None
+        """Stops playback and releases VLC resources."""
+        # This method is called when the widget is being closed.
+        # We need to fully release the player instance.
+        if self._media_player is not None:
+            self.stop()
+            self._media_player.release()
+            self._media_player = None
         self._is_media_loaded = False
+        self._vlc_instance.release()
 
     def stop(self):
-        """Stops the media player and resets its position."""
-        self._media_player.stop()
+        """Stops the media player."""
+        if self._media_player:
+            self._media_player.stop()
+            self._pos_timer.stop()
 
     def play(self):
         """Starts or resumes playback."""
-        self._media_player.play()
+        if self._media_player and self._is_media_loaded:
+            self._media_player.play()
+            self._pos_timer.start()
 
     def pause(self):
         """Pauses playback."""
-        self._media_player.pause()
+        if self._media_player:
+            self._media_player.pause() # This is a toggle in VLC
+            self._pos_timer.stop()
 
     def toggle_play(self):
-        """Toggles play/pause state. Restarts if at the end."""
-        # If the video is at the end, restart from the beginning.
-        if self.duration() > 0 and self.position() >= self.duration() - self._END_OF_MEDIA_THRESHOLD_MS:
-            self.set_position(0)
-            self.play()
-        elif self.state() == QMediaPlayer.PlayingState:
-            # If playing, pause.
+        """Toggles play/pause state."""
+        if self.state() == QtMediaPlayerState.PlayingState:
             self.pause()
         else:
             self.play()
 
     def seek_forward(self):
+        """Seeks forward by a fixed interval."""
         self.pause()
-        new_position = self.position() + self._seek_interval_ms
-        self.set_position(int(new_position))
+        new_pos = self.position() + self._seek_interval_ms
+        self.set_position(new_pos)
 
     def seek_backward(self):
+        """Seeks backward by a fixed interval."""
         self.pause()
-        new_position = self.position() - self._seek_interval_ms
-        self.set_position(int(max(0, new_position)))
+        new_pos = self.position() - self._seek_interval_ms
+        self.set_position(max(0, new_pos))
 
-    def set_position(self, position):
-        """Sets the media player's position if it's different from the current one."""
-        if self._media_player.isSeekable() and self._media_player.position() != position:
-            self._media_player.setPosition(position)
+    def set_position(self, position_ms: int):
+        """Sets the media player's position in milliseconds."""
+        if self._media_player.is_seekable():
+            self._media_player.set_time(position_ms)
+            # Manually emit signal after seeking
+            self.position_changed.emit(position_ms)
 
-    def position(self):
+    def position(self) -> int:
         """Returns the current playback position in milliseconds."""
-        return self._media_player.position()
+        return self._media_player.get_time()
 
-    def duration(self):
+    def duration(self) -> int:
         """Returns the total duration of the media in milliseconds."""
-        return self._media_player.duration()
+        return self._media_player.get_length()
 
-    def state(self):
-        """Returns the current state of the media player (e.g., PlayingState)."""
-        return self._media_player.state()
-    
-class ClickableVideoWidget(QVideoWidget):
-    """A QVideoWidget that emits a doubleClicked signal on a left-button double-click."""
-    doubleClicked = pyqtSignal()
+    def state(self) -> QtMediaPlayerState.State:
+        """Returns the current state of the media player."""
+        return self._current_state
 
-    def __init__(self, parent=None):
-        """Initializes the ClickableVideoWidget."""
-        super().__init__(parent)
-
-    def mouseDoubleClickEvent(self, event):
-        """Emits the doubleClicked signal if the event was from the left mouse button."""
-        if event.button() == Qt.LeftButton:
-            self.doubleClicked.emit()
-        super().mouseDoubleClickEvent(event)
+    def closeEvent(self, event):
+        """Ensures resources are cleaned up when the widget is closed."""
+        self.cleanup()
+        super().closeEvent(event)
