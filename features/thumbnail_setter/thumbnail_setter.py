@@ -140,6 +140,10 @@ class ThumbnailSetter(QDialog):
         Generates and executes FFmpeg commands to extract a thumbnail image
         and then embed it into the video file.
         """
+        if self._worker and self._worker.isRunning():
+            QMessageBox.warning(self, "In Progress", "A thumbnail operation is already in progress.")
+            return
+        
         timestamp = self._timestamp_edit.text()
         if not timestamp:
             QMessageBox.warning(self, "No Frame Selected", "Please select a frame first.")
@@ -147,28 +151,67 @@ class ThumbnailSetter(QDialog):
         
         self._set_thumbnail_button.setEnabled(False)
         self._media_player.pause()
+        
+        try:
+            commands, temp_thumb_path = self._create_thumbnail_commands(timestamp)
+            self._start_thumbnail_worker(commands, temp_thumb_path)
+            self._logger.append_log(f"Setting thumbnail for '{os.path.basename(self._video_path)}' at {timestamp}...")
+        except Exception as e:
+            self._logger.append_log(f"Error preparing thumbnail job: {e}")
+            QMessageBox.critical(self, "Error", f"Could not start thumbnail process: {e}")
+            self._set_thumbnail_button.setEnabled(True)
 
-        input_folder = os.path.dirname(self._video_path)
-        filename, ext = os.path.splitext(os.path.basename(self._video_path))
-        ext = ext.lstrip('.')
-
+    def _create_thumbnail_commands(self, timestamp: str) -> tuple[list[str], str]:
+        """
+        Creates the FFmpeg commands for extracting and embedding a thumbnail.
+        
+        Args:
+            timestamp (str): The timestamp for the thumbnail (e.g., "00:01:23.456").
+            
+        Returns:
+            A tuple containing the list of commands and the path to the temporary thumbnail file.
+        """
+        filename = os.path.basename(self._video_path)
         # Create a temporary file for the thumbnail image
         thumb_fd, thumb_path = tempfile.mkstemp(suffix=".jpg", prefix=f"{filename}_thumb_")
-        os.close(thumb_fd) # Close the file handle
+        os.close(thumb_fd)
 
-        # Command 1: Extract the thumbnail image
-        cmd1 = (f'ffmpeg -ss {timestamp} -i "{self._video_path}" '
-                f'-frames:v 1 -y "{thumb_path}"')
+        # Ensure output directory exists
+        os.makedirs(self._output_path, exist_ok=True)
+        output_file_path = os.path.join(self._output_path, filename)
 
-        # Command 2: Embed the thumbnail
-        # Create a temporary output file to avoid read/write conflicts on the same file
-        output_fd, output_path = tempfile.mkstemp(suffix=f".{ext}", prefix=f"{filename}_thumbed_")
-        os.close(output_fd)
+        cmd1 = (f'ffmpeg -y -loglevel warning -ss {timestamp} -i "{self._video_path}" '
+                f'-frames:v 1 "{thumb_path}"')
 
-        # cmd2 = (f'ffmpeg -i "{self._video_path}" -i "{thumb_path}" '
-        #         f'-map 0 -map 1 -c copy -disposition:v:1 attached_pic -y "{output_path}"')
+        cmd2 = (f'ffmpeg -y -loglevel warning -i "{self._video_path}" -i "{thumb_path}" '
+                f'-map 0 -map 1 -c copy -disposition:v:1 attached_pic "{output_file_path}"')
         
-        self._logger.append_log(f"Thumbnail to be set at: {timestamp} for video: {self._video_path}")
-        QMessageBox.information(self, "Set Thumbnail", f"Logic to set thumbnail at {timestamp} goes here.")
-        # Here you would typically start an FFmpeg worker
-        self.accept()
+        return [cmd1, cmd2], thumb_path
+
+    def _start_thumbnail_worker(self, commands: list[str], temp_thumb_path: str):
+        """Initializes and starts the FFmpegWorker for the thumbnail job."""
+        job = (-1, commands) # Use -1 for row_index as this is a single job
+        self._worker = FFmpegWorker([job])
+        self._worker.log_signal.connect(self._logger.append_log)
+        self._worker.update_status.connect(self._on_worker_status_update)
+        self._worker.finished.connect(lambda: self._on_worker_thread_finished(temp_thumb_path))
+        self._worker.start()
+
+    @pyqtSlot(int, str)
+    def _on_worker_status_update(self, row_index: int, status: str):
+        """Slot to handle status updates from the worker."""
+        # We only care about the final status, not "Processing"
+        if status in ["Success", "Failed", "Stopped"]:
+            if status == "Success":
+                QMessageBox.information(self, "Success", "Thumbnail has been set successfully.")
+                self._set_thumbnail_button.setEnabled(True)
+            else:
+                QMessageBox.critical(self, "Error", f"Failed to set thumbnail. Status: {status}")
+                self._set_thumbnail_button.setEnabled(True)
+
+    def _on_worker_thread_finished(self, temp_thumb_path: str):
+        """Slot called when the FFmpeg worker thread has finished."""
+        # Clean up the temporary thumbnail file
+        if os.path.exists(temp_thumb_path):
+            os.remove(temp_thumb_path)
+        self._worker = None
