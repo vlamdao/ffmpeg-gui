@@ -95,5 +95,3 @@ class MarkerSlider(SeekSlider):
             painter.setPen(pen)
             marker_pos = int((self.current_start_marker / self.maximum()) * groove_rect.width()) + groove_rect.x()
             painter.drawLine(marker_pos, groove_rect.top(), marker_pos, groove_rect.bottom())
-            marker_pos = int((self.current_start_marker / self.maximum()) * groove_rect.width()) + groove_rect.x()
-            painter.drawLine(marker_pos, groove_rect.top(), marker_pos, groove_rect.bottom())

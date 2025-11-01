@@ -78,12 +78,11 @@ class MediaPlayer(QWidget):
         new_state = self._media_player.get_state()
         qt_state = QtMediaPlayerState.StoppedState
 
-        if new_state in (vlc.State.Playing, vlc.State.Opening):
+        if new_state == vlc.State.Playing:
             qt_state = QtMediaPlayerState.PlayingState
         elif new_state == vlc.State.Paused:
             qt_state = QtMediaPlayerState.PausedState
-        # For Stopped, Ended, Error
-        else:
+        else: # Covers Stopped, Ended, Error, etc.
             qt_state = QtMediaPlayerState.StoppedState
 
         if self._current_state != qt_state:
@@ -108,9 +107,13 @@ class MediaPlayer(QWidget):
 
         media = self._vlc_instance.media_new(video_path)
         self._media_player.set_media(media)
+        # The media needs to be parsed to get duration, etc.
+        # This happens asynchronously. We play and then immediately pause
+        # to trigger parsing without starting playback automatically.
+        self.play()
+        self.pause()
         self._is_media_loaded = True
         self.media_loaded.emit(True)
-        self.play()
 
     def cleanup(self):
         """Stops playback and releases VLC resources."""
@@ -146,11 +149,8 @@ class MediaPlayer(QWidget):
 
     def toggle_play(self):
         """Toggles play/pause state."""
-        if self.state() == QtMediaPlayerState.PlayingState:
-            self.pause()
-        else:
-            self.play()
-
+        # self._media_player.pause() is a toggle function in VLC
+        self.pause()
     def seek_forward(self):
         """Seeks forward by a fixed interval."""
         new_pos = self.position() + self._seek_interval_ms

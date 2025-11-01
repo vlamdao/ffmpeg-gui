@@ -37,9 +37,9 @@ class MediaControls(QWidget):
     slider_pressed = pyqtSignal()
     """Emitted when the user presses the mouse on the slider."""
     position_changed = pyqtSignal(int)
-    """Emitted when the slider's value is changed by the user."""
+    """Emitted when the slider's value changes (e.g., by dragging or clicking)."""
     seek_requested = pyqtSignal(int)
-    """Emitted when the slider's value is changed by the user."""
+    """Emitted specifically when the user clicks on the slider to seek."""
 
     def __init__(self, parent: QWidget | None = None, slider_class: type[QSlider] = SeekSlider) -> None:
         """Initializes the MediaControls widget."""
