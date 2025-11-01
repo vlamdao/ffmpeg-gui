@@ -11,6 +11,10 @@ ffmpeg-gui.sln
 build/
 dist/
 tree.txt
+plugins/
+libvlc.dll
+libvlccore.dll
+
 ## ===========================================
 
 # User-specific files
