@@ -53,7 +53,7 @@ class ThumbnailSetter(QDialog):
 
     def closeEvent(self, event):
         """Override closeEvent to stop the media player."""
-        self._media_player.stop()
+        self._media_player.cleanup()
         super().closeEvent(event)
 
     def _setup_ui(self):
