@@ -10,9 +10,7 @@ from PyQt5.QtCore import Qt
 from helper import FontDelegate
 
 # Import constants directly for consistency
-from processor.command_generator import (
-    PLACEHOLDERS
-)
+from helper.placeholders import PLACEHOLDERS
 
 class PresetDialog(QDialog):
     """A dialog for adding or editing a preset (name and command)."""
