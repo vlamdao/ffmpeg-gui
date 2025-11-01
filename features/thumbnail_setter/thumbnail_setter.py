@@ -9,13 +9,14 @@ from PyQt5.QtCore import QSize
 from features.player import MediaPlayer, MediaControls
 from processor import FFmpegWorker
 from helper import ms_to_time_str, time_str_to_ms, resource_path
+from components import Logger
 
 class ThumbnailSetter(QDialog):
     """
     A dialog for selecting a frame from a video to be used as a thumbnail.
     """
 
-    def __init__(self, video_path: str, output_path: str, logger, parent=None):
+    def __init__(self, video_path: str, output_path: str, logger: Logger, parent=None):
         """
         Initializes the ThumbnailSetter dialog.
 
@@ -28,7 +29,7 @@ class ThumbnailSetter(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Set Thumbnail")
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(950, 650)
         self.setModal(False) # Allow interaction with main window
 
         # Dependencies
@@ -160,7 +161,7 @@ class ThumbnailSetter(QDialog):
         self._media_player.pause()
         
         try:
-            commands, temp_thumb_path = self._create_thumbnail_commands(timestamp)
+            commands, temp_thumb_path = self._create_commands(timestamp)
             self._start_thumbnail_worker(commands, temp_thumb_path)
             self._logger.append_log(f"Setting thumbnail for '{os.path.basename(self._video_path)}' at {timestamp}...")
         except Exception as e:
@@ -168,7 +169,7 @@ class ThumbnailSetter(QDialog):
             QMessageBox.critical(self, "Error", f"Could not start thumbnail process: {e}")
             self._set_thumbnail_button.setEnabled(True)
 
-    def _create_thumbnail_commands(self, timestamp: str) -> tuple[list[str], str]:
+    def _create_commands(self, timestamp: str) -> tuple[list[str], str]:
         """
         Creates the FFmpeg commands for extracting and embedding a thumbnail.
         
