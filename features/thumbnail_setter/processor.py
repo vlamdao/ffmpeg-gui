@@ -1,7 +1,7 @@
 import os
-import tempfile
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from processor import FFmpegWorker
+from .command import CommandTemplates
 
 class ThumbnailProcessor(QObject):
     """
@@ -25,32 +25,15 @@ class ThumbnailProcessor(QObject):
         if self.is_running():
             self.log_signal.emit("Thumbnail processing is already in progress.")
             return
-
         try:
-            commands, self._temp_thumb_path = self._create_commands(video_path, output_path, timestamp)
+            command_template = CommandTemplates(video_path, output_path, timestamp)
+            commands, self._temp_thumb_path = command_template.generate_commands()
             self._start_worker(commands)
             self.log_signal.emit(f"Setting thumbnail for '{os.path.basename(video_path)}' at {timestamp}...")
         except Exception as e:
             error_msg = f"Could not start thumbnail process: {e}"
             self.log_signal.emit(f"Error preparing thumbnail job: {e}")
             self.processing_finished.emit(False, error_msg)
-
-    def _create_commands(self, video_path: str, output_path: str, timestamp: str) -> tuple[list[str], str]:
-        """Creates the FFmpeg commands for extracting and embedding a thumbnail."""
-        filename = os.path.basename(video_path)
-        thumb_fd, thumb_path = tempfile.mkstemp(suffix=".jpg", prefix=f"{filename}_thumb_")
-        os.close(thumb_fd)
-
-        os.makedirs(output_path, exist_ok=True)
-        output_file_path = os.path.join(output_path, filename)
-
-        cmd1 = (f'ffmpeg -y -loglevel warning -ss {timestamp} -i "{video_path}" '
-                f'-frames:v 1 "{thumb_path}"')
-
-        cmd2 = (f'ffmpeg -y -loglevel warning -i "{video_path}" -i "{thumb_path}" '
-                f'-map 0 -map 1 -c copy -disposition:v:1 attached_pic "{output_file_path}"')
-        
-        return [cmd1, cmd2], thumb_path
 
     def _start_worker(self, commands: list[str]):
         """Initializes and starts the FFmpegWorker."""
