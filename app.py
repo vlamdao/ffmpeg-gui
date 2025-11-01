@@ -7,7 +7,7 @@ from helper import resource_path
 from components import (PresetManager, Logger, FileManager, ControlPanel,
                         CommandInput, OutputPath)
 
-from features import VideoCutter
+from features import VideoCutter, ThumbnailSetter
 from processor import BatchProcessor
 
 class FFmpegGUI(QMainWindow):
@@ -81,6 +81,7 @@ class FFmpegGUI(QMainWindow):
         self.control_panel.stop_clicked.connect(self.batch_processor.stop_batch)
         self.control_panel.remove_clicked.connect(self.file_manager.remove_selected_files)
         self.control_panel.cut_video_clicked.connect(self.open_video_cutter)
+        self.control_panel.set_thumbnail_clicked.connect(self.open_thumbnail_setter)
         self.control_panel.add_preset_clicked.connect(self.preset_manager.add_preset)
 
     def _setup_shortcuts(self):
@@ -103,6 +104,21 @@ class FFmpegGUI(QMainWindow):
             video_path=full_path,
             output_path=output_path,
             logger=logger,
+            parent=self)
+        dialog.exec_()
+
+    def open_thumbnail_setter(self):
+        selected_files, _ = self.file_manager.get_selected_files()
+        if len(selected_files) != 1:
+            QMessageBox.warning(self, "Selection Error", "Please select exactly one video file to set a thumbnail.")
+            return
+
+        _, inputfile_name, inputfile_folder = selected_files[0]
+        full_path = os.path.join(inputfile_folder, inputfile_name)
+
+        dialog = ThumbnailSetter(
+            video_path=full_path,
+            logger=self.logger,
             parent=self)
         dialog.exec_()
 

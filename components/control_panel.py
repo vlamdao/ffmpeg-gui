@@ -17,6 +17,7 @@ class ControlPanel(QWidget):
     stop_clicked = pyqtSignal()
     remove_clicked = pyqtSignal()
     cut_video_clicked = pyqtSignal()
+    set_thumbnail_clicked = pyqtSignal()
     add_preset_clicked = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -78,6 +79,12 @@ class ControlPanel(QWidget):
                 'icon': 'cut-video.png',
                 'tooltip': 'Cut a video into segments',
                 'connection': self.cut_video_clicked.emit
+            },
+            'set_thumbnail': {
+                'text': ' Set Thumbnail',
+                'icon': 'set-thumbnail.png',
+                'tooltip': 'Set a thumbnail for a video',
+                'connection': self.set_thumbnail_clicked.emit
             },
             'add_preset': {
                 'text': ' Add preset',
