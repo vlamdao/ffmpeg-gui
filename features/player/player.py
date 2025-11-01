@@ -149,8 +149,11 @@ class MediaPlayer(QWidget):
 
     def toggle_play(self):
         """Toggles play/pause state."""
-        # self._media_player.pause() is a toggle function in VLC
-        self.pause()
+        if self.state() == QtMediaPlayerState.PlayingState:
+            self.pause()
+        else:
+            self.play()
+
     def seek_forward(self):
         """Seeks forward by a fixed interval."""
         new_pos = self.position() + self._seek_interval_ms
