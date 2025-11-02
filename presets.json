@@ -16,20 +16,12 @@
     "command": "ffmpeg -i \"{infile_folder}/{infile_name}.{infile_ext}\" -c copy -c:s srt \"{output_folder}/{infile_name}.mkv\""
   },
   {
-    "name": "Extract img at hh:mm:ss",
+    "name": "Extract image at hh:mm:ss",
     "command": "ffmpeg -ss 00:01:00 -i \"{infile_folder}/{infile_name}.{infile_ext}\" -frames:v 1 \"{output_folder}/{infile_name}.jpg\""
   },
   {
-    "name": "Set thumbnail with img",
+    "name": "Set thumbnail with image",
     "command": "ffmpeg -i \"{infile_folder}/{infile_name}.{infile_ext}\" -i \"{output_folder}/{infile_name}.jpg\" -map 0 -map 1 -c copy -disposition:v:1 attached_pic \"{output_folder}/{infile_name}.{infile_ext}\""
-  },
-  {
-    "name": "Concatenate Videos (Demuxer)",
-    "command": "ffmpeg -f concat -safe 0 -i \"{concatfile_path}\" -c copy \"{output_folder}/joined_file.mp4\""
-  },
-  {
-    "name": "Concatenate Videos (Demuxer + Encode H264)",
-    "command": "ffmpeg -f concat -safe 0 -i \"{concatfile_path}\" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 128k \"{output_folder}/joined_file.mp4\""
   },
   {
     "name": "Resize video to max 512px (width or height)",
