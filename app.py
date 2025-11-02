@@ -102,8 +102,8 @@ class FFmpegGUI(QMainWindow):
         output_path = self.output_path.get_completed_output_path(inputfile_folder)
         logger = self.logger
         dialog = VideoCutter(
-            video_path=full_path,
-            output_path=output_path,
+            input_file=full_path,
+            output_folder=output_path,
             logger=logger,
             parent=self)
         dialog.exec_()

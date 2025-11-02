@@ -25,12 +25,12 @@ class VideoCutter(QDialog):
     _PENDING_COLOR = QColor("#ffe58e")  # A light yellow color
 
 
-    def __init__(self, video_path, output_path, logger, parent=None):
+    def __init__(self, input_file, output_folder, logger, parent=None):
         """Initializes the VideoCutter dialog.
 
         Args:
-            video_path (str): The absolute path to the video file to be loaded.
-            output_path (str): The directory where cut segments will be saved.
+            input_file (str): The absolute path to the video file to be loaded.
+            output_folder (str): The directory where cut segments will be saved.
             logger (Logger): An instance of the logger for displaying messages.
             parent (QWidget, optional): The parent widget. Defaults to None.
         """
@@ -40,9 +40,9 @@ class VideoCutter(QDialog):
         self.setMinimumSize(1200, 750)
 
         # Dependencies
-        self._video_path = video_path
+        self._input_file = input_file
         self._logger = logger
-        self._output_folder = output_path
+        self._output_folder = output_folder
 
         # Logic and State Management
         self._segment_processor = None # Will be initialized in _setup_ui
@@ -53,7 +53,7 @@ class VideoCutter(QDialog):
     def showEvent(self, event):
         """Override showEvent to load media only when the dialog is shown."""
         super().showEvent(event)
-        self._media_player.load_media(self._video_path)
+        self._media_player.load_media(self._input_file)
 
     def closeEvent(self, event):
         """Override closeEvent to stop the media player and any active workers."""
@@ -85,8 +85,8 @@ class VideoCutter(QDialog):
         self._media_controls = MediaControls(slider_class=MarkerSlider)
         self._segment_controls = SegmentControls()
         self._command_template = CommandTemplate(
-            video_path=self._video_path,
-            output_path=self._output_folder,
+            input_file=self._input_file,
+            output_folder=self._output_folder,
             parent=self
         )
 
