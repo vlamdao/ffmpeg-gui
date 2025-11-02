@@ -5,10 +5,10 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSignal
 
 from helper import resource_path
-from helper.placeholders import VIDEO_JOINER_PLACEHOLDERS
+from components.placeholders.definitions import VIDEO_JOINER_PLACEHOLDERS
 from .processor import VideoJoinerProcessor
 from .command import CommandTemplate
-from components import PlaceholderTable
+from components.placeholders import PlaceholderTable
 
 class VideoJoiner(QDialog):
     """A dialog for joining multiple video files."""

@@ -1,28 +1,40 @@
 import os
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTextEdit)
 from PyQt5.QtGui import QFont
-from dataclasses import dataclass
 
 from helper import ms_to_time_str
-from components import PlaceholderTable
+from components import PlaceholderTable, PlaceholderManager
 from helper.placeholders import (
-    PLACEHOLDER_INPUTFILE_FOLDER, PLACEHOLDER_INPUTFILE_NAME, PLACEHOLDER_INPUTFILE_EXT,
     PLACEHOLDER_START_TIME, PLACEHOLDER_END_TIME, PLACEHOLDER_OUTPUT_FOLDER,
     PLACEHOLDER_SAFE_START_TIME, PLACEHOLDER_SAFE_END_TIME,
     VIDEO_CUTTER_PLACEHOLDERS
 )
 
-@dataclass
-class CommandContext:
-    """A data class to hold all the values needed to generate a command."""
-    inputfile_folder: str
-    inputfile_name: str
-    inputfile_ext: str
-    start_time: str
-    end_time: str
-    output_folder: str
-    safe_start_time: str
-    safe_end_time: str
+class VideoCutterPlaceholderManager(PlaceholderManager):
+    """Mở rộng PlaceholderManager cho các placeholder của Video Cutter."""
+    def get_replacements(self, video_path: str, start_ms: int, end_ms: int) -> dict[str, str]:
+        """
+        Tạo ra các giá trị thay thế cho tất cả các placeholder của video cutter.
+        """
+        # Tạo một tuple file đầu vào giả để tái sử dụng logic của lớp cha
+        input_file_tuple = (0, os.path.basename(video_path), os.path.dirname(video_path))
+        replacements = self.get_general_replacements(input_file_tuple)
+
+        start_str = ms_to_time_str(start_ms)
+        end_str = ms_to_time_str(end_ms)
+        safe_start_str = start_str.replace(":", "-").replace(".", "_")
+        safe_end_str = end_str.replace(":", "-").replace(".", "_")
+
+        # Thêm các placeholder cụ thể của video cutter
+        cutter_replacements = {
+            PLACEHOLDER_START_TIME: start_str,
+            PLACEHOLDER_END_TIME: end_str,
+            PLACEHOLDER_SAFE_START_TIME: safe_start_str,
+            PLACEHOLDER_SAFE_END_TIME: safe_end_str,
+        }
+        
+        replacements.update(cutter_replacements)
+        return replacements
 
 class CommandTemplate(QWidget):
     
@@ -39,6 +51,12 @@ class CommandTemplate(QWidget):
         self._command_template: QTextEdit
         self._video_path = video_path
         self._output_path = output_path
+        
+        # Giả lập đối tượng OutputPath để truyền vào PlaceholderManager
+        class TempOutputPath:
+            def get_completed_output_path(self, _): return output_path
+        self._placeholder_manager = VideoCutterPlaceholderManager(TempOutputPath())
+
         self._setup_ui()
 
     def _setup_ui(self):
@@ -62,24 +80,6 @@ class CommandTemplate(QWidget):
         layout.addWidget(self._command_template)
         self._placeholder_table.placeholder_double_clicked.connect(self._command_template.insertPlainText)
 
-    def _replace_placeholders(self, context: CommandContext) -> str:
-        template = self.get_command_template()
-
-        replacements = {
-            PLACEHOLDER_INPUTFILE_FOLDER: context.inputfile_folder,
-            PLACEHOLDER_INPUTFILE_NAME: context.inputfile_name,
-            PLACEHOLDER_INPUTFILE_EXT: context.inputfile_ext,
-            PLACEHOLDER_START_TIME: context.start_time,
-            PLACEHOLDER_END_TIME: context.end_time,
-            PLACEHOLDER_OUTPUT_FOLDER: context.output_folder,
-            PLACEHOLDER_SAFE_START_TIME: context.safe_start_time,
-            PLACEHOLDER_SAFE_END_TIME: context.safe_end_time,
-        }
-        for placeholder, value in replacements.items():
-            template = template.replace(placeholder, value)
-            
-        return template
-
     def get_command_template(self) -> str:
         """Returns the command template from the text edit."""
         return self._command_template.toPlainText().strip()
@@ -90,22 +90,6 @@ class CommandTemplate(QWidget):
         if not template:
             return None
 
-        start_str = ms_to_time_str(start_ms)
-        end_str = ms_to_time_str(end_ms)
-        safe_start_str = start_str.replace(":", "-").replace(".", "_")
-        safe_end_str = end_str.replace(":", "-").replace(".", "_")
-
-        inputfile_name, inputfile_ext = os.path.splitext(os.path.basename(self._video_path))
-
-        context = CommandContext(
-            inputfile_folder=os.path.dirname(self._video_path),
-            inputfile_name=inputfile_name,
-            inputfile_ext=inputfile_ext.lstrip('.'),
-            start_time=start_str,
-            end_time=end_str,
-            output_folder=self._output_path,
-            safe_start_time=safe_start_str,
-            safe_end_time=safe_end_str
-        )
-        complete_command = self._replace_placeholders(context)
+        replacements = self._placeholder_manager.get_replacements(self._video_path, start_ms, end_ms)
+        complete_command = self._placeholder_manager.replace(template, replacements)
         return complete_command

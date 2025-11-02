@@ -7,9 +7,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont, QIcon
 from helper import resource_path
-from .placeholder_table import PlaceholderTable
-
-from helper.placeholders import GENERAL_PLACEHOLDERS
+from .placeholders import PlaceholderTable
+from .placeholders.definitions import GENERAL_PLACEHOLDERS
 
 class PresetDialog(QDialog):
     """A dialog for adding or editing a preset (name and command)."""
