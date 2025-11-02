@@ -95,7 +95,7 @@ class FFmpegGUI(QMainWindow):
         QShortcut(QKeySequence("Ctrl+W"), self).activated.connect(self.close)
 
     def run_command(self):
-        selected_files, selected_rows = self.file_manager.get_selected_files()
+        selected_files, _ = self.file_manager.get_selected_files()
         if not selected_files:
             QMessageBox.warning(self, "Selection Error", "No files selected to process.")
             return
