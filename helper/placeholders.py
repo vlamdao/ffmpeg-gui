@@ -3,7 +3,6 @@ PLACEHOLDER_INPUTFILE_FOLDER = "{inputfile_folder}"
 PLACEHOLDER_INPUTFILE_NAME = "{inputfile_name}"
 PLACEHOLDER_INPUTFILE_EXT = "{inputfile_ext}"
 PLACEHOLDER_OUTPUT_FOLDER = "{output_folder}"
-PLACEHOLDER_CONCATFILE_PATH = "{concatfile_path}"
 
 # List of placeholders for the main application's preset dialog
 GENERAL_PLACEHOLDERS = [
@@ -11,7 +10,6 @@ GENERAL_PLACEHOLDERS = [
     PLACEHOLDER_INPUTFILE_NAME,
     PLACEHOLDER_INPUTFILE_EXT,
     PLACEHOLDER_OUTPUT_FOLDER,
-    PLACEHOLDER_CONCATFILE_PATH,
 ]
 
 # --- Video Cutter Specific Placeholders ---
