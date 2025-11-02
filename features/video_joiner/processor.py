@@ -47,23 +47,23 @@ class VideoJoinerProcessor(QObject):
 
     def _start_worker(self, command: str):
         """Initializes and starts the FFmpegWorker."""
-        job = (-1, [command])  # Use -1 for row_index as this is a single job
+        job = ("video_joiner_job", [command])  # Use a string job_id for a single job
         self._worker = FFmpegWorker([job])
         self._worker.log_signal.connect(self.log_signal)
-        self._worker.update_status.connect(self._on_worker_status_update)
+        self._worker.status_updated.connect(self._on_worker_status_update)
         self._worker.finished.connect(self._on_worker_thread_finished)
         self._worker.start()
 
     def stop(self):
         """Stops the running worker thread."""
         if self.is_running():
-            self._worker.stop_all()
+            self._worker.stop()
             self.log_signal.emit(styled_text('bold', 'blue', None, "Join process stopped by user."))
             self.processing_finished.emit()
             self._cleanup()
 
-    @pyqtSlot(int, str)
-    def _on_worker_status_update(self, row_index: int, status: str):
+    @pyqtSlot(str, str)
+    def _on_worker_status_update(self, job_id: str, status: str):
         """Handles status updates from the worker and emits the final result."""
         if status in ("Success", "Failed", "Stopped"):
             if status == "Success":
