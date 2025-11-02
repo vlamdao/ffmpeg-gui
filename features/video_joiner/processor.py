@@ -1,15 +1,15 @@
 import os
-import tempfile
 from typing import TYPE_CHECKING
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from processor import FFmpegWorker
+from helper import bold_green, bold_red, bold_yellow
 
 class VideoJoinerProcessor(QObject):
     """
     Handles the background processing for joining videos using FFmpeg.
     """
     log_signal = pyqtSignal(str)
-    processing_finished = pyqtSignal(bool, str)  # success (bool), status_message (str)
+    processing_finished = pyqtSignal()
 
     if TYPE_CHECKING:
         from .command import CommandTemplate
@@ -30,7 +30,7 @@ class VideoJoinerProcessor(QObject):
               join_method: str):
         """Starts the process of joining videos."""
         if self.is_running():
-            self.log_signal.emit("Video joining is already in progress.")
+            self.log_signal.emit(bold_yellow("Join processVideo joining is already in progress."))
             return
 
         try:
@@ -41,9 +41,8 @@ class VideoJoinerProcessor(QObject):
             self._start_worker(command)
             self.log_signal.emit(f"Starting to join {len(selected_files)} files...")
         except Exception as e:
-            error_msg = f"Could not start join process: {e}"
-            self.log_signal.emit(f"Error preparing join job: {e}")
-            self.processing_finished.emit(False, error_msg)
+            self.log_signal.emit(bold_red(f'Error: Could not start join process: {e}'))
+            self.processing_finished.emit()
             self._cleanup()
 
     def _start_worker(self, command: str):
@@ -59,18 +58,20 @@ class VideoJoinerProcessor(QObject):
         """Stops the running worker thread."""
         if self.is_running():
             self._worker.stop_all()
-            self.log_signal.emit("Join process stopped by user.")
+            self.log_signal.emit(bold_yellow("Join process stopped by user."))
+            self.processing_finished.emit()
+            self._cleanup()
 
     @pyqtSlot(int, str)
     def _on_worker_status_update(self, row_index: int, status: str):
         """Handles status updates from the worker and emits the final result."""
         if status in ("Success", "Failed", "Stopped"):
-            is_success = (status == "Success")
-            if is_success:
-                message = "Videos have been joined successfully."
+            if status == "Success":
+                log_message = bold_green("Join process completed successfully.")
             else:
-                message = f"Failed to join videos. Status: {status}"
-            self.processing_finished.emit(is_success, message)
+                log_message = bold_red(f"Failed to join videos. Status: {status}")
+            self.log_signal.emit(log_message)
+            self.processing_finished.emit()
 
     def _on_worker_thread_finished(self):
         """Cleans up resources after the worker thread has completely finished."""
@@ -81,9 +82,9 @@ class VideoJoinerProcessor(QObject):
         if self._temp_concat_file_path and os.path.exists(self._temp_concat_file_path):
             try:
                 os.remove(self._temp_concat_file_path)
-                self.log_signal.emit(f"Cleaned up temporary file: {os.path.basename(self._temp_concat_file_path)}")
+                self.log_signal.emit(bold_green(f"Cleaned up temporary file: {os.path.basename(self._temp_concat_file_path)}"))
             except OSError as e:
-                self.log_signal.emit(f"Error removing temporary file: {e}")
+                self.log_signal.emit(bold_red(f"Error removing temporary file: {e}"))
         
         self._worker = None
         self._temp_concat_file_path = None
