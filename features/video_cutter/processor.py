@@ -39,7 +39,7 @@ class Processor(QObject):
     def stop_processing(self):
         """Stops the current cutting process."""
         if not self._processing_queue and not self._active_workers:
-            self.log_signal.emit(styled_text('bold', 'blue', None, "No cutting process is currently running."))
+            self.log_signal.emit(styled_text('bold', 'yellow', None, "No cutting process is currently running."))
             return
         self.log_signal.emit(styled_text('bold', 'blue', None, "Stopping all cutting processes..."))
 
