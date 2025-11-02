@@ -7,9 +7,9 @@ if TYPE_CHECKING:
 
 class Placeholders:
     def __init__(self):
-        self._INPUTFILE_FOLDER = "{inputfile_folder}"
-        self._INPUTFILE_NAME = "{inputfile_name}"
-        self._INPUTFILE_EXT = "{inputfile_ext}"
+        self._INPUTFILE_FOLDER = "{infile_folder}"
+        self._INPUTFILE_NAME = "{infile_name}"
+        self._INPUTFILE_EXT = "{infile_ext}"
         self._OUTPUT_FOLDER = "{output_folder}"
 
     def get_INPUTFILE_FOLDER(self):
@@ -31,14 +31,14 @@ class Placeholders:
         if not input_file:
             return {}
 
-        inputfile_folder = os.path.dirname(input_file)
+        infile_folder = os.path.dirname(input_file)
         filename = os.path.basename(input_file)
-        inputfile_name, inputfile_ext = os.path.splitext(filename)
+        infile_name, infile_ext = os.path.splitext(filename)
         
         replacements = {
-            self._INPUTFILE_FOLDER: str(inputfile_folder),
-            self._INPUTFILE_NAME: str(inputfile_name),
-            self._INPUTFILE_EXT: inputfile_ext.lstrip('.'),
+            self._INPUTFILE_FOLDER: str(infile_folder),
+            self._INPUTFILE_NAME: str(infile_name),
+            self._INPUTFILE_EXT: infile_ext.lstrip('.'),
             self._OUTPUT_FOLDER: str(output_folder),
         }
         return replacements
