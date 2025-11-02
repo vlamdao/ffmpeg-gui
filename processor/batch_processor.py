@@ -42,27 +42,28 @@ class BatchProcessor(QObject):
             return
         self._start_batch(jobs, selected_rows)
 
-    def _create_jobs(self, selected_files: list) -> list[tuple[int, list[str]]]:
+    def _create_jobs(self, selected_files: list) -> list[tuple[str, list[str]]]:
         """Creates a list of FFmpeg commands to be executed."""
         jobs = []
         cmd_generator = CommandGenerator()
         command_template = self._command_input.get_command()
         # Standard command for each file
-        for row_index, filename, folder in selected_files:
-            command = cmd_generator.generate_command(input_file=os.path.join(folder, filename),
+        for _, filename, folder in selected_files:
+            file_path = os.path.join(folder, filename)
+            command = cmd_generator.generate_command(input_file=file_path,
                                                      output_folder=self._output_folder.get_completed_output_folder(folder),
                                                      command_template=command_template
                                                      )
             if command:
-                jobs.append((row_index, [command]))
+                jobs.append((file_path, [command]))
         return jobs
 
-    def _start_batch(self, jobs: list[tuple[int, list[str]]], selected_rows: set):
+    def _start_batch(self, jobs: list[tuple[str, list[str]]], selected_rows: set):
         """
         Initializes and starts the FFmpegWorker for the batch job.
 
         Args:
-            jobs (list): A list of tuples (row_index, command_string).
+            jobs (list): A list of tuples (job_id, command_string).
             selected_rows (set): A set of row indices for the selected files.
         """
         # Update status to "Pending" for all selected files in the jobs
@@ -76,7 +77,7 @@ class BatchProcessor(QObject):
 
         # Create and start worker
         self._ffmpeg_worker = FFmpegWorker(jobs)
-        self._ffmpeg_worker.update_status.connect(self._file_manager.update_status)
+        self._ffmpeg_worker.status_updated.connect(self._file_manager.update_status_by_filepath)
         self._ffmpeg_worker.log_signal.connect(self.log_signal.emit)
         self._ffmpeg_worker.finished.connect(self._on_worker_finished)
         self._ffmpeg_worker.start()
