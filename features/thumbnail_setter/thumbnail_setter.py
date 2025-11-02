@@ -1,4 +1,3 @@
-import os
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QWidget, 
                              QPushButton, QLabel, QLineEdit, QMessageBox)
 from PyQt5.QtCore import Qt, pyqtSlot
@@ -8,14 +7,16 @@ from PyQt5.QtCore import QSize
 from features.player import MediaPlayer, MediaControls
 from .processor import ThumbnailProcessor
 from helper import ms_to_time_str, time_str_to_ms, resource_path
-from components import Logger
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from components import Logger
 
 class ThumbnailSetter(QDialog):
     """
     A dialog for selecting a frame from a video to be used as a thumbnail.
     """
 
-    def __init__(self, video_path: str, output_folder: str, logger: Logger, parent=None):
+    def __init__(self, video_path: str, output_folder: str, logger: 'Logger', parent=None):
         """
         Initializes the ThumbnailSetter dialog.
 

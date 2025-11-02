@@ -23,3 +23,12 @@ def time_str_to_ms(time_str: str) -> int:
         if not time.isValid():
             raise ValueError(f"Invalid time string format: {time_str}")
     return QTime(0, 0, 0).msecsTo(time)
+
+def bold_green(text: str):
+    return f'<span style="color:green; font-weight:bold;">{text}</span>'
+
+def bold_red(text: str):
+    return f'<span style="color:red; font-weight:bold;">{text}</span>'
+
+def bold_yellow(text: str):
+    return f'<span style="color:yellow; font-weight:bold;">{text}</span>'

@@ -1,4 +1,3 @@
-import os
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QGroupBox, QRadioButton, QHBoxLayout,
                              QPushButton, QMessageBox)
 from PyQt5.QtGui import QIcon
@@ -9,13 +8,19 @@ from .processor import VideoJoinerProcessor
 from .command import CommandTemplate
 from .placeholders import VideoJoinerPlaceholders
 from components import PlaceholdersTable
-
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from components import Logger
 
 class VideoJoiner(QDialog):
     """A dialog for joining multiple video files."""
     log_signal = pyqtSignal(str)
 
-    def __init__(self, selected_files: list[tuple[int, str, str]], output_folder: str, logger, parent=None):
+    def __init__(self, 
+                 selected_files: list[tuple[int, str, str]], 
+                 output_folder: str, 
+                 logger: 'Logger', 
+                 parent=None):
         super().__init__(parent)
         self.setWindowTitle("Join Videos")
         self.setWindowIcon(QIcon(resource_path("icon/join-video.png")))
