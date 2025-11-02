@@ -2,16 +2,17 @@ import os
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from processor import FFmpegWorker
 from .command import CommandTemplates
+from helper import bold_green, bold_red, bold_yellow, bold_blue
 
-class ThumbnailProcessor(QObject):
+class Processor(QObject):
     """
     Handles the background processing for setting a video thumbnail using FFmpeg.
     """
     log_signal = pyqtSignal(str)
-    processing_finished = pyqtSignal(bool, str) # success (bool), status_message (str)
+    processing_finished = pyqtSignal()
 
     def __init__(self, parent=None):
-        """Initializes the ThumbnailProcessor."""
+        """Initializes the Processor."""
         super().__init__(parent)
         self._worker: FFmpegWorker | None = None
         self._temp_thumb_path: str | None = None
@@ -23,17 +24,16 @@ class ThumbnailProcessor(QObject):
     def start(self, video_path: str, output_folder: str, timestamp: str):
         """Starts the process of setting the thumbnail."""
         if self.is_running():
-            self.log_signal.emit("Thumbnail processing is already in progress.")
+            self.log_signal.emit(bold_yellow("Thumbnail processing is already in progress."))
             return
         try:
             command_template = CommandTemplates(video_path, output_folder, timestamp)
             commands, self._temp_thumb_path = command_template.generate_commands()
             self._start_worker(commands)
-            self.log_signal.emit(f"Setting thumbnail for '{os.path.basename(video_path)}' at {timestamp}...")
+            self.log_signal.emit(bold_blue(f"Setting thumbnail for '{os.path.basename(video_path)}' at {timestamp}..."))
         except Exception as e:
-            error_msg = f"Could not start thumbnail process: {e}"
-            self.log_signal.emit(f"Error preparing thumbnail job: {e}")
-            self.processing_finished.emit(False, error_msg)
+            self.log_signal.emit(bold_red(f'Error: {e}'))
+            self.processing_finished.emit()
 
     def _start_worker(self, commands: list[str]):
         """Initializes and starts the FFmpegWorker."""
