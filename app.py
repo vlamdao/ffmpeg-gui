@@ -111,7 +111,8 @@ class FFmpegGUI(QMainWindow):
     def open_thumbnail_setter(self):
         selected_files, _ = self.file_manager.get_selected_files()
         if len(selected_files) != 1:
-            QMessageBox.warning(self, "Selection Error", "Please select exactly one video file to set a thumbnail.")
+            QMessageBox.warning(self, "Selection Error", 
+                                    "Please select exactly one video file to set a thumbnail.")
             return
 
         _, infile_name, infile_folder = selected_files[0]
@@ -128,7 +129,8 @@ class FFmpegGUI(QMainWindow):
     def open_video_joiner(self):
         selected_files, _ = self.file_manager.get_selected_files()
         if len(selected_files) < 2:
-            QMessageBox.warning(self, "Selection Error", "Please select at least two video files to join.")
+            QMessageBox.warning(self, "Selection Error", 
+                                    "Please select at least two video files to join.")
             return
         
         # Check if all selected files are in the same folder
@@ -138,7 +140,7 @@ class FFmpegGUI(QMainWindow):
         if same_folder:
             output_folder = self.output_folder.get_completed_output_folder(first_folder)
         else:
-            QMessageBox.warning(self, "Files Error", 
+            QMessageBox.warning(self, "Selection Error", 
                                     "Selected files must be in the same folder.")
             return
         
