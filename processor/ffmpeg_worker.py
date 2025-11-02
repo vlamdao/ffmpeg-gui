@@ -2,6 +2,7 @@ from __future__ import annotations
 import os
 import subprocess
 from PyQt5.QtCore import QThread, pyqtSignal
+from helper import styled_text
 
 class FFmpegWorker(QThread):
     """
@@ -45,7 +46,7 @@ class FFmpegWorker(QThread):
         Returns:
             str: A status string indicating the outcome: "Success", "Failed", or "Stopped".
         """
-        self.log_signal.emit(f'<br><span style="color:blue; font-weight:bold">{cmd}</span>')
+        self.log_signal.emit(styled_text('bold', 'purple', 'italic', cmd))
         try:
             env = os.environ.copy()
             env['PYTHONUTF8'] = '1'
@@ -82,7 +83,7 @@ class FFmpegWorker(QThread):
             return "Success" if self._proc.returncode == 0 else "Failed"
 
         except Exception as e:
-            self.log_signal.emit(f"Exception while running command: {e}")
+            self.log_signal.emit(styled_text('bold', 'red', None, f"Exception while running command: {e}"))
             return "Failed"
         finally:
             self._proc = None
