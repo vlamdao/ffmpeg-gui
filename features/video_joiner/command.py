@@ -72,7 +72,7 @@ class CommandTemplate(QWidget):
 
         replacements = {
             self._placeholders.get_OUTPUT_FOLDER(): output_folder,
-            self._placeholders.get_INPUTFILE_FOLDER(): selected_files[0][2]
+            self._placeholders.get_INFILE_FOLDER(): selected_files[0][2]
         }
         temp_concat_file_path = None
 

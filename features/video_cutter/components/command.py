@@ -16,10 +16,10 @@ class CommandTemplate(QWidget):
         self._output_folder = output_folder
         
         self._DEFAULT_COMMAND_TEMPLATE = (
-            f'ffmpeg -y -loglevel warning -i "{self._placeholders.get_INPUTFILE_FOLDER()}/{self._placeholders.get_INPUTFILE_NAME()}.{self._placeholders.get_INPUTFILE_EXT()}" '
+            f'ffmpeg -y -loglevel warning -i "{self._placeholders.get_INFILE_FOLDER()}/{self._placeholders.get_INFILE_NAME()}.{self._placeholders.get_INFILE_EXT()}" '
             f'-ss {self._placeholders.get_START_TIME()} -to {self._placeholders.get_END_TIME()} '
-            f'-c copy "{self._placeholders.get_OUTPUT_FOLDER()}/{self._placeholders.get_INPUTFILE_NAME()}--{self._placeholders.get_SAFE_START_TIME()}--'
-            f'{self._placeholders.get_SAFE_END_TIME()}.{self._placeholders.get_INPUTFILE_EXT()}"'
+            f'-c copy "{self._placeholders.get_OUTPUT_FOLDER()}/{self._placeholders.get_INFILE_NAME()}--{self._placeholders.get_SAFE_START_TIME()}--'
+            f'{self._placeholders.get_SAFE_END_TIME()}.{self._placeholders.get_INFILE_EXT()}"'
         )
 
         self._setup_ui()
