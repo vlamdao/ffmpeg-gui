@@ -62,7 +62,7 @@ class VideoJoinerProcessor(QObject):
             self.processing_finished.emit()
             self._cleanup()
 
-    @pyqtSlot()
+    @pyqtSlot(str, str)
     def _on_worker_status_update(self, job_id: str, status: str):
         """Handles status updates from the worker and emits the final result."""
         if status in ("Success", "Failed", "Stopped"):

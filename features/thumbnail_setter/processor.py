@@ -44,7 +44,7 @@ class Processor(QObject):
         self._worker.finished.connect(self._on_worker_thread_finished)
         self._worker.start()
 
-    @pyqtSlot()
+    @pyqtSlot(str, str)
     def _on_worker_status_update(self, job_id: str, status: str):
         """Handles status updates from the worker and emits the final result."""
         # We only care about the final status, not "Processing"
