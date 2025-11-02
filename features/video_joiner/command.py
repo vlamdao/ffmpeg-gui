@@ -2,67 +2,33 @@ import os
 import tempfile
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTextEdit)
 from PyQt5.QtGui import QFont
+from typing import TYPE_CHECKING
 
-from components.placeholders import PlaceholderManager
-from components.placeholders.definitions import (PLACEHOLDER_INPUTFILE_FOLDER, PLACEHOLDER_OUTPUT_FOLDER,
-                                 PLACEHOLDER_CONCATFILE_PATH
-                                )
+if TYPE_CHECKING:
+    from .placeholders import VideoJoinerPlaceholders
 
-class VideoJoinerPlaceholderManager(PlaceholderManager):
-    """Mở rộng PlaceholderManager cho các placeholder của Video Joiner."""
-    def get_replacements(self, 
-                         selected_files: list[tuple[int, str, str]],
-                         output_folder: str,
-                         join_method: str) -> tuple[dict[str, str], str | None]:
-        """
-        Tạo ra các giá trị thay thế cho tất cả các placeholder của video joiner.
-        """
-        temp_concat_file_path = None
-        replacements = {
-            PLACEHOLDER_OUTPUT_FOLDER: str(output_folder)
-        }
-
-        if selected_files:
-            first_folder = selected_files[0][2]
-            if all(folder == first_folder for _, _, folder in selected_files):
-                replacements[PLACEHOLDER_INPUTFILE_FOLDER] = first_folder
-
-        if join_method == "demuxer":
-            concat_fd, concat_path = tempfile.mkstemp(suffix=".txt", text=True)
-            with os.fdopen(concat_fd, 'w', encoding='utf-8') as f:
-                for _, inputfile_name, inputfile_folder in selected_files:
-                    full_path = os.path.join(inputfile_folder, inputfile_name).replace('\\', '/')
-                    f.write(f"file '{full_path}'\n")
-            temp_concat_file_path = concat_path
-            replacements[PLACEHOLDER_CONCATFILE_PATH] = temp_concat_file_path
-        
-        return replacements, temp_concat_file_path
 
 class CommandTemplate(QWidget):
     """
     A widget for managing the command template for video joining.
     It includes placeholders and a text input for the FFmpeg command.
     """
-    # Default command templates for each join method
-    CONCAT_DEMUXER_CMD = (f'ffmpeg -y -loglevel warning -f concat -safe 0 '
-                          f'-i "{PLACEHOLDER_CONCATFILE_PATH}" '
-                          f'-c copy "{PLACEHOLDER_OUTPUT_FOLDER}/joined_video.mp4"'
-                        )
-    inputs = ""
-    filter_script = ""
-    CONCAT_FILTER_CMD = (f'ffmpeg -y -loglevel warning {inputs} '
-                         f'-filter_complex "{filter_script}" '
-                         f'-map "[v]" -map "[a]" '
-                         f'"{PLACEHOLDER_OUTPUT_FOLDER}/joined_video_re-encoded.mp4"')
-
-    def __init__(self, parent=None):
+    def __init__(self, placeholders: 'VideoJoinerPlaceholders', parent=None):
         super().__init__(parent)
         self._cmd_input: QTextEdit
-        
-        # Giả lập đối tượng OutputPath vì VideoJoiner không dùng đến nó trong manager
-        class TempOutputPath:
-            pass
-        self._placeholder_manager = VideoJoinerPlaceholderManager(TempOutputPath())
+        self._placeholders = placeholders
+        self._CONCAT_DEMUXER_CMD = (
+            f'ffmpeg -y -loglevel warning -f concat -safe 0 '
+            f'-i "{self._placeholders.get_CONCATFILE_PATH()}" '
+            f'-c copy "{self._placeholders.get_OUTPUT_FOLDER()}/joined_video.mp4"'
+        )
+        self._CONCAT_FILTER_CMD = (
+            f'ffmpeg -y -loglevel warning tempvar '
+            f'-filter_complex "tempvar" '
+            f'-map "[v]" -map "[a]" '
+            f'"{self._placeholders.get_OUTPUT_FOLDER()}/joined_video_re-encoded.mp4"'
+        )
+
         self._setup_ui()
 
     def _setup_ui(self):
@@ -78,7 +44,7 @@ class CommandTemplate(QWidget):
 
     def set_command_for_method(self, method: str):
         """Updates the command template based on the selected join method."""
-        self._cmd_input.setText(self.CONCAT_DEMUXER_CMD if method == "demuxer" else self.CONCAT_FILTER_CMD)
+        self._cmd_input.setText(self._CONCAT_DEMUXER_CMD if method == "demuxer" else self._CONCAT_FILTER_CMD)
 
     def get_command_template(self) -> str:
         """Returns the current command template from the input field."""
@@ -104,11 +70,29 @@ class CommandTemplate(QWidget):
         if not command_template:
             return None, None
 
-        replacements, temp_concat_file_path = self._placeholder_manager.get_replacements(
-            selected_files, output_folder, join_method
-        )
+        replacements = {
+            self._placeholders.get_OUTPUT_FOLDER(): output_folder,
+        }
+        temp_concat_file_path = None
 
+        if selected_files:
+            first_folder = selected_files[0][2]
+            if all(folder == first_folder for _, _, folder in selected_files):
+                replacements.update({
+                    self._placeholders.get_INPUTFILE_FOLDER(): first_folder,
+                })
+
+        if join_method == "demuxer":
+            concat_fd, concat_path = tempfile.mkstemp(suffix=".txt", text=True)
+            with os.fdopen(concat_fd, 'w', encoding='utf-8') as f:
+                for _, inputfile_name, inputfile_folder in selected_files:
+                    full_path = os.path.join(inputfile_folder, inputfile_name).replace('\\', '/')
+                    f.write(f"file '{full_path}'\n")
+            temp_concat_file_path = concat_path
+            replacements.update({
+                self._placeholders.get_CONCATFILE_PATH(): temp_concat_file_path,
+            })
         # Replace placeholders in the command template
-        cmd = self._placeholder_manager.replace(command_template, replacements)
+        cmd = self._placeholders.replace_placeholders(command_template, replacements)
 
         return cmd, temp_concat_file_path

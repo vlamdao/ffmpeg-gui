@@ -5,10 +5,11 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSignal
 
 from helper import resource_path
-from components.placeholders.definitions import VIDEO_JOINER_PLACEHOLDERS
 from .processor import VideoJoinerProcessor
 from .command import CommandTemplate
-from components.placeholders import PlaceholderTable
+from .placeholders import VideoJoinerPlaceholders
+from components import PlaceholderTable
+
 
 class VideoJoiner(QDialog):
     """A dialog for joining multiple video files."""
@@ -22,6 +23,7 @@ class VideoJoiner(QDialog):
 
         self._selected_files = selected_files
         self._output_folder = output_folder
+        self._placeholders = VideoJoinerPlaceholders()
         self._logger = logger
 
         self._processor = VideoJoinerProcessor(self)
@@ -40,13 +42,13 @@ class VideoJoiner(QDialog):
         self._concat_demuxer_radio.setChecked(True)
 
         self._placeholder_table = PlaceholderTable(
-            placeholders=VIDEO_JOINER_PLACEHOLDERS,
+            placeholders_list=self._placeholders.get_placeholders_list(),
             num_columns=4,
             parent=self
         )
         self._placeholder_table.set_compact_height()
         
-        self._cmd_template = CommandTemplate(self)
+        self._cmd_template = CommandTemplate(placeholders=self._placeholders)
 
         self._join_video_button = QPushButton("Join Videos")
         self._join_video_button.setMinimumHeight(32)
