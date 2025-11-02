@@ -277,6 +277,14 @@ class FileManager(QObject):
             label.setToolTip(status.replace("Successed", "Success"))
             self.file_table.setCellWidget(row, self.file_table.Column.STATUS.value, label)
 
+    def update_status_by_filepath(self, filepath: str, status: str):
+        """Finds a file by its path and updates its status icon."""
+        row = self.file_table.find_row_by_filepath(filepath)
+        if row != -1:
+            self.update_status(row, status)
+        else:
+            self.log_signal.emit(styled_text('bold', 'red', None, f"Could not find file '{os.path.basename(filepath)}' in the list to update status."))
+
     def get_selected_files(self):
         """Gets the data for all currently selected files in the table.
 
@@ -436,6 +444,19 @@ class DragDropTable(QTableWidget):
         elif action == copy_path_action:
             clipboard.setText(path_item.text())
     
+    def find_row_by_filepath(self, filepath: str) -> int:
+        """Finds the row index for a given absolute filepath."""
+        folder_to_find = os.path.dirname(filepath)
+        filename_to_find = os.path.basename(filepath)
+
+        for row in range(self.rowCount()):
+            filename_item = self.item(row, self.Column.FILENAME.value)
+            path_item = self.item(row, self.Column.PATH.value)
+            if filename_item and path_item:
+                if filename_item.text() == filename_to_find and path_item.text() == folder_to_find:
+                    return row
+        return -1
+
     def add_file(self, file_info: FileInfo):
         """Adds a new file to the table, avoiding duplicates."""
         # Check duplicate
