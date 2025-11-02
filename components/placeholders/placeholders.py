@@ -43,7 +43,7 @@ class Placeholders:
         }
         return replacements
 
-    def replace(self, template: str, replacements: dict) -> str:
+    def replace_placeholders(self, template: str, replacements: dict) -> str:
         for placeholder, value in replacements.items():
             template = template.replace(placeholder, value)
         return template
