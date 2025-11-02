@@ -1,19 +1,10 @@
-import os
-from typing import TYPE_CHECKING
 from components import Placeholders
 
-if TYPE_CHECKING:
-    from components import CommandInput, OutputFolder
-
-class CommandGenerator(object):
-    def __init__(self, selected_files: list[tuple[int, str, str]], command_input: 'CommandInput', output_folder: 'OutputFolder'):
-        self._selected_files = selected_files
-        self._command_input = command_input
-        self._output_folder = output_folder
+class CommandGenerator():
+    def __init__(self):
         self._placeholders = Placeholders()
 
-    @staticmethod
-    def _finalize_command(cmd: str) -> str:
+    def _finalize_command(self, cmd: str) -> str:
         """
         Ensures common FFmpeg flags are present in the final command.
 
@@ -34,13 +25,12 @@ class CommandGenerator(object):
             cmd = cmd.replace("ffmpeg ", "ffmpeg -loglevel warning ", 1)
         return cmd
     
-    def generate_command(self, input_file: tuple[int, str, str]) -> str | None:
+    def generate_command(self, input_file: str, output_folder: str, command_template: str) -> str | None:
         """Generates a command for a single-file operation."""
         if not input_file:
             return None
         
-        template = self._command_input.get_command()
-        replacements = self._placeholders.get_replacements(input_file, self._output_folder)
-        cmd = self._placeholders.replace(template, replacements)
+        replacements = self._placeholders.get_replacements(input_file, output_folder)
+        cmd = self._placeholders.replace_placeholders(command_template, replacements)
 
         return self._finalize_command(cmd)
