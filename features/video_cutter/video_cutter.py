@@ -154,7 +154,7 @@ class VideoCutter(QDialog):
         # --- Connect Segment Processor to UI ---
         self._processor.processing_started.connect(self._on_processing_started)
         self._processor.processing_stopped.connect(self._on_processing_stopped)
-        self._processor.segment_processing.connect(self._on_segment_processing)
+        self._processor.status_updated.connect(self._on_processor_status_update)
         self._processor.segment_processed.connect(self._segment_manager.delete_segment_by_data)
         self._processor.log_signal.connect(self._logger.append_log)
 
@@ -210,12 +210,16 @@ class VideoCutter(QDialog):
         self._disable_ui_when_processing(False)
         self._segment_list.clear_highlights()
 
-    def _on_segment_processing(self, segment_data: tuple[int, int]):
+    def _on_processor_status_update(self, segment_data: tuple[int, int], status: str):
+        """Highlights the segment row based on its processing status."""
         row = self._segment_list.find_segment_by_data(segment_data)
         if row != -1:
-            self._segment_list.highlight_row(row, self._PROCESSING_COLOR)
+            if status == "Processing":
+                self._segment_list.highlight_row(row, self._PROCESSING_COLOR)
+            elif status == "Stopped":
+                self._segment_list.clear_highlight(row)
         else:
-            self._logger.append_log(styled_text('bold', 'blue', None, f'Could not find segment {segment_data} in the list to highlight.'))
+            self._logger.append_log(styled_text('bold', 'red', None, f'Could not find segment {segment_data} in the list to update status.'))
 
     def _on_cut_clicked(self):
         self._media_player.pause()
