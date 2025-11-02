@@ -14,8 +14,6 @@ if TYPE_CHECKING:
 
 class VideoJoiner(QDialog):
     """A dialog for joining multiple video files."""
-    log_signal = pyqtSignal(str)
-
     def __init__(self, 
                  selected_files: list[tuple[int, str, str]], 
                  output_folder: str, 
@@ -24,7 +22,7 @@ class VideoJoiner(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Join Videos")
         self.setWindowIcon(QIcon(resource_path("icon/join-video.png")))
-        self.setMinimumWidth(700)
+        self.setMinimumWidth(600)
 
         self._selected_files = selected_files
         self._output_folder = output_folder
@@ -97,9 +95,8 @@ class VideoJoiner(QDialog):
         self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template._cmd_input.insertPlainText)
         self._concat_demuxer_radio.toggled.connect(self._on_method_changed)
         self._join_video_button.clicked.connect(self._start_join_process)
-        self._processor.log_signal.connect(self.log_signal)
+        self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
-        self.log_signal.connect(self._logger.append_log)
 
     def _on_method_changed(self):
         """Updates the command template based on the selected join method."""
@@ -115,7 +112,6 @@ class VideoJoiner(QDialog):
         join_method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
 
         self._join_video_button.setEnabled(False)
-        self._join_video_button.setText("Joining...")
 
         self._processor.start(
             selected_files=self._selected_files,
@@ -124,11 +120,6 @@ class VideoJoiner(QDialog):
             join_method=join_method
         )
 
-    def _on_processing_finished(self, success: bool, message: str):
+    def _on_processing_finished(self):
         """Handles the completion of the joining process."""
         self._join_video_button.setEnabled(True)
-        self._join_video_button.setText("Join Videos")
-        if success:
-            QMessageBox.information(self, "Success", message)
-        else:
-            QMessageBox.critical(self, "Error", message)

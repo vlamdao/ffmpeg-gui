@@ -32,3 +32,8 @@ def bold_red(text: str):
 
 def bold_yellow(text: str):
     return f'<span style="color:yellow; font-weight:bold;">{text}</span>'
+
+def bold_blue(text: str):
+    return f'<span style="color:blue; font-weight:bold;">{text}</span>'
+
+

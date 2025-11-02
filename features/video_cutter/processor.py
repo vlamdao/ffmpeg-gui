@@ -1,10 +1,8 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 from processor import FFmpegWorker
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from components import Logger
+from helper import bold_green, bold_red, bold_yellow, bold_blue
 
-class SegmentProcessor(QObject):
+class Processor(QObject):
     """
     Manages the sequential processing of video segments.
 
@@ -18,43 +16,33 @@ class SegmentProcessor(QObject):
     processing_stopped = pyqtSignal()    # Emitted when processing stops for any reason
     segment_processing = pyqtSignal(tuple) # Emits the (start, end) tuple of the segment
     segment_processed = pyqtSignal(tuple) # Emits the (start, end) tuple of a completed segment
+    log_signal = pyqtSignal(str)
 
-    def __init__(self, logger: 'Logger', parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self._logger = logger
-
         self._active_workers = []
         self._processing_queue = []
 
     def start_processing(self, segments_to_process: list[dict]):
         """Initiates the sequential cutting process for all defined segments."""
         if self._processing_queue or self._active_workers:
-            self._logger.append_log(
-                '<span style="color:yellow; font-weight:bold;">WARNING: A cutting process is already running.</span>'
-            )
+            self.log_signal.emit(bold_yellow("WARNING: A cutting process is already running."))
             return
 
         # Populate the processing queue
         self._processing_queue = list(segments_to_process)
-        
         self.processing_started.emit(len(self._processing_queue))
-
-        self._logger.append_log(
-            f'<span style="color:blue; font-weight:bold;">INFO: Starting to cut {len(self._processing_queue)} segments sequentially.</span>'
-        )
+        self.log_signal.emit(bold_blue(f'Starting to cut {len(self._processing_queue)} segments sequentially'))
+        
         self._process_next_in_queue()
 
     def stop_processing(self):
         """Stops the current cutting process."""
         if not self._processing_queue and not self._active_workers:
-            self._logger.append_log(
-                f'<span style="color:blue; font-weight:bold;">INFO: No cutting process is currently running.</span>'
-            )
+            self.log_signal.emit(bold_blue("No cutting process is currently running."))
             return
+        self.log_signal.emit(bold_blue("Stopping all cutting processes..."))
 
-        self._logger.append_log(
-            f'<span style="color:blue; font-weight:bold;">INFO: Stopping all cutting processes...</span>'
-        )
         self._processing_queue.clear()
         for worker in self._active_workers:
             worker.stop()
@@ -64,9 +52,7 @@ class SegmentProcessor(QObject):
     def _process_next_in_queue(self):
         """Processes the next segment in the queue."""
         if not self._processing_queue:
-            self._logger.append_log(
-                f'<span style="color:blue; font-weight:bold;">INFO: All segments have been processed.</span>'
-            )
+            self.log_signal.emit(bold_blue("All segments have been processed."))
             self.processing_stopped.emit()
             return
 
@@ -91,7 +77,7 @@ class SegmentProcessor(QObject):
         # The worker expects a list of jobs. For segment cutting, it's one job at a time.
         job = (row, [command])
         worker = FFmpegWorker([job])
-        worker.log_signal.connect(self._logger.append_log)
+        worker.log_signal.connect(self.log_signal.emit)
         worker.finished.connect(
             lambda w=worker, data=segment_data: self._on_worker_finished(w, data)
         )
