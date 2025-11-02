@@ -41,16 +41,16 @@ class OutputFolder(QWidget):
         path = QFileDialog.getExistingDirectory(
             self,
             "Choose output folder",
-            self.get_path() # Start browsing from the current path
+            self.get_folder() # Start browsing from the current path
         )
         if path:
             self.set_path(path)
 
-    def get_path(self) -> str:
+    def get_folder(self) -> str:
         """Gets the current output path from the input field."""
         return self._path_input.text().strip()
 
-    def set_path(self, path: str):
+    def set_folder(self, path: str):
         """Sets the output path in the input field."""
         self._path_input.setText(path)
 
@@ -70,7 +70,7 @@ class OutputFolder(QWidget):
         Returns:
             str: The absolute, resolved output path.
         """
-        user_path_str = self.get_path()
+        user_path_str = self.get_folder()
         user_path = Path(user_path_str)
         input_folder_path = Path(input_file_folder)
 

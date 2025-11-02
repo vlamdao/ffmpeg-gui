@@ -1,7 +1,8 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 from processor import FFmpegWorker
-from components import FileManager, CommandInput, OutputFolder, Logger
+from components import FileManager, CommandInput, OutputFolder
 from .command_generator import CommandGenerator
+from helper import bold_blue, bold_red, bold_green, bold_yellow
 
 class BatchProcessor(QObject):
     """
@@ -14,21 +15,25 @@ class BatchProcessor(QObject):
     """
     log_signal = pyqtSignal(str)
 
-    def __init__(self, parent):
+    def __init__(self,
+                 file_manager: FileManager,
+                 command_input: CommandInput,
+                 output_folder: OutputFolder,
+                 parent=None):
         """Initializes the BatchProcessor.
 
         Args:
-            parent (QWidget): The main application window which holds references to other components.
+            file_manager (FileManager): The file manager component.
+            command_input (CommandInput): The command input component.
+            output_folder (OutputFolder): The output folder component.
+            logger (Logger): The logger component.
+            parent (QObject, optional): The parent object. Defaults to None.
         """
         super().__init__(parent)
-        self.parent = parent
         self._ffmpeg_worker = None
-
-        # Store references to components from the main app
-        self._file_manager: FileManager = self.parent.file_manager
-        self._command_input: CommandInput = self.parent.command_input
-        self._output_folder: OutputFolder = self.parent.output_folder
-        self._logger: Logger = self.parent.logger
+        self._file_manager = file_manager
+        self._command_input = command_input
+        self._output_folder = output_folder
 
     def _create_jobs(self, selected_files: list) -> list[tuple[int, list[str]]]:
         """Creates a list of FFmpeg commands to be executed."""
@@ -79,23 +84,19 @@ class BatchProcessor(QObject):
         """Stops the currently running batch process."""
         if self.is_processing():
             self._ffmpeg_worker.stop()
-            self.log_signal.emit("Stopped batch processing...")
+            self.log_signal.emit(bold_blue("Stopped batch processing..."))
 
-    def run_command(self):
+    def run_command(self, selected_files: list[tuple[int, str, str]]):
         """Starts the batch processing of selected files."""
         if self.is_processing():
-            self.log_signal.emit("A batch process is already running.")
+            self.log_signal.emit(bold_yellow("A batch process is already running."))
             return
-        self._logger.clear()
 
-        selected_files, selected_rows = self._file_manager.get_selected_files()
-        if not selected_files:
-            self.log_signal.emit("No items selected to process.")
-            return
+        selected_rows = set(row for row, _, _ in selected_files)
         
         jobs = self._create_jobs(selected_files)
         if not jobs:
-            self.log_signal.emit("Could not generate any commands to run.")
+            self.log_signal.emit(bold_red("Could not generate any commands to run."))
             return
         self._start_batch(jobs, selected_rows)
 
