@@ -4,9 +4,8 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QGroupBox, QTextEdit)
 from PyQt5.QtGui import QFont
 
 from components import PlaceholderTable
-from helper.placeholders import (PLACEHOLDER_INPUTFILE_NAME, PLACEHOLDER_INPUTFILE_FOLDER,
-                                 PLACEHOLDER_INPUTFILE_EXT, PLACEHOLDER_OUTPUT_FOLDER,
-                                 PLACEHOLDER_CONCATFILE_PATH, VIDEO_JOINER_PLACEHOLDERS
+from helper.placeholders import (PLACEHOLDER_INPUTFILE_FOLDER, PLACEHOLDER_OUTPUT_FOLDER,
+                                 PLACEHOLDER_CONCATFILE_PATH
                                 )
 
 class CommandTemplate(QWidget):
@@ -71,20 +70,47 @@ class CommandTemplate(QWidget):
             return None, None
 
         temp_concat_file_path = None
+        replacements, temp_concat_file_path = self._get_replacement_values(selected_files, output_folder, join_method)
+
+        # Replace placeholders in the command template
+        cmd = self._replace_placeholders(command_template, replacements)
+
+        return cmd, temp_concat_file_path
+    
+    def _replace_placeholders(self, template: str, replacements: dict) -> str:
+        """Replaces placeholders in a command template with actual values."""
+        for placeholder, value in replacements.items():
+            template = template.replace(placeholder, value)
+        return template
+    
+    def _get_replacement_values(self, 
+                                selected_files: list[tuple[int, str, str]],
+                                output_folder: str | None = None,
+                                join_method: str | None = None) -> tuple[dict[str, str], str | None]:
+        """
+        Calculates and returns a dictionary of all placeholder values.
+        This is the single source of truth for placeholder logic.
+        """
+        temp_concat_file_path = None
         replacements = {
-            PLACEHOLDER_OUTPUT_FOLDER: output_folder
+            PLACEHOLDER_OUTPUT_FOLDER: str(output_folder)
         }
 
+        # Check if all files are in the same folder to define {inputfile_folder}
+        if selected_files:
+            first_folder = selected_files[0][2]
+            if all(folder == first_folder for _, _, folder in selected_files):
+                replacements[PLACEHOLDER_INPUTFILE_FOLDER] = first_folder
+
+        # Handle method-specific placeholders
         if join_method == "demuxer":
             concat_fd, concat_path = tempfile.mkstemp(suffix=".txt", text=True)
             with os.fdopen(concat_fd, 'w', encoding='utf-8') as f:
                 for _, inputfile_name, inputfile_folder in selected_files:
+                    # Use forward slashes for FFmpeg compatibility
                     full_path = os.path.join(inputfile_folder, inputfile_name).replace('\\', '/')
                     f.write(f"file '{full_path}'\n")
             temp_concat_file_path = concat_path
             replacements[PLACEHOLDER_CONCATFILE_PATH] = temp_concat_file_path
-
-        for placeholder, value in replacements.items():
-            command_template = command_template.replace(placeholder, value)
-
-        return command_template, temp_concat_file_path
+        
+        return replacements, temp_concat_file_path

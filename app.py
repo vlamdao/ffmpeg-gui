@@ -131,13 +131,19 @@ class FFmpegGUI(QMainWindow):
             QMessageBox.warning(self, "Selection Error", "Please select at least two video files to join.")
             return
         
-        same_folder = all(inputfile_folder == selected_files[0][2] for _, _, inputfile_folder in selected_files)
-        output_folder = None
+        # Check if all selected files are in the same folder
+        first_folder = selected_files[0][2]
+        same_folder = all(folder == first_folder for _, _, folder in selected_files)
+
         if same_folder:
-            output_folder = self.output_path.get_completed_output_path(selected_files[0][2])
+            output_folder = self.output_path.get_completed_output_path(first_folder)
         else:
-            QMessageBox.warning(self, "Output Error", "Please select specific folders for output")
-            return
+            output_path_str = self.output_path.get_path()
+            if not os.path.isabs(output_path_str):
+                QMessageBox.warning(self, "Output Path Error", 
+                                    "Selected files are from different folders.\nPlease specify an absolute output folder (e.g., 'C:/videos/output').")
+                return
+            output_folder = output_path_str
         
         dialog = VideoJoiner(
             selected_files=selected_files,

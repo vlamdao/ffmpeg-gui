@@ -83,7 +83,6 @@ class VideoJoiner(QDialog):
     def _connect_signals(self):
         """Connects UI element signals to corresponding slots."""
         self._concat_demuxer_radio.toggled.connect(self._on_method_changed)
-        self._placeholder_table.placeholder_double_clicked.connect(self._cmd_template._cmd_input.insertPlainText)
         self._join_video_button.clicked.connect(self._start_join_process)
         self._processor.log_signal.connect(self.log_signal)
         self._processor.processing_finished.connect(self._on_processing_finished)
