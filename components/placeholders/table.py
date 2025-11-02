@@ -81,3 +81,13 @@ class PlaceholderTable(QTableWidget):
         # Add a small buffer for borders/padding
         total_height += self.frameWidth() * 2
         self.setFixedHeight(total_height)
+
+    def set_disabled_placeholders(self, disabled_list: list[str]):
+        for row in range(self.rowCount()):
+            for col in range(self.columnCount()):
+                item = self.item(row, col)
+                if item and item.text():
+                    if item.text() in disabled_list:
+                        item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
+                    else:
+                        item.setFlags(item.flags() | Qt.ItemIsEnabled)
