@@ -81,7 +81,7 @@ class FFmpegGUI(QMainWindow):
 
         # Connect signals from ControlPanel to the appropriate slots/methods
         self.control_panel.add_files_clicked.connect(self.file_manager.add_files_dialog)
-        self.control_panel.run_clicked.connect(self.run_command)
+        self.control_panel.run_clicked.connect(self.run)
         self.control_panel.stop_clicked.connect(self.batch_processor.stop_batch)
         self.control_panel.remove_clicked.connect(self.file_manager.remove_selected_files)
         self.control_panel.cut_video_clicked.connect(self.open_video_cutter)
@@ -94,7 +94,7 @@ class FFmpegGUI(QMainWindow):
         QShortcut(QKeySequence("Esc"), self).activated.connect(self.close)
         QShortcut(QKeySequence("Ctrl+W"), self).activated.connect(self.close)
 
-    def run_command(self):
+    def run(self):
         selected_files, _ = self.file_manager.get_selected_files()
         if not selected_files:
             QMessageBox.warning(self, "Selection Error", "No files selected to process.")
