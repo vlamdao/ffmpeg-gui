@@ -3,7 +3,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from processor import FFmpegWorker
 from components import FileManager, CommandInput, OutputFolder
 from .command_generator import CommandGenerator
-from helper import bold_blue, bold_red, bold_green, bold_yellow
+from helper import styled_text
 
 class BatchProcessor(QObject):
     """
@@ -87,19 +87,19 @@ class BatchProcessor(QObject):
         """Stops the currently running batch process."""
         if self.is_processing():
             self._ffmpeg_worker.stop()
-            self.log_signal.emit(bold_blue("Stopped batch processing..."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, "Stopped batch processing..."))
 
     def run_command(self, selected_files: list[tuple[int, str, str]]):
         """Starts the batch processing of selected files."""
         if self.is_processing():
-            self.log_signal.emit(bold_yellow("A batch process is already running."))
+            self.log_signal.emit(styled_text('bold', 'yellow', None, "A batch process is already running."))
             return
 
         selected_rows = set(row for row, _, _ in selected_files)
         
         jobs = self._create_jobs(selected_files)
         if not jobs:
-            self.log_signal.emit(bold_red("Could not generate any commands to run."))
+            self.log_signal.emit(styled_text('bold', 'red', None, "Could not generate any commands to run."))
             return
         self._start_batch(jobs, selected_rows)
 
