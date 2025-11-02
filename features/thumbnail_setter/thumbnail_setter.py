@@ -166,13 +166,9 @@ class ThumbnailSetter(QDialog):
         
         self._processor.start(self._video_path, self._output_folder, timestamp)
 
-    @pyqtSlot(bool, str)
-    def _on_processing_finished(self, success: bool, message: str):
+    @pyqtSlot()
+    def _on_processing_finished(self):
         """Handles the completion of the thumbnail process."""
-        if success:
-            QMessageBox.information(self, "Success", message)
-        else:
-            QMessageBox.critical(self, "Error", message)
         self._set_thumbnail_button.setEnabled(True)
         self._go_to_button.setEnabled(True)
         self._timestamp_edit.setEnabled(True)
