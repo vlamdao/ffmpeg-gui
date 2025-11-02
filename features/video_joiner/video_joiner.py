@@ -19,7 +19,7 @@ class VideoJoiner(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Join Videos")
         self.setWindowIcon(QIcon(resource_path("icon/join-video.png")))
-        self.setMinimumWidth(700)
+        self.setMinimumWidth(600)
 
         self._selected_files = selected_files
         self._output_folder = output_folder
