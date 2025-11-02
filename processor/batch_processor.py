@@ -92,7 +92,7 @@ class BatchProcessor(QObject):
     def run_command(self, selected_files: list[tuple[int, str, str]]):
         """Starts the batch processing of selected files."""
         if self.is_processing():
-            self.log_signal.emit(styled_text('bold', 'yellow', None, "A batch process is already running."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, "A batch process is already running."))
             return
 
         selected_rows = set(row for row, _, _ in selected_files)

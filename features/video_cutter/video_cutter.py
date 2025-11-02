@@ -215,7 +215,7 @@ class VideoCutter(QDialog):
         if row != -1:
             self._segment_list.highlight_row(row, self._PROCESSING_COLOR)
         else:
-            self._logger.append_log(styled_text('bold', 'yellow', None, f'Could not find segment {segment_data} in the list to highlight.'))
+            self._logger.append_log(styled_text('bold', 'blue', None, f'Could not find segment {segment_data} in the list to highlight.'))
 
     def _on_cut_clicked(self):
         self._media_player.pause()

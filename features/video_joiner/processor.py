@@ -30,7 +30,7 @@ class VideoJoinerProcessor(QObject):
               join_method: str):
         """Starts the process of joining videos."""
         if self.is_running():
-            self.log_signal.emit(styled_text('bold', 'yellow', None, "Join processVideo joining is already in progress."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, "Join processVideo joining is already in progress."))
             return
 
         try:
@@ -58,7 +58,7 @@ class VideoJoinerProcessor(QObject):
         """Stops the running worker thread."""
         if self.is_running():
             self._worker.stop_all()
-            self.log_signal.emit(styled_text('bold', 'yellow', None, "Join process stopped by user."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, "Join process stopped by user."))
             self.processing_finished.emit()
             self._cleanup()
 

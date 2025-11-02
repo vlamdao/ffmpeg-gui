@@ -46,7 +46,7 @@ class FFmpegWorker(QThread):
         Returns:
             str: A status string indicating the outcome: "Success", "Failed", or "Stopped".
         """
-        self.log_signal.emit(styled_text('bold', 'purple', 'italic', cmd))
+        self.log_signal.emit(styled_text('bold', 'purple', None, cmd))
         try:
             env = os.environ.copy()
             env['PYTHONUTF8'] = '1'
@@ -74,7 +74,7 @@ class FFmpegWorker(QThread):
                         # Force kill if it doesn't terminate
                         self._proc.kill()
                     return "Stopped"
-                self.log_signal.emit(line.rstrip())
+                self.log_signal.emit(styled_text(None, None, 'italic', line.rstrip()))
 
             self._proc.wait()
             if self._is_stopped:
