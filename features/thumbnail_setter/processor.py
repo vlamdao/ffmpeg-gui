@@ -44,17 +44,17 @@ class Processor(QObject):
         self._worker.finished.connect(self._on_worker_thread_finished)
         self._worker.start()
 
-    @pyqtSlot(str, str)
+    @pyqtSlot()
     def _on_worker_status_update(self, job_id: str, status: str):
         """Handles status updates from the worker and emits the final result."""
         # We only care about the final status, not "Processing"
         if status in ("Success", "Failed", "Stopped"):
-            is_success = (status == "Success")
-            if is_success:
-                status_message = "Thumbnail has been set successfully."
+            if status == "Success":
+                log_message = styled_text('bold', 'green', None, "Thumbnail has been set successfully.")
             else:
-                status_message = f"Failed to set thumbnail. Status: {status}"
-            self.processing_finished.emit(is_success, status_message)
+                log_message = styled_text('bold', 'red', None, f"Failed to set thumbnail. Status: {status}")
+            self.log_signal.emit(log_message)
+            self.processing_finished.emit()
 
     def _on_worker_thread_finished(self):
         """Cleans up resources after the worker thread has completely finished."""
