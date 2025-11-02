@@ -39,7 +39,7 @@ class VideoJoinerProcessor(QObject):
                 raise ValueError("Command template is empty or failed to generate.")
 
             self._start_worker(command)
-            self.log_signal.emit(f"Starting to join {len(selected_files)} files...")
+            self.log_signal.emit(styled_text('bold', 'blue', None, f"Starting to join {len(selected_files)} files..."))
         except Exception as e:
             self.log_signal.emit(styled_text('bold', 'red', None, f'Error: Could not start join process: {e}'))
             self.processing_finished.emit()
