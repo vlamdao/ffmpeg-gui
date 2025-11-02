@@ -220,10 +220,10 @@ class VideoCutter(QDialog):
             self._logger.append_log(f"Warning: Could not find segment {segment_data} in the list to highlight.")
 
     def _on_cut_clicked(self):
+        self._media_player.pause()
         segments = self._segment_manager.get_segments_for_processing()
         if not segments:
             return
-
         jobs = []
         for segment_data in segments:
             start_ms, end_ms = segment_data
