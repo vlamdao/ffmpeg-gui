@@ -10,7 +10,7 @@ from .components import (SegmentControls, SegmentList,
                          CommandTemplate, VideoCutterPlaceholders
                          )
 from .processor import Processor
-from helper import FontDelegate, bold_green, bold_red, bold_yellow
+from helper import FontDelegate, styled_text
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from components import Logger
@@ -215,7 +215,7 @@ class VideoCutter(QDialog):
         if row != -1:
             self._segment_list.highlight_row(row, self._PROCESSING_COLOR)
         else:
-            self._logger.append_log(bold_yellow(f'Could not find segment {segment_data} in the list to highlight.'))
+            self._logger.append_log(styled_text('bold', 'yellow', None, f'Could not find segment {segment_data} in the list to highlight.'))
 
     def _on_cut_clicked(self):
         self._media_player.pause()

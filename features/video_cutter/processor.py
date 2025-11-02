@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 from processor import FFmpegWorker
-from helper import bold_green, bold_red, bold_yellow, bold_blue
+from helper import bold_green, bold_red, bold_yellow, bold_blue, styled_text
 
 class Processor(QObject):
     """
@@ -26,22 +26,22 @@ class Processor(QObject):
     def start_processing(self, segments_to_process: list[dict]):
         """Initiates the sequential cutting process for all defined segments."""
         if self._processing_queue or self._active_workers:
-            self.log_signal.emit(bold_yellow("WARNING: A cutting process is already running."))
+            self.log_signal.emit(styled_text('bold', 'yellow', None, "WARNING: A cutting process is already running."))
             return
 
         # Populate the processing queue
         self._processing_queue = list(segments_to_process)
         self.processing_started.emit(len(self._processing_queue))
-        self.log_signal.emit(bold_blue(f'Starting to cut {len(self._processing_queue)} segments sequentially'))
+        self.log_signal.emit(styled_text('bold', 'blue', None, f'Starting to cut {len(self._processing_queue)} segments sequentially'))
         
         self._process_next_in_queue()
 
     def stop_processing(self):
         """Stops the current cutting process."""
         if not self._processing_queue and not self._active_workers:
-            self.log_signal.emit(bold_blue("No cutting process is currently running."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, "No cutting process is currently running."))
             return
-        self.log_signal.emit(bold_blue("Stopping all cutting processes..."))
+        self.log_signal.emit(styled_text('bold', 'blue', None, "Stopping all cutting processes..."))
 
         self._processing_queue.clear()
         for worker in self._active_workers:
@@ -52,7 +52,7 @@ class Processor(QObject):
     def _process_next_in_queue(self):
         """Processes the next segment in the queue."""
         if not self._processing_queue:
-            self.log_signal.emit(bold_blue("All segments have been processed."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, "All segments have been processed."))
             self.processing_stopped.emit()
             return
 
