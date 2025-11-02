@@ -36,7 +36,16 @@ def bold_yellow(text: str):
 def bold_blue(text: str):
     return f'<span style="color:blue; font-weight:bold;">{text}</span>'
 
-def styled_text(color: str, font_weight: str, font_style: str, text: str):
-    return f'<span style="color:{color}; font-weight:{font_weight}; font-style:{font_style};">{text}</span>'
-
+def styled_text(font_weight: str | None, 
+                color: str | None,
+                font_style: str | None, 
+                text: str):
+    if not font_weight:
+        font_weight = 'normal'
+    if not color:
+        color = 'black'
+    if not font_style:
+        font_style = 'normal'
+    return f'<span style="font-weight:{font_weight}; color:{color}; font-style:{font_style};">{text}</span>'
+    
 
