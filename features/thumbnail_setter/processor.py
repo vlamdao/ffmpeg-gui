@@ -2,8 +2,9 @@ import os
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from processor import FFmpegWorker
 from .command import CommandTemplates
+from helper import bold_green,bold_red,bold_yellow
 
-class ThumbnailProcessor(QObject):
+class Processor(QObject):
     """
     Handles the background processing for setting a video thumbnail using FFmpeg.
     """
@@ -11,7 +12,7 @@ class ThumbnailProcessor(QObject):
     processing_finished = pyqtSignal(bool, str) # success (bool), status_message (str)
 
     def __init__(self, parent=None):
-        """Initializes the ThumbnailProcessor."""
+        """Initializes the Processor."""
         super().__init__(parent)
         self._worker: FFmpegWorker | None = None
         self._temp_thumb_path: str | None = None

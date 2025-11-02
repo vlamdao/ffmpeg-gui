@@ -5,7 +5,7 @@ from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtCore import QSize
 
 from features.player import MediaPlayer, MediaControls
-from .processor import ThumbnailProcessor
+from .processor import Processor
 from helper import ms_to_time_str, time_str_to_ms, resource_path
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -45,7 +45,7 @@ class ThumbnailSetter(QDialog):
         self._set_thumbnail_button: QPushButton
 
         # Thumbnail Processor
-        self._processor = ThumbnailProcessor(self)
+        self._processor = Processor(self)
 
         self._setup_ui()
         self._connect_signals()
