@@ -9,7 +9,7 @@ class Placeholders:
     def __init__(self):
         self._INFILE_FOLDER = "{infile_folder}"
         self._INFILE_NAME = "{infile_name}"
-        self._INFILE_EXT = "{inputfile_ext}"
+        self._INFILE_EXT = "{infile_ext}"
         self._OUTPUT_FOLDER = "{output_folder}"
 
     def get_INFILE_FOLDER(self):
@@ -33,12 +33,12 @@ class Placeholders:
 
         infile_folder = os.path.dirname(input_file)
         filename = os.path.basename(input_file)
-        infile_name, inputfile_ext = os.path.splitext(filename)
+        infile_name, infile_ext = os.path.splitext(filename)
         
         replacements = {
             self._INFILE_FOLDER: str(infile_folder),
             self._INFILE_NAME: str(infile_name),
-            self._INFILE_EXT: inputfile_ext.lstrip('.'),
+            self._INFILE_EXT: infile_ext.lstrip('.'),
             self._OUTPUT_FOLDER: str(output_folder),
         }
         return replacements
