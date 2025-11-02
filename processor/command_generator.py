@@ -1,9 +1,8 @@
 import os
 from typing import TYPE_CHECKING
 from helper.placeholders import (
-    PLACEHOLDER_CONCATFILE_PATH, PLACEHOLDER_INPUTFILE_EXT, 
-    PLACEHOLDER_INPUTFILE_FOLDER, PLACEHOLDER_INPUTFILE_NAME, 
-    PLACEHOLDER_OUTPUT_FOLDER
+    PLACEHOLDER_INPUTFILE_EXT, PLACEHOLDER_INPUTFILE_FOLDER,
+    PLACEHOLDER_INPUTFILE_NAME, PLACEHOLDER_OUTPUT_FOLDER
 )
 if TYPE_CHECKING:
     from components import CommandInput, OutputPath
@@ -14,7 +13,6 @@ class CommandGenerator(object):
         self._selected_files = selected_files
         self._command_input = command_input
         self._output_path = output_path
-        self._concat_file_path = None # To store the path of the temporary concat file
 
     def _replace_placeholders(self, template: str, replacements: dict) -> str:
         """Replaces placeholders in a command template with actual values."""
@@ -29,36 +27,26 @@ class CommandGenerator(object):
 
         Args:
             input_file (tuple | None): A tuple of (row, filename, folder) for a single file.
-                                       Required for single-file operations. If None, it will
-                                       try to use the first selected file as a reference.
+                                       Required for single-file operations.
 
         Returns:
             dict: A dictionary mapping placeholders to their calculated values.
         """
-        # Use the provided input_file or default to the first selected file for context
-        context_file = input_file if input_file else (self._selected_files[0] if self._selected_files else None)
 
-        if not context_file:
+        if not input_file:
             return {}
 
-        _, filename, inputfile_folder = context_file
-        inputfile_name, inputfile_ext = os.path.splitext(filename)
+        _, inputfile, inputfile_folder = input_file
+        inputfile_name, inputfile_ext = os.path.splitext(inputfile)
 
-        # Calculate all possible values
         output_folder = self._output_path.get_completed_output_path(inputfile_folder)
         
-        if PLACEHOLDER_CONCATFILE_PATH in self._command_input.get_command():
-            concatfile_path = self._create_concat_file()
-        else:
-            concatfile_path = ""
-
         # Build the full replacement dictionary
         replacements = {
             PLACEHOLDER_INPUTFILE_FOLDER: str(inputfile_folder),
             PLACEHOLDER_INPUTFILE_NAME: str(inputfile_name),
             PLACEHOLDER_INPUTFILE_EXT: inputfile_ext.lstrip('.'),
             PLACEHOLDER_OUTPUT_FOLDER: str(output_folder),
-            PLACEHOLDER_CONCATFILE_PATH: str(concatfile_path),
         }
         return replacements
 
