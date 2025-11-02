@@ -26,8 +26,6 @@ class VideoCutter(QDialog):
     _PROCESSING_COLOR = QColor("#5cce77")  # A light green color
     _PENDING_COLOR = QColor("#ffe58e")  # A light yellow color
 
-    log_signal = pyqtSignal(str)
-
     def __init__(self, input_file, output_folder, logger: 'Logger', parent=None):
         """Initializes the VideoCutter dialog.
 
