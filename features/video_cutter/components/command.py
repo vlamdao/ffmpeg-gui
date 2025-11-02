@@ -7,9 +7,9 @@ from components import PlaceholderTable
 
 class CommandTemplate(QWidget):
 
-    def __init__(self, input_file: str, output_folder: str, parent=None):
+    def __init__(self, input_file: str, output_folder: str, placeholders: 'VideoCutterPlaceholders', parent=None):
         super().__init__(parent)
-        self._placeholders = VideoCutterPlaceholders()
+        self._placeholders = placeholders
         self._placeholder_table: PlaceholderTable
         self._command_template: QTextEdit
         self._input_file = input_file

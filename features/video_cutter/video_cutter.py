@@ -8,7 +8,7 @@ from PyQt5.QtGui import QColor
 from features.player import MediaPlayer, MediaControls, MarkerSlider
 from .components import (SegmentControls, SegmentList,
                          SegmentManager, EditSegmentDialog,
-                         CommandTemplate
+                         CommandTemplate, VideoCutterPlaceholders
                          )
 from .processor import SegmentProcessor
 from helper import FontDelegate
@@ -84,9 +84,11 @@ class VideoCutter(QDialog):
         self._media_player = MediaPlayer()
         self._media_controls = MediaControls(slider_class=MarkerSlider)
         self._segment_controls = SegmentControls()
+        self._placeholders = VideoCutterPlaceholders()
         self._command_template = CommandTemplate(
             input_file=self._input_file,
             output_folder=self._output_folder,
+            placeholders=self._placeholders,
             parent=self
         )
 
