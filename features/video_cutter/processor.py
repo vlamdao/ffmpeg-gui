@@ -77,7 +77,7 @@ class Processor(QObject):
         # The worker expects a list of jobs. For segment cutting, it's one job at a time.
         job = (row, [command])
         worker = FFmpegWorker([job])
-        worker.log_signal.connect(self.log_signal.emit)
+        worker.log_signal.connect(self.log_signal)
         worker.finished.connect(
             lambda w=worker, data=segment_data: self._on_worker_finished(w, data)
         )
