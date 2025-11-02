@@ -1,5 +1,4 @@
 
-import json, os
 from PyQt5.QtWidgets import (
     QGroupBox, QDialog, QTextEdit,
     QLineEdit, QDialogButtonBox, QVBoxLayout,
@@ -7,8 +6,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont, QIcon
 from helper import resource_path
-from .placeholders import PlaceholderTable
-from .placeholders.definitions import GENERAL_PLACEHOLDERS
+from .placeholders import PlaceholderTable, Placeholders
+
 
 class PresetDialog(QDialog):
     """A dialog for adding or editing a preset (name and command)."""
@@ -41,8 +40,9 @@ class PresetDialog(QDialog):
         """Creates all the widgets needed for the dialog."""
         self._name_input = QLineEdit(self._preset_name)
 
+        GENERAL_PLACEHOLDERS = Placeholders().get_placeholders_list()
         self._placeholder_table = PlaceholderTable(
-            placeholders=GENERAL_PLACEHOLDERS,
+            placeholders_list=GENERAL_PLACEHOLDERS,
             num_columns=4,
             parent=self
         )
