@@ -8,7 +8,7 @@ from helper import resource_path
 from .processor import VideoJoinerProcessor
 from .command import CommandTemplate
 from .placeholders import VideoJoinerPlaceholders
-from components import PlaceholderTable
+from components import PlaceholdersTable
 
 
 class VideoJoiner(QDialog):
@@ -41,17 +41,17 @@ class VideoJoiner(QDialog):
         self._concat_filter_radio = QRadioButton("Concat Filter (Slower, Re-encodes)")
         self._concat_demuxer_radio.setChecked(True)
 
-        self._placeholder_table = PlaceholderTable(
+        self._placeholders_table = PlaceholdersTable(
             placeholders_list=self._placeholders.get_placeholders_list(),
             num_columns=4,
             parent=self
         )
-        self._placeholder_table.set_compact_height()
+        self._placeholders_table.set_compact_height()
         disable_placeholder = [
             self._placeholders.get_INFILE_NAME(),
             self._placeholders.get_INFILE_EXT()
         ]
-        self._placeholder_table.set_disabled_placeholders(disable_placeholder)
+        self._placeholders_table.set_disabled_placeholders(disable_placeholder)
 
         self._cmd_template = CommandTemplate(placeholders=self._placeholders)
 
@@ -70,7 +70,7 @@ class VideoJoiner(QDialog):
 
         placeholder_group = QGroupBox("Placeholders")
         placeholder_layout = QVBoxLayout()
-        placeholder_layout.addWidget(self._placeholder_table)
+        placeholder_layout.addWidget(self._placeholders_table)
         placeholder_group.setLayout(placeholder_layout)
 
         cmd_template_group = QGroupBox("Command Template")
@@ -89,7 +89,7 @@ class VideoJoiner(QDialog):
 
     def _connect_signals(self):
         """Connects UI element signals to corresponding slots."""
-        self._placeholder_table.placeholder_double_clicked.connect(self._cmd_template._cmd_input.insertPlainText)
+        self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template._cmd_input.insertPlainText)
         self._concat_demuxer_radio.toggled.connect(self._on_method_changed)
         self._join_video_button.clicked.connect(self._start_join_process)
         self._processor.log_signal.connect(self.log_signal)

@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont, QIcon
 from helper import resource_path
-from .placeholders import PlaceholderTable, Placeholders
+from .placeholders import PlaceholdersTable, Placeholders
 
 
 class PresetDialog(QDialog):
@@ -41,12 +41,12 @@ class PresetDialog(QDialog):
         self._name_input = QLineEdit(self._preset_name)
 
         GENERAL_PLACEHOLDERS = Placeholders().get_placeholders_list()
-        self._placeholder_table = PlaceholderTable(
+        self._placeholders_table = PlaceholdersTable(
             placeholders_list=GENERAL_PLACEHOLDERS,
             num_columns=4,
             parent=self
         )
-        self._placeholder_table.set_compact_height()
+        self._placeholders_table.set_compact_height()
 
         self._cmd_input = QTextEdit(self._preset_command)
         self._cmd_input.setFont(QFont("Consolas", 9))
@@ -56,7 +56,7 @@ class PresetDialog(QDialog):
         self._button_box.accepted.connect(self.accept)
         self._button_box.rejected.connect(self.reject)
 
-        self._placeholder_table.placeholder_double_clicked.connect(self._cmd_input.insertPlainText)
+        self._placeholders_table.placeholder_double_clicked.connect(self._cmd_input.insertPlainText)
         
     def _setup_layout(self):
         """Configures the layout and adds widgets to it."""
@@ -70,7 +70,7 @@ class PresetDialog(QDialog):
 
         placeholder_group = QGroupBox("Placeholders")
         placeholder_layout = QHBoxLayout()
-        placeholder_layout.addWidget(self._placeholder_table)
+        placeholder_layout.addWidget(self._placeholders_table)
         placeholder_group.setLayout(placeholder_layout)
 
         cmd_group = QGroupBox("Command")

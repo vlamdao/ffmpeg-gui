@@ -1,7 +1,7 @@
-from .table import PlaceholderTable
+from .table import PlaceholdersTable
 from .placeholders import Placeholders
 
 __all__ = [
     'Placeholders',
-    'PlaceholderTable',
+    'PlaceholdersTable',
 ]

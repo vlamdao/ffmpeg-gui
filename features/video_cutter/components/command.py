@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTextEdit)
 from PyQt5.QtGui import QFont
 
 from .placeholders import VideoCutterPlaceholders
-from components import PlaceholderTable
+from components import PlaceholdersTable
 
 
 class CommandTemplate(QWidget):
@@ -10,7 +10,7 @@ class CommandTemplate(QWidget):
     def __init__(self, input_file: str, output_folder: str, placeholders: 'VideoCutterPlaceholders', parent=None):
         super().__init__(parent)
         self._placeholders = placeholders
-        self._placeholder_table: PlaceholderTable
+        self._placeholders_table: PlaceholdersTable
         self._command_template: QTextEdit
         self._input_file = input_file
         self._output_folder = output_folder
@@ -26,12 +26,12 @@ class CommandTemplate(QWidget):
 
     def _setup_ui(self):
         """Initializes and lays out the UI components."""
-        self._placeholder_table = PlaceholderTable(
+        self._placeholders_table = PlaceholdersTable(
             placeholders_list=self._placeholders.get_placeholders_list(),
             num_columns=5,
             parent=self
         )
-        self._placeholder_table.set_compact_height()
+        self._placeholders_table.set_compact_height()
 
         self._command_template = QTextEdit()
         self._command_template.setText(self._DEFAULT_COMMAND_TEMPLATE)
@@ -41,9 +41,9 @@ class CommandTemplate(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
-        layout.addWidget(self._placeholder_table)
+        layout.addWidget(self._placeholders_table)
         layout.addWidget(self._command_template)
-        self._placeholder_table.placeholder_double_clicked.connect(self._command_template.insertPlainText)
+        self._placeholders_table.placeholder_double_clicked.connect(self._command_template.insertPlainText)
 
     def get_command_template(self) -> str:
         """Returns the command template from the text edit."""

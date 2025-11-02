@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 from helper import FontDelegate
 
-class PlaceholderTable(QTableWidget):
+class PlaceholdersTable(QTableWidget):
     """
     A reusable widget for displaying a grid of placeholders_list.
 
@@ -18,7 +18,7 @@ class PlaceholderTable(QTableWidget):
 
     def __init__(self, placeholders_list: list[str], num_columns: int, parent=None):
         """
-        Initializes the PlaceholderTable.
+        Initializes the PlaceholdersTable.
 
         Args:
             placeholders_list (list[str]): The list of placeholder strings to display.
