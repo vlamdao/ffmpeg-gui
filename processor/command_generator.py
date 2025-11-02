@@ -5,20 +5,6 @@ class CommandGenerator():
         self._placeholders = Placeholders()
 
     def _finalize_command(self, cmd: str) -> str:
-        """
-        Ensures common FFmpeg flags are present in the final command.
-
-        This method adds the following flags to the command if they are not
-        already included:
-        - `-y`: Overwrites output files without asking.
-        - `-loglevel warning`: Reduces console output to only show warnings and errors.
-
-        Args:
-            cmd (str): The generated FFmpeg command string.
-
-        Returns:
-            str: The command string with default flags added.
-        """
         if 'ffmpeg ' in cmd and '-y ' not in cmd:
             cmd = cmd.replace("ffmpeg ", "ffmpeg -y ", 1)
         if 'ffmpeg ' in cmd and '-loglevel ' not in cmd:
