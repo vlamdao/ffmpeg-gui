@@ -72,9 +72,15 @@ class CommandTemplate(QWidget):
 
         replacements = {
             self._placeholders.get_OUTPUT_FOLDER(): output_folder,
-            self._placeholders.get_INPUTFILE_FOLDER(): selected_files[0][2],
         }
         temp_concat_file_path = None
+
+        if selected_files:
+            first_folder = selected_files[0][2]
+            if all(folder == first_folder for _, _, folder in selected_files):
+                replacements.update({
+                    self._placeholders.get_INPUTFILE_FOLDER(): first_folder,
+                })
 
         if join_method == "demuxer":
             concat_fd, concat_path = tempfile.mkstemp(suffix=".txt", text=True)
@@ -86,6 +92,7 @@ class CommandTemplate(QWidget):
             replacements.update({
                 self._placeholders.get_CONCATFILE_PATH(): temp_concat_file_path,
             })
+        # Replace placeholders in the command template
         cmd = self._placeholders.replace_placeholders(command_template, replacements)
 
         return cmd, temp_concat_file_path

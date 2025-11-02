@@ -47,11 +47,6 @@ class VideoJoiner(QDialog):
             parent=self
         )
         self._placeholder_table.set_compact_height()
-        disable_placeholder = [
-            self._placeholders.get_INPUTFILE_NAME(),
-            self._placeholders.get_INPUTFILE_EXT()
-        ]
-        self._placeholder_table.set_disabled_placeholders(disable_placeholder)
         
         self._cmd_template = CommandTemplate(placeholders=self._placeholders)
 

@@ -138,9 +138,12 @@ class FFmpegGUI(QMainWindow):
         if same_folder:
             output_folder = self.output_path.get_completed_output_path(first_folder)
         else:
-            QMessageBox.warning(self, "Files Error", 
-                                    "Selected files must be in the same folders.")
-            return
+            output_path_str = self.output_path.get_path()
+            if not os.path.isabs(output_path_str):
+                QMessageBox.warning(self, "Output Path Error", 
+                                    "Selected files are from different folders.\nPlease specify an absolute output folder (e.g., 'C:/videos/output').")
+                return
+            output_folder = output_path_str
         
         dialog = VideoJoiner(
             selected_files=selected_files,
