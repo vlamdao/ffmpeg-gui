@@ -1,4 +1,3 @@
-import os
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, 
                              QWidget, QMessageBox, QMenu
                              )
@@ -12,6 +11,9 @@ from .components import (SegmentControls, SegmentList,
                          )
 from .processor import SegmentProcessor
 from helper import FontDelegate
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from components import Logger
 
 class VideoCutter(QDialog):
     """A dialog for cutting segments from a video file.
@@ -25,7 +27,7 @@ class VideoCutter(QDialog):
     _PENDING_COLOR = QColor("#ffe58e")  # A light yellow color
 
 
-    def __init__(self, input_file, output_folder, logger, parent=None):
+    def __init__(self, input_file, output_folder, logger: 'Logger', parent=None):
         """Initializes the VideoCutter dialog.
 
         Args:
@@ -217,7 +219,9 @@ class VideoCutter(QDialog):
         if row != -1:
             self._segment_list.highlight_row(row, self._PROCESSING_COLOR)
         else:
-            self._logger.append_log(f"Warning: Could not find segment {segment_data} in the list to highlight.")
+            self._logger.append_log(
+                f'<span style="color:yellow; font-weight:bold;">Warning: Could not find segment {segment_data} in the list to highlight.</span>'
+            )
 
     def _on_cut_clicked(self):
         self._media_player.pause()
