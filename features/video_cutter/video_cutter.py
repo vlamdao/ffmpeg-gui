@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, 
                              QWidget, QMessageBox, QMenu
                              )
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 from PyQt5.QtGui import QColor
 
 from features.player import MediaPlayer, MediaControls, MarkerSlider
@@ -9,8 +9,8 @@ from .components import (SegmentControls, SegmentList,
                          SegmentManager, EditSegmentDialog,
                          CommandTemplate, VideoCutterPlaceholders
                          )
-from .processor import SegmentProcessor
-from helper import FontDelegate
+from .processor import Processor
+from helper import FontDelegate, bold_green, bold_red, bold_yellow
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from components import Logger
@@ -26,6 +26,7 @@ class VideoCutter(QDialog):
     _PROCESSING_COLOR = QColor("#5cce77")  # A light green color
     _PENDING_COLOR = QColor("#ffe58e")  # A light yellow color
 
+    log_signal = pyqtSignal(str)
 
     def __init__(self, input_file, output_folder, logger: 'Logger', parent=None):
         """Initializes the VideoCutter dialog.
@@ -47,7 +48,7 @@ class VideoCutter(QDialog):
         self._output_folder = output_folder
 
         # Logic and State Management
-        self._segment_processor = None # Will be initialized in _setup_ui
+        self._processor = None # Will be initialized in _setup_ui
 
         self._setup_ui()
         self._connect_signals()
@@ -60,9 +61,9 @@ class VideoCutter(QDialog):
     def closeEvent(self, event):
         """Override closeEvent to stop the media player and any active workers."""
         self._media_player.cleanup()
-        if self._segment_processor:
+        if self._processor:
             # Terminate any running FFmpeg processes to prevent orphaned processes.
-            for worker in self._segment_processor.get_active_workers():
+            for worker in self._processor.get_active_workers():
                 if worker.isRunning():
                     worker.terminate()
         super().closeEvent(event)
@@ -71,7 +72,7 @@ class VideoCutter(QDialog):
         """Handle key presses for the dialog."""
         if event.key() == Qt.Key_Escape:
             if not self._segment_manager.cancel_creation():
-                super().keyPressEvent(event) # Allow default Esc behavior (close dialog)
+                super().keyPressEvent(event)
 
     def _setup_ui(self):
         main_layout = QHBoxLayout(self)
@@ -112,10 +113,7 @@ class VideoCutter(QDialog):
         main_layout.addWidget(left_panel, self._LEFT_PANEL_STRETCH)
         main_layout.addWidget(self._segment_list)
 
-        self._segment_processor = SegmentProcessor(
-            logger=self._logger,
-            parent=self
-        )
+        self._processor = Processor(self)
 
     def _connect_signals(self):
         """Connects signals and slots between all the components."""
@@ -138,7 +136,7 @@ class VideoCutter(QDialog):
         # --- Segment Controls and List ---
         self._segment_controls.set_start_clicked.connect(self._on_set_start_time)
         self._segment_controls.set_end_clicked.connect(self._on_set_end_time)
-        self._segment_controls.stop_clicked.connect(self._segment_processor.stop_processing)
+        self._segment_controls.stop_clicked.connect(self._processor.stop_processing)
         self._segment_controls.cut_clicked.connect(self._on_cut_clicked)
 
         self._segment_list.itemSelectionChanged.connect(self._on_segment_selected)
@@ -156,11 +154,11 @@ class VideoCutter(QDialog):
         self._segment_manager.selection_cleared.connect(self._segment_list.clearSelection)
 
         # --- Connect Segment Processor to UI ---
-        self._segment_processor.processing_started.connect(self._on_processing_started)
-        self._segment_processor.processing_stopped.connect(self._on_processing_stopped)
-        self._segment_processor.segment_processing.connect(self._on_segment_processing)
-        self._segment_processor.segment_processed.connect(self._segment_manager.delete_segment_by_data)
-
+        self._processor.processing_started.connect(self._on_processing_started)
+        self._processor.processing_stopped.connect(self._on_processing_stopped)
+        self._processor.segment_processing.connect(self._on_segment_processing)
+        self._processor.segment_processed.connect(self._segment_manager.delete_segment_by_data)
+        self._processor.log_signal.connect(self._logger.append_log)
 
     def _show_error_message(self, title: str, message: str) -> None:
         """Displays a warning message box."""
@@ -219,9 +217,7 @@ class VideoCutter(QDialog):
         if row != -1:
             self._segment_list.highlight_row(row, self._PROCESSING_COLOR)
         else:
-            self._logger.append_log(
-                f'<span style="color:yellow; font-weight:bold;">Warning: Could not find segment {segment_data} in the list to highlight.</span>'
-            )
+            self._logger.append_log(bold_yellow(f'Could not find segment {segment_data} in the list to highlight.'))
 
     def _on_cut_clicked(self):
         self._media_player.pause()
@@ -237,7 +233,7 @@ class VideoCutter(QDialog):
                 self._show_error_message("Command Error", "Could not generate command. Check the command template.")
                 return # Stop if any command fails to generate
             jobs.append({'row': row, 'data': segment_data, 'command': command})
-        self._segment_processor.start_processing(jobs)
+        self._processor.start_processing(jobs)
 
     # ==================================================================
     # Segment List Slots
