@@ -1,6 +1,6 @@
 import os
 from typing import TYPE_CHECKING
-from components.placeholders import PlaceholderManager
+from components import Placeholders
 
 if TYPE_CHECKING:
     from components import CommandInput, OutputPath
@@ -10,7 +10,7 @@ class CommandGenerator(object):
         self._selected_files = selected_files
         self._command_input = command_input
         self._output_path = output_path
-        self._placeholder_manager = PlaceholderManager(output_path)
+        self._placeholders = Placeholders()
 
     @staticmethod
     def _finalize_command(cmd: str) -> str:
@@ -40,8 +40,7 @@ class CommandGenerator(object):
             return None
         
         template = self._command_input.get_command()
-        # Lấy tất cả các giá trị thay thế dựa trên file đầu vào cụ thể
-        replacements = self._placeholder_manager.get_general_replacements(input_file=input_file)
-        cmd = self._placeholder_manager.replace(template, replacements)
+        replacements = self._placeholders.get_replacements(input_file, self._output_path)
+        cmd = self._placeholders.replace(template, replacements)
 
         return self._finalize_command(cmd)
