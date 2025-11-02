@@ -1,19 +1,20 @@
 
 import json, os
 from PyQt5.QtWidgets import (
-    QFormLayout, QDialog, QTextEdit,
-    QLineEdit, QDialogButtonBox
+    QGroupBox, QDialog, QTextEdit,
+    QLineEdit, QDialogButtonBox, QVBoxLayout,
+    QHBoxLayout
 )
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QIcon
+from helper import resource_path
 from .placeholder_table import PlaceholderTable
 
-# Import constants directly for consistency
 from helper.placeholders import GENERAL_PLACEHOLDERS
 
 class PresetDialog(QDialog):
     """A dialog for adding or editing a preset (name and command)."""
-    _INPUT_WIDTH = 500
-    _CMD_INPUT_HEIGHT = 70
+    _INPUT_WIDTH = 700
+    _CMD_INPUT_HEIGHT = 50
 
     def __init__(self, parent=None, title="Preset", preset_name="", preset_command=""):
         """Initializes the PresetDialog.
@@ -26,6 +27,8 @@ class PresetDialog(QDialog):
         """
         super().__init__(parent)
         self.setWindowTitle(title)
+        self.setWindowIcon(QIcon(resource_path("icon/add-preset.png")))
+        self.setMinimumWidth(self._INPUT_WIDTH)
         self._preset_name = preset_name
         self._preset_command = preset_command
         self._setup_ui()
@@ -38,34 +41,50 @@ class PresetDialog(QDialog):
     def _create_widgets(self):
         """Creates all the widgets needed for the dialog."""
         self._name_input = QLineEdit(self._preset_name)
-        self._name_input.setMinimumWidth(self._INPUT_WIDTH)
 
         self._placeholder_table = PlaceholderTable(
             placeholders=GENERAL_PLACEHOLDERS,
-            num_columns=3,
+            num_columns=4,
             parent=self
         )
-        self._placeholder_table.setMinimumWidth(self._INPUT_WIDTH)
         self._placeholder_table.set_compact_height()
+        self._placeholder_table.placeholder_double_clicked.connect(self._cmd_input.insertPlainText)
 
         self._cmd_input = QTextEdit(self._preset_command)
         self._cmd_input.setFont(QFont("Consolas", 9))
-        self._cmd_input.setMinimumWidth(self._INPUT_WIDTH)
         self._cmd_input.setMinimumHeight(self._CMD_INPUT_HEIGHT)
 
         self._button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self._button_box.accepted.connect(self.accept)
         self._button_box.rejected.connect(self.reject)
         
-        self._placeholder_table.placeholder_double_clicked.connect(self._cmd_input.insertPlainText)
-
     def _setup_layout(self):
         """Configures the layout and adds widgets to it."""
-        layout = QFormLayout(self)
-        layout.addRow("Preset Name:", self._name_input)
-        layout.addRow("Placeholders:", self._placeholder_table)
-        layout.addRow("Command:", self._cmd_input)
-        layout.addWidget(self._button_box)
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
+
+        name_group = QGroupBox("Preset Name")
+        name_layout = QHBoxLayout()
+        name_layout.addWidget(self._name_input)
+        name_group.setLayout(name_layout)
+
+        placeholder_group = QGroupBox("Placeholders")
+        placeholder_layout = QHBoxLayout()
+        placeholder_layout.addWidget(self._placeholder_table)
+        placeholder_group.setLayout(placeholder_layout)
+
+        cmd_group = QGroupBox("Command")
+        cmd_layout = QHBoxLayout()
+        cmd_layout.addWidget(self._cmd_input)
+        cmd_group.setLayout(cmd_layout)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self._button_box)
+
+        self.main_layout.addWidget(name_group)
+        self.main_layout.addWidget(placeholder_group)
+        self.main_layout.addWidget(cmd_group)
+        self.main_layout.addLayout(button_layout)
 
     def get_preset(self):
         """Returns the preset name and command from the input fields."""
