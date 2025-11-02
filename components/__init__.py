@@ -5,7 +5,7 @@ from .logger import Logger
 from .output_path import OutputPath
 from .preset_dialog import PresetDialog
 from .preset_manager import PresetManager
-from . import placeholders
+from .placeholders import Placeholders, PlaceholderTable
 
 __all__ = [ 'CommandInput', 
            'ControlPanel', 
@@ -14,5 +14,6 @@ __all__ = [ 'CommandInput',
            'OutputPath', 
            'PresetDialog',
            'PresetManager',
-           'placeholders'
+           'Placeholders',
+           'PlaceholderTable'
          ]
