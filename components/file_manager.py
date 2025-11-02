@@ -12,7 +12,7 @@ import json
 import subprocess
 import sys
 
-from helper import resource_path, FontDelegate
+from helper import resource_path, FontDelegate, styled_text
 
 class FileInfo:
     """A data class to store and process media file information.
@@ -176,13 +176,13 @@ class FileManager(QObject):
 
     def _on_loading_finished(self):
         """Cleans up the file loader thread after it has finished."""
-        self.log_signal.emit("Finished loading file information.")
+        self.log_signal.emit(styled_text('bold', 'blue', None, "Finished loading file information."))
         self.file_loader_thread.deleteLater()
         self.file_loader_thread = None
 
     def _update_loading_progress(self, current: int, total: int, filename: str):
         """Updates the log with file loading progress."""
-        self.log_signal.emit(f"Loading: {current}/{total} - {filename}")
+        self.log_signal.emit(styled_text(None, None, None, f"{current}/{total} - {filename}"))
 
     def get_widget(self):
         """Returns the underlying QTableWidget instance."""
@@ -208,7 +208,7 @@ class FileManager(QObject):
             file_list (list[str]): A list of absolute file paths to process.
         """
         if self.file_loader_thread is not None and self.file_loader_thread.isRunning():
-            self.log_signal.emit("File loading already in progress. Please wait.")
+            self.log_signal.emit(styled_text('bold', 'blue', None, "File loading already in progress. Please wait."))
             return
         self.file_loader_thread = FileLoaderThread(file_list)
         self.file_loader_thread.log_signal.connect(self.log_signal.emit)
@@ -229,7 +229,7 @@ class FileManager(QObject):
         folder_item = self.file_table.item(row, self.file_table.Column.PATH.value)
 
         if not (filename_item and folder_item):
-            self.log_signal.emit(f"Error: Could not retrieve file info for row {row}.")
+            self.log_signal.emit(styled_text('bold', 'red', None, f"Error: Could not retrieve file info for row {row}."))
             return
 
         filename = filename_item.text()
@@ -237,12 +237,12 @@ class FileManager(QObject):
         full_path = os.path.join(folder, filename)
 
         if not os.path.exists(full_path):
-            self.log_signal.emit(f"File not found: {full_path}")
+            self.log_signal.emit(styled_text('bold', 'red', None, f"File not found: {full_path}"))
             return
 
         url = QUrl.fromLocalFile(full_path)
         if not QDesktopServices.openUrl(url):
-            self.log_signal.emit(f"Cannot open file: {full_path}")
+            self.log_signal.emit(styled_text('bold', 'red', None, f"Cannot open file: {full_path}"))
 
     def update_status(self, row, status):
         """Updates the status icon in the table for a given row.
@@ -296,7 +296,7 @@ class FileManager(QObject):
                 folder = folder_item.text()
                 files.append((row_number, filename, folder))
             else:
-                self.log_signal.emit(f"Warning: Could not retrieve file info for row {row_number}. Skipping.")
+                self.log_signal.emit(styled_text('bold', 'blue', None, f"Could not retrieve file info for row {row_number}. Skipping."))
 
         return files, selected_rows
 
@@ -309,7 +309,7 @@ class FileManager(QObject):
         for index in sorted(selected_rows, key=lambda idx: idx.row(), reverse=True):
             filename = self.file_table.item(index.row(), self.file_table.Column.FILENAME.value).text()
             self.file_table.removeRow(index.row())
-            self.log_signal.emit(f"Removed {filename}.")
+            self.log_signal.emit(styled_text('bold', 'blue', None, f"Removed {filename}."))
 
 class DragDropTable(QTableWidget):
     files_dropped = pyqtSignal(list)
@@ -505,7 +505,7 @@ class FileLoaderThread(QThread):
             )
             return json.loads(result.stdout)
         except Exception as e:
-            self.log_signal.emit(f"Error running ffprobe for {filepath}: {e}")
+            self.log_signal.emit(styled_text('bold', 'red', None, f"Error running ffprobe for {filepath}: {e}"))
             return None
 
     @staticmethod
@@ -522,7 +522,7 @@ class FileLoaderThread(QThread):
         """The main execution method of the thread."""
         # Check for ffprobe existence once before starting the loop.
         if not self._is_ffprobe_available():
-            self.log_signal.emit("Error: ffprobe not found. Please ensure ffmpeg is in your system's PATH.")
+            self.log_signal.emit(styled_text('bold', 'red', None, "Error: ffprobe not found. Please ensure ffmpeg is in your system's PATH."))
             return
 
         total = len(self.input_files)
@@ -534,7 +534,7 @@ class FileLoaderThread(QThread):
 
             ffprobe_output = self._run_ffprobe(filepath)
             if not ffprobe_output:
-                self.log_signal.emit(f"Failed to get info for file: {filepath}")
+                self.log_signal.emit(styled_text('bold', 'red', None, f"Failed to get info for file: {filepath}"))
                 continue
 
             file_info = FileInfo(filepath, ffprobe_output)
