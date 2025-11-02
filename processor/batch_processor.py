@@ -2,7 +2,7 @@ import os
 from PyQt5.QtCore import QObject, pyqtSignal
 from processor import FFmpegWorker
 from components import FileManager, CommandInput, OutputFolder
-from .command import CommandGenerator
+from .command_generator import CommandGenerator
 from helper import styled_text
 
 class BatchProcessor(QObject):
