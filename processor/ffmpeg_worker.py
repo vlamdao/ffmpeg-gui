@@ -14,16 +14,15 @@ class FFmpegWorker(QThread):
                                     the status of a file in the UI.
         log_signal (pyqtSignal): Emits log messages to be displayed.
     """
-    update_status = pyqtSignal(int, str)
+    status_updated = pyqtSignal(str, str)
     log_signal = pyqtSignal(str)
 
-    def __init__(self, jobs: list[tuple[int, list[str]]], parent=None):
+    def __init__(self, jobs: list[tuple[str, list[str]]], parent=None):
         """Initializes the FFmpegWorker thread.
 
         Args:
-            jobs (list[tuple[int, list[str]]]): A list of jobs to process. Each tuple
-                contains (row_index, list_of_commands). A row_index of -1
-                signifies a command that applies to all files (e.g., concat).
+            jobs (list[tuple[str, list[str]]]): A list of jobs to process. Each tuple
+                contains (job_id, list_of_commands). job_id is usually a filepath.
             parent (QObject, optional): The parent object. Defaults to None.
         """
 
@@ -98,27 +97,24 @@ class FFmpegWorker(QThread):
         jobs_to_process = list(self._jobs)
 
         while jobs_to_process:
-            row_index, commands = jobs_to_process.pop(0)
+            job_id, commands = jobs_to_process.pop(0)
 
             if self._is_stopped:
                 # Mark this and all remaining files as "Stopped"
-                if row_index != -1:
-                    self.update_status.emit(row_index, "Stopped")
-                for rem_row, _ in jobs_to_process:
-                    if rem_row != -1:
-                        self.update_status.emit(rem_row, "Stopped")
+                self.status_updated.emit(job_id, "Stopped")
+                for rem_job_id, _ in jobs_to_process:
+                    self.status_updated.emit(rem_job_id, "Stopped")
                 break  # Exit the loop
-
-            self.update_status.emit(row_index, "Processing")
+            
+            self.status_updated.emit(job_id, "Processing")
             
             final_status = "Success"
-            for i, cmd in enumerate(commands):
+            for _, cmd in enumerate(commands):
                 status = self._process_command(cmd)
                 if status != "Success":
                     final_status = status
                     break  # Stop processing commands for this job if one fails or is stopped
-
-            self.update_status.emit(row_index, final_status)
+            self.status_updated.emit(job_id, final_status)
 
     def stop(self):
         """
