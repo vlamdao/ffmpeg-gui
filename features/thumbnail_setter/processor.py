@@ -37,15 +37,15 @@ class Processor(QObject):
 
     def _start_worker(self, commands: list[str]):
         """Initializes and starts the FFmpegWorker."""
-        job = (-1, commands) # Use -1 for row_index as this is a single job
+        job = ("thumbnail_setter_job", commands) # Use a string job_id for a single job
         self._worker = FFmpegWorker([job])
         self._worker.log_signal.connect(self.log_signal)
-        self._worker.update_status.connect(self._on_worker_status_update)
+        self._worker.status_updated.connect(self._on_worker_status_update)
         self._worker.finished.connect(self._on_worker_thread_finished)
         self._worker.start()
 
-    @pyqtSlot(int, str)
-    def _on_worker_status_update(self, row_index: int, status: str):
+    @pyqtSlot(str, str)
+    def _on_worker_status_update(self, job_id: str, status: str):
         """Handles status updates from the worker and emits the final result."""
         # We only care about the final status, not "Processing"
         if status in ("Success", "Failed", "Stopped"):
@@ -62,4 +62,3 @@ class Processor(QObject):
             os.remove(self._temp_thumb_path)
         
         self._worker = None
-        self._temp_thumb_path = None
