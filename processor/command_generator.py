@@ -3,13 +3,13 @@ from typing import TYPE_CHECKING
 from components import Placeholders
 
 if TYPE_CHECKING:
-    from components import CommandInput, OutputPath
+    from components import CommandInput, OutputFolder
 
 class CommandGenerator(object):
-    def __init__(self, selected_files: list[tuple[int, str, str]], command_input: 'CommandInput', output_path: 'OutputPath'):
+    def __init__(self, selected_files: list[tuple[int, str, str]], command_input: 'CommandInput', output_folder: 'OutputFolder'):
         self._selected_files = selected_files
         self._command_input = command_input
-        self._output_path = output_path
+        self._output_folder = output_folder
         self._placeholders = Placeholders()
 
     @staticmethod
@@ -40,7 +40,7 @@ class CommandGenerator(object):
             return None
         
         template = self._command_input.get_command()
-        replacements = self._placeholders.get_replacements(input_file, self._output_path)
+        replacements = self._placeholders.get_replacements(input_file, self._output_folder)
         cmd = self._placeholders.replace(template, replacements)
 
         return self._finalize_command(cmd)

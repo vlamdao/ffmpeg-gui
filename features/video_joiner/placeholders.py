@@ -14,9 +14,9 @@ class VideoJoinerPlaceholders(Placeholders):
     
     def get_replacements(self, 
                          input_file: str, 
-                         output_path: str,
+                         output_folder: str,
                          concatfile_path: str):
-        replacements = super().get_replacements(input_file, output_path)
+        replacements = super().get_replacements(input_file, output_folder)
         replacements.update({
             self._CONCATFILE_PATH: concatfile_path,
         })

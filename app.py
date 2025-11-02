@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtGui import QIcon, QKeySequence
 from helper import resource_path
 from components import (PresetManager, Logger, FileManager, ControlPanel,
-                        CommandInput, OutputPath)
+                        CommandInput, OutputFolder)
 
 from features import VideoCutter, ThumbnailSetter, VideoJoiner
 from processor import BatchProcessor
@@ -28,7 +28,7 @@ class FFmpegGUI(QMainWindow):
         self.file_manager = FileManager(self)
         self.logger = Logger()
         self.command_input = CommandInput(self)
-        self.output_path = OutputPath(self)
+        self.output_folder = OutputFolder(self)
         self.preset_table = QTableWidget()
         self.preset_manager = PresetManager(self, self.preset_table, self.command_input.get_command_widget())
         self.batch_processor = BatchProcessor(self)
@@ -59,8 +59,8 @@ class FFmpegGUI(QMainWindow):
         self.command_input.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         main_layout.addWidget(self.command_input)
         
-        self.output_path.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        main_layout.addWidget(self.output_path)
+        self.output_folder.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        main_layout.addWidget(self.output_folder)
         
         self.control_panel.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         main_layout.addWidget(self.control_panel)
@@ -99,11 +99,11 @@ class FFmpegGUI(QMainWindow):
         _, infile_name, infile_folder = selected_files[0]
         full_path = os.path.join(infile_folder, infile_name)
                 
-        output_path = self.output_path.get_completed_output_path(infile_folder)
+        output_folder = self.output_folder.get_completed_output_folder(infile_folder)
         logger = self.logger
         dialog = VideoCutter(
             input_file=full_path,
-            output_folder=output_path,
+            output_folder=output_folder,
             logger=logger,
             parent=self)
         dialog.exec_()
@@ -117,10 +117,10 @@ class FFmpegGUI(QMainWindow):
         _, infile_name, infile_folder = selected_files[0]
         full_path = os.path.join(infile_folder, infile_name)
 
-        output_path = self.output_path.get_completed_output_path(infile_folder)
+        output_folder = self.output_folder.get_completed_output_folder(infile_folder)
         dialog = ThumbnailSetter(
             video_path=full_path,
-            output_path=output_path,
+            output_folder=output_folder,
             logger=self.logger,
             parent=self)
         dialog.exec_()
@@ -136,7 +136,7 @@ class FFmpegGUI(QMainWindow):
         same_folder = all(folder == first_folder for _, _, folder in selected_files)
 
         if same_folder:
-            output_folder = self.output_path.get_completed_output_path(first_folder)
+            output_folder = self.output_folder.get_completed_output_folder(first_folder)
         else:
             QMessageBox.warning(self, "Files Error", 
                                     "Selected files must be in the same folder.")

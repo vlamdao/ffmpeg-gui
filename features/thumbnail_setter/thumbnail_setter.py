@@ -15,13 +15,13 @@ class ThumbnailSetter(QDialog):
     A dialog for selecting a frame from a video to be used as a thumbnail.
     """
 
-    def __init__(self, video_path: str, output_path: str, logger: Logger, parent=None):
+    def __init__(self, video_path: str, output_folder: str, logger: Logger, parent=None):
         """
         Initializes the ThumbnailSetter dialog.
 
         Args:
             video_path (str): The absolute path to the video file.
-            output_path (str): The path to the output directory.
+            output_folder (str): The path to the output directory.
             logger (Logger): An instance of the logger for displaying messages.
             parent (QWidget, optional): The parent widget. Defaults to None.
         """
@@ -34,7 +34,7 @@ class ThumbnailSetter(QDialog):
         # Dependencies
         self._video_path = video_path
         self._logger = logger
-        self._output_path = output_path
+        self._output_folder = output_folder
 
         # UI Components
         self._media_player: MediaPlayer
@@ -163,7 +163,7 @@ class ThumbnailSetter(QDialog):
         self._timestamp_edit.setEnabled(False)
         self._media_player.pause()
         
-        self._processor.start(self._video_path, self._output_path, timestamp)
+        self._processor.start(self._video_path, self._output_folder, timestamp)
 
     @pyqtSlot(bool, str)
     def _on_processing_finished(self, success: bool, message: str):

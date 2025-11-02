@@ -20,13 +20,13 @@ class ThumbnailProcessor(QObject):
         """Checks if a thumbnail process is currently active."""
         return self._worker is not None and self._worker.isRunning()
 
-    def start(self, video_path: str, output_path: str, timestamp: str):
+    def start(self, video_path: str, output_folder: str, timestamp: str):
         """Starts the process of setting the thumbnail."""
         if self.is_running():
             self.log_signal.emit("Thumbnail processing is already in progress.")
             return
         try:
-            command_template = CommandTemplates(video_path, output_path, timestamp)
+            command_template = CommandTemplates(video_path, output_folder, timestamp)
             commands, self._temp_thumb_path = command_template.generate_commands()
             self._start_worker(commands)
             self.log_signal.emit(f"Setting thumbnail for '{os.path.basename(video_path)}' at {timestamp}...")

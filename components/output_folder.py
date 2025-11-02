@@ -4,10 +4,10 @@ from PyQt5.QtWidgets import (
 )
 from pathlib import Path
 
-class OutputPath(QWidget):
+class OutputFolder(QWidget):
     """A widget for selecting and managing the output directory."""
     def __init__(self, parent: QWidget | None = None, default_path: str = "./output"):
-        """Initializes the OutputPath widget.
+        """Initializes the OutputFolder widget.
 
         Args:
             parent (QWidget | None, optional): The parent widget. Defaults to None.
@@ -54,7 +54,7 @@ class OutputPath(QWidget):
         """Sets the output path in the input field."""
         self._path_input.setText(path)
 
-    def get_completed_output_path(self, input_file_folder: str) -> str:
+    def get_completed_output_folder(self, input_file_folder: str) -> str:
         """
         Resolves the final output path based on user input and the input file's location.
 

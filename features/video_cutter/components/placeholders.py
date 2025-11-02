@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from components import OutputPath
+    from components import OutputFolder
 
 from components import Placeholders
 from helper import ms_to_time_str
@@ -34,10 +34,10 @@ class VideoCutterPlaceholders(Placeholders):
     
     def get_replacements(self, 
                          input_file: tuple[int, str, str], 
-                         output_path: 'OutputPath',
+                         output_folder: 'OutputFolder',
                          start_ms: int, 
                          end_ms: int):
-        replacements = super().get_replacements(input_file, output_path)
+        replacements = super().get_replacements(input_file, output_folder)
         replacements.update({
             self._START_TIME: ms_to_time_str(start_ms),
             self._END_TIME: ms_to_time_str(end_ms),

@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 from processor import FFmpegWorker
-from components import FileManager, CommandInput, OutputPath, Logger
+from components import FileManager, CommandInput, OutputFolder, Logger
 from .command_generator import CommandGenerator
 
 class BatchProcessor(QObject):
@@ -27,12 +27,12 @@ class BatchProcessor(QObject):
         # Store references to components from the main app
         self._file_manager: FileManager = self.parent.file_manager
         self._command_input: CommandInput = self.parent.command_input
-        self._output_path: OutputPath = self.parent.output_path
+        self._output_folder: OutputFolder = self.parent.output_folder
         self._logger: Logger = self.parent.logger
 
     def _create_jobs(self, selected_files: list) -> list[tuple[int, list[str]]]:
         """Creates a list of FFmpeg commands to be executed."""
-        cmd_generator = CommandGenerator(selected_files, self._command_input, self._output_path)
+        cmd_generator = CommandGenerator(selected_files, self._command_input, self._output_folder)
         jobs = []
 
         # Standard command for each file
