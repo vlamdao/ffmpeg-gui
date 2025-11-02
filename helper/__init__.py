@@ -7,5 +7,7 @@ __all__ = ['resource_path',
            'ms_to_time_str',
            'bold_green',
            'bold_red',
-           'bold_yellow'
+           'bold_yellow',
+           'bold_blue',
+           'styled_text'
            ]
