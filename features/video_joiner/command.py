@@ -21,7 +21,7 @@ class CommandTemplate(QWidget):
                         )
     inputs = ""
     filter_script = ""
-    CONCAT_FILTER_CMD = (f'ffmpeg -y  -loglevel warning {inputs} '
+    CONCAT_FILTER_CMD = (f'ffmpeg -y -loglevel warning {inputs} '
                          f'-filter_complex "{filter_script}" '
                          f'-map "[v]" -map "[a]" '
                          f'"{PLACEHOLDER_OUTPUT_FOLDER}/joined_video_re-encoded.mp4"')
@@ -35,7 +35,6 @@ class CommandTemplate(QWidget):
         """Initializes and lays out the UI components."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(5)
         
         self._cmd_input = QTextEdit()
         self._cmd_input.setFont(QFont("Consolas", 9))
