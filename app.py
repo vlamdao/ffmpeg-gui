@@ -96,10 +96,10 @@ class FFmpegGUI(QMainWindow):
             QMessageBox.warning(self, "Selection Error", "Please select exactly one video file to cut.")
             return
 
-        _, infile_name, infile_folder = selected_files[0]
-        full_path = os.path.join(infile_folder, infile_name)
+        _, inputfile_name, inputfile_folder = selected_files[0]
+        full_path = os.path.join(inputfile_folder, inputfile_name)
                 
-        output_path = self.output_path.get_completed_output_path(infile_folder)
+        output_path = self.output_path.get_completed_output_path(inputfile_folder)
         logger = self.logger
         dialog = VideoCutter(
             input_file=full_path,
@@ -114,10 +114,10 @@ class FFmpegGUI(QMainWindow):
             QMessageBox.warning(self, "Selection Error", "Please select exactly one video file to set a thumbnail.")
             return
 
-        _, infile_name, infile_folder = selected_files[0]
-        full_path = os.path.join(infile_folder, infile_name)
+        _, inputfile_name, inputfile_folder = selected_files[0]
+        full_path = os.path.join(inputfile_folder, inputfile_name)
 
-        output_path = self.output_path.get_completed_output_path(infile_folder)
+        output_path = self.output_path.get_completed_output_path(inputfile_folder)
         dialog = ThumbnailSetter(
             video_path=full_path,
             output_path=output_path,
