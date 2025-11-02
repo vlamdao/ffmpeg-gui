@@ -57,6 +57,12 @@ class SegmentList(DeselectableListWidget):
         if item and color:
             item.setBackground(color)
 
+    def clear_highlight(self, row: int):
+        """Removes the background color from a specific row."""
+        item = self.item(row)
+        if item:
+            item.setBackground(QColor(Qt.transparent))
+
     def clear_highlights(self):
         """Removes background color from all items."""
         for i in range(self.count()):
