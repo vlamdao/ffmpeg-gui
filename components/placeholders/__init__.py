@@ -1,9 +1,7 @@
-from .manager import PlaceholderManager
 from .table import PlaceholderTable
-from . import definitions
+from .placeholders import Placeholders
 
 __all__ = [
-    'PlaceholderManager',
+    'Placeholders',
     'PlaceholderTable',
-    'definitions'
 ]

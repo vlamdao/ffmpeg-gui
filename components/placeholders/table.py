@@ -7,7 +7,7 @@ from helper import FontDelegate
 
 class PlaceholderTable(QTableWidget):
     """
-    A reusable widget for displaying a grid of placeholders.
+    A reusable widget for displaying a grid of placeholders_list.
 
     This table automatically arranges a list of placeholder strings into a
     grid. It is configured to be read-only, with a compact appearance suitable
@@ -16,17 +16,17 @@ class PlaceholderTable(QTableWidget):
     """
     placeholder_double_clicked = pyqtSignal(str)
 
-    def __init__(self, placeholders: list[str], num_columns: int, parent=None):
+    def __init__(self, placeholders_list: list[str], num_columns: int, parent=None):
         """
         Initializes the PlaceholderTable.
 
         Args:
-            placeholders (list[str]): The list of placeholder strings to display.
+            placeholders_list (list[str]): The list of placeholder strings to display.
             num_columns (int): The number of columns for the grid layout.
             parent (QWidget, optional): The parent widget. Defaults to None.
         """
         super().__init__(parent)
-        self._placeholders = placeholders
+        self._placeholders_list = placeholders_list
         self._num_columns = num_columns
         self._setup_ui()
         self._populate_table()
@@ -34,7 +34,7 @@ class PlaceholderTable(QTableWidget):
 
     def _setup_ui(self):
         """Configures the appearance and behavior of the table."""
-        num_rows = (len(self._placeholders) + self._num_columns - 1) // self._num_columns
+        num_rows = (len(self._placeholders_list) + self._num_columns - 1) // self._num_columns
         self.setRowCount(num_rows)
         self.setColumnCount(self._num_columns)
 
@@ -48,7 +48,7 @@ class PlaceholderTable(QTableWidget):
 
     def _populate_table(self):
         """Fills the table with placeholder items."""
-        for i, placeholder in enumerate(self._placeholders):
+        for i, placeholder in enumerate(self._placeholders_list):
             row, col = divmod(i, self._num_columns)
             item = QTableWidgetItem(placeholder)
             item.setTextAlignment(Qt.AlignCenter)
