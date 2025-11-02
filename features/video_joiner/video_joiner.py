@@ -5,8 +5,10 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSignal
 
 from helper import resource_path
+from helper.placeholders import VIDEO_JOINER_PLACEHOLDERS
 from .processor import VideoJoinerProcessor
 from .command import CommandTemplate
+from components import PlaceholderTable
 
 class VideoJoiner(QDialog):
     """A dialog for joining multiple video files."""
@@ -37,11 +39,19 @@ class VideoJoiner(QDialog):
         self._concat_filter_radio = QRadioButton("Concat Filter (Slower, Re-encodes)")
         self._concat_demuxer_radio.setChecked(True)
 
+        self._placeholder_table = PlaceholderTable(
+            placeholders=VIDEO_JOINER_PLACEHOLDERS,
+            num_columns=4,
+            parent=self
+        )
+        self._placeholder_table.set_compact_height()
+        
         self._cmd_template = CommandTemplate(self)
 
-        # --- Action Buttons ---
         self._join_video_button = QPushButton("Join Videos")
         self._join_video_button.setMinimumHeight(32)
+        
+        self._placeholder_table.placeholder_double_clicked.connect(self._cmd_template._cmd_input.insertPlainText)
 
     def _setup_layout(self):
         self.main_layout = QVBoxLayout(self)
@@ -53,12 +63,23 @@ class VideoJoiner(QDialog):
         method_layout.addWidget(self._concat_filter_radio)
         method_group.setLayout(method_layout)
 
+        placeholder_group = QGroupBox("Placeholders")
+        placeholder_layout = QVBoxLayout()
+        placeholder_layout.addWidget(self._placeholder_table)
+        placeholder_group.setLayout(placeholder_layout)
+
+        cmd_template_group = QGroupBox("Command Template")
+        cmd_template_layout = QVBoxLayout()
+        cmd_template_layout.addWidget(self._cmd_template)
+        cmd_template_group.setLayout(cmd_template_layout)
+
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         button_layout.addWidget(self._join_video_button)
 
         self.main_layout.addWidget(method_group)
-        self.main_layout.addWidget(self._cmd_template)
+        self.main_layout.addWidget(placeholder_group)
+        self.main_layout.addWidget(cmd_template_group)
         self.main_layout.addLayout(button_layout)
 
     def _connect_signals(self):

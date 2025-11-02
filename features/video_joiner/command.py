@@ -28,7 +28,6 @@ class CommandTemplate(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._placeholder_table: PlaceholderTable
         self._cmd_input: QTextEdit
         self._setup_ui()
 
@@ -37,30 +36,12 @@ class CommandTemplate(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
-
-        # --- Placeholders ---
-        placeholder_group = QGroupBox("Placeholders")
-        placeholder_layout = QVBoxLayout(placeholder_group)
-        self._placeholder_table = PlaceholderTable(
-            placeholders=VIDEO_JOINER_PLACEHOLDERS,
-            num_columns=4,
-            parent=self
-        )
-        self._placeholder_table.set_compact_height()
-        placeholder_layout.addWidget(self._placeholder_table)
         
-        # --- Command Template ---
-        command_group = QGroupBox("Command Template")
-        command_layout = QVBoxLayout(command_group)
         self._cmd_input = QTextEdit()
         self._cmd_input.setFont(QFont("Consolas", 9))
         self._cmd_input.setMinimumHeight(80)
-        command_layout.addWidget(self._cmd_input)
 
-        layout.addWidget(placeholder_group)
-        layout.addWidget(command_group)
-
-        self._placeholder_table.placeholder_double_clicked.connect(self._cmd_input.insertPlainText)
+        layout.addWidget(self._cmd_input)
 
     def set_command_for_method(self, method: str):
         """Updates the command template based on the selected join method."""
