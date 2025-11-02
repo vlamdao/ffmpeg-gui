@@ -1,10 +1,11 @@
-# --- General Placeholders ---
+# ====================================================
+# General placeholders
+# ====================================================
 PLACEHOLDER_INPUTFILE_FOLDER = "{inputfile_folder}"
 PLACEHOLDER_INPUTFILE_NAME = "{inputfile_name}"
 PLACEHOLDER_INPUTFILE_EXT = "{inputfile_ext}"
 PLACEHOLDER_OUTPUT_FOLDER = "{output_folder}"
 
-# List of placeholders for the main application's preset dialog
 GENERAL_PLACEHOLDERS = [
     PLACEHOLDER_INPUTFILE_FOLDER,
     PLACEHOLDER_INPUTFILE_NAME,
@@ -12,13 +13,14 @@ GENERAL_PLACEHOLDERS = [
     PLACEHOLDER_OUTPUT_FOLDER,
 ]
 
-# --- Video Cutter Specific Placeholders ---
+# ====================================================
+# Video Cutter Specific Placeholders
+# ====================================================
 PLACEHOLDER_START_TIME = "{start_time}"
 PLACEHOLDER_END_TIME = "{end_time}"
 PLACEHOLDER_SAFE_START_TIME = "{safe_start_time}"
 PLACEHOLDER_SAFE_END_TIME = "{safe_end_time}"
 
-# List of placeholders for the video cutter feature
 VIDEO_CUTTER_PLACEHOLDERS = [
     PLACEHOLDER_INPUTFILE_FOLDER,
     PLACEHOLDER_INPUTFILE_NAME,
@@ -29,6 +31,11 @@ VIDEO_CUTTER_PLACEHOLDERS = [
     PLACEHOLDER_SAFE_START_TIME,
     PLACEHOLDER_SAFE_END_TIME,
 ]
+
+# ====================================================
+# Video Joiner Specific Placeholders
+# ====================================================
+PLACEHOLDER_CONCATFILE_PATH = "{concatfile_path}"
 
 VIDEO_JOINER_PLACEHOLDERS = [
     PLACEHOLDER_INPUTFILE_FOLDER,
