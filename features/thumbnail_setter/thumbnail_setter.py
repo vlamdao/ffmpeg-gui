@@ -147,7 +147,7 @@ class ThumbnailSetter(QDialog):
         self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
 
-        self._placeholders_table.placeholder_double_clicked.connect(self._command_template._cmd_input.insertPlainText)
+        self._placeholders_table.placeholder_double_clicked.connect(self._command_template.insert_placeholder)
 
     @pyqtSlot('qint64')
     def _on_position_changed(self, position):
