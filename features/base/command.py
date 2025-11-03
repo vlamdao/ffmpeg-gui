@@ -2,9 +2,6 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTextEdit)
 from PyQt5.QtGui import QFont
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from components import Placeholders
-
 class BaseCommandTemplate(QWidget):
 
     def __init__(self, parent=None):
@@ -15,7 +12,7 @@ class BaseCommandTemplate(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        QVBoxLayout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         self._cmd_input = QTextEdit()
         self._cmd_input.setFont(QFont("Consolas", 9))
