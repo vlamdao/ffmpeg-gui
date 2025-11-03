@@ -7,7 +7,8 @@ class BaseCommandTemplate(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._cmd_input: QTextEdit
-        
+        self._DEFAULT_CMD = []
+
         self._setup_ui()
 
     def _setup_ui(self):
@@ -20,6 +21,9 @@ class BaseCommandTemplate(QWidget):
 
         layout.addWidget(self._cmd_input)
 
+    def _set_default_cmd(self):
+        self._cmd_input.setText("\n\n".join(self._DEFAULT_CMD))
+    
     def get_command_template(self) -> list[str]:
         """
         Returns the command(s) from the input widget as a list of strings.
