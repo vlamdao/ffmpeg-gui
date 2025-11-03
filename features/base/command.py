@@ -27,5 +27,5 @@ class BaseCommandTemplate(QWidget):
         """
         return [line.strip() for line in self._cmd_input.toPlainText().splitlines() if line.strip()]
     
-    def generate_command(self, *args, **kwargs) -> str:
+    def generate_commands(self, *args, **kwargs) -> str:
         raise NotImplementedError("Subclasses must implement this method.")
