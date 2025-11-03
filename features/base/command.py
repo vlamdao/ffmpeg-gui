@@ -10,6 +10,7 @@ class BaseCommandTemplate(QWidget):
         self._DEFAULT_CMD = []
 
         self._setup_ui()
+        self._set_default_cmd()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -22,8 +23,16 @@ class BaseCommandTemplate(QWidget):
         layout.addWidget(self._cmd_input)
 
     def _set_default_cmd(self):
-        self._cmd_input.setText("\n\n".join(self._DEFAULT_CMD))
+        if not self._DEFAULT_CMD:
+            return
+        self._set_command(self._DEFAULT_CMD)
     
+    def _set_command(self, command: str | list[str]):
+        if isinstance(command, str):
+            self._cmd_input.setText(command)
+        else:
+            self._cmd_input.setText("\n\n".join(command))       
+
     def get_command_template(self) -> list[str]:
         """
         Returns the command(s) from the input widget as a list of strings.
