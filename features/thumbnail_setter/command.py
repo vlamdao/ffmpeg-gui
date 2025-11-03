@@ -11,6 +11,7 @@ class CommandTemplates(BaseCommandTemplate):
 	def __init__(self, placeholders: 'ThumbnailSetterPlaceholders', parent=None):
 		super().__init__(parent)
 		self._placeholders = placeholders
+
 		self._DEFAULT_CMD = [
 			f'ffmpeg -y -loglevel warning -ss {self._placeholders.get_TIMESTAMP()} '
 			f'-i "{self._placeholders.get_INFILE_FOLDER()}/{self._placeholders.get_INFILE_NAME()}.{self._placeholders.get_INFILE_EXT()}" '
@@ -49,6 +50,7 @@ class CommandTemplates(BaseCommandTemplate):
 		command_templates = self.get_command_template()
 		if not command_templates:
 			return None, None
+		
 		commands = []
 		for template in command_templates:
 			cmd = self._placeholders.replace_placeholders(template, replacements)
