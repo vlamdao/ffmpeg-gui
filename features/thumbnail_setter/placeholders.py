@@ -15,9 +15,10 @@ class ThumbnailSetterPlaceholders(Placeholders):
     def get_placeholders_list(self):
         return super().get_placeholders_list() + [self._TIMESTAMP] + [self._THUMB_PATH]
     
-    def get_replacements(self, input_file, output_folder, timestamp):
+    def get_replacements(self, input_file, output_folder, timestamp, thumb_path):
         replacements = super().get_replacements(input_file, output_folder)
         replacements.update({
             self._TIMESTAMP: timestamp,
+            self._THUMB_PATH: thumb_path,
         })
         return replacements

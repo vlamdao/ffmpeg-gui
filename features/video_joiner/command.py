@@ -36,10 +36,9 @@ class CommandTemplate(BaseCommandTemplate):
                          output_folder: str, 
                          join_method: str) -> tuple[str | None, str | None]:
 
-        replacements = {
-            self._placeholders.get_OUTPUT_FOLDER(): output_folder,
-            self._placeholders.get_INFILE_FOLDER(): selected_files[0][2]
-        }
+        replacements = self._placeholders.get_replacements(input_file=selected_files[0][1], 
+                                                           output_folder=output_folder, 
+                                                           concatfile_path=None)
         temp_concat_file_path = None
 
         if join_method == "demuxer":

@@ -38,14 +38,10 @@ class CommandTemplates(BaseCommandTemplate):
 		thumb_fd, thumb_path = tempfile.mkstemp(suffix=".jpg", prefix=f"{infile_name}_thumb_")
 		os.close(thumb_fd)
 
-		replacements = {
-			self._placeholders.get_INFILE_FOLDER(): infile_folder,
-			self._placeholders.get_INFILE_NAME(): infile_name,
-			self._placeholders.get_INFILE_EXT(): infile_ext,
-			self._placeholders.get_OUTPUT_FOLDER(): output_folder,
-			self._placeholders.get_TIMESTAMP(): timestamp,
-			self._placeholders.get_THUMB_PATH(): thumb_path,
-		}
+		replacements = self._placeholders.get_replacements(input_file=input_file, 
+														 output_folder=output_folder, 
+														 timestamp=timestamp, 
+														 thumb_path=thumb_path)
 		
 		command_templates = self.get_command_template()
 		if not command_templates:

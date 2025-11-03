@@ -28,19 +28,11 @@ class CommandTemplate(BaseCommandTemplate):
                           start_ms: int, 
                           end_ms: int) -> str | None:
         
-        infile_folder, infile_name, infile_ext = folder_name_ext_from_path(input_file)
-
-        replacements = {
-            self._placeholders.get_INFILE_FOLDER(): infile_folder,
-            self._placeholders.get_INFILE_NAME(): infile_name,
-            self._placeholders.get_INFILE_EXT(): infile_ext,
-            self._placeholders.get_START_TIME(): str(start_ms),
-            self._placeholders.get_END_TIME(): str(end_ms),
-            self._placeholders.get_OUTPUT_FOLDER(): output_folder,
-            self._placeholders.get_SAFE_START_TIME(): ms_to_time_str(start_ms).replace(":", "-").replace(".", "_"),
-            self._placeholders.get_SAFE_END_TIME(): ms_to_time_str(end_ms).replace(":", "-").replace(".", "_"),
-        }
-
+        replacements = self._placeholders.get_replacements(input_file=input_file, 
+                                                           output_folder=output_folder, 
+                                                           start_ms=start_ms, 
+                                                           end_ms=end_ms)
+        
         command_templates = self.get_command_template()
         if not command_templates:
             return None
