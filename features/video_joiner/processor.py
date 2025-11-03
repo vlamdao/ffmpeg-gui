@@ -34,7 +34,7 @@ class VideoJoinerProcessor(BaseProcessor):
             try:
                 os.remove(self._temp_concat_file_path)
                 self.log_signal.emit(styled_text('bold', 'green', None, f'Features: {self.get_feature_name()} | '
-                                                 f'cleaned up temporary file: {os.path.basename(self._temp_concat_file_path)}'))
+                                                 f'cleaned up temporary file: {self._temp_concat_file_path}'))
             except OSError as e:
                 self.log_signal.emit(styled_text('bold', 'red', None, f"Features: {self.get_feature_name()} | "
                                                  f"Error removing temporary file: {e}"))
