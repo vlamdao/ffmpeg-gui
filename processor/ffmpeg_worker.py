@@ -109,7 +109,7 @@ class FFmpegWorker(QThread):
             self.status_updated.emit(job_id, "Processing")
             
             final_status = "Success"
-            for _, cmd in enumerate(commands):
+            for cmd in commands:
                 status = self._process_command(cmd)
                 if status != "Success":
                     final_status = status
