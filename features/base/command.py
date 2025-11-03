@@ -7,10 +7,9 @@ if TYPE_CHECKING:
 
 class BaseCommandTemplate(QWidget):
 
-    def __init__(self, placeholders: 'Placeholders', parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self._cmd_input: QTextEdit
-        self._placeholders = placeholders
         
         self._setup_ui()
 
