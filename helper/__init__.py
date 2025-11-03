@@ -5,9 +5,6 @@ __all__ = ['resource_path',
            'FontDelegate',
            'time_str_to_ms',
            'ms_to_time_str',
-           'bold_green',
-           'bold_red',
-           'bold_yellow',
-           'bold_blue',
-           'styled_text'
+           'styled_text',
+           'folder_name_ext_from_path'
            ]
