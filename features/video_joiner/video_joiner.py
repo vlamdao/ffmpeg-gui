@@ -37,6 +37,13 @@ class VideoJoiner(QDialog):
 
         self._on_method_changed()
 
+    def closeEvent(self, event):
+        """Stops any running process before closing the dialog."""
+        if self._processor.is_running():
+            self._processor.stop()
+        self._processor.wait() # Wait for the thread to finish cleanly
+        super().closeEvent(event)
+
     def _create_widgets(self):
         """Creates all the widgets for the dialog."""
         # --- Join Method Selection ---
