@@ -1,13 +1,10 @@
 import os
 import tempfile
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTextEdit)
-from PyQt5.QtGui import QFont
 from typing import TYPE_CHECKING
 from ..base import BaseCommandTemplate
 
 if TYPE_CHECKING:
     from .placeholders import VideoJoinerPlaceholders
-
 
 class CommandTemplate(BaseCommandTemplate):
     """
