@@ -10,7 +10,8 @@ from .components import (SegmentControls, SegmentList,
                          CommandTemplate, VideoCutterPlaceholders
                          )
 from .processor import Processor
-from helper import FontDelegate, styled_text
+from helper import FontDelegate, styled_text, ms_to_time_str
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from components import Logger
@@ -155,7 +156,7 @@ class VideoCutter(QDialog):
         self._processor.processing_started.connect(self._on_processing_started)
         self._processor.processing_stopped.connect(self._on_processing_stopped)
         self._processor.status_updated.connect(self._on_processor_status_update)
-        self._processor.segment_processed.connect(self._segment_manager.delete_segment_by_data)
+        self._processor.segment_processed.connect(self._on_segment_processed)
         self._processor.log_signal.connect(self._logger.append_log)
 
     def _show_error_message(self, title: str, message: str) -> None:
@@ -204,11 +205,19 @@ class VideoCutter(QDialog):
         self._disable_ui_when_processing(True)
         for i in range(total_segments):
             self._segment_list.highlight_row(i, self._PENDING_COLOR)
+        self._logger.append_log(styled_text('bold', 'blue', None, f'Start processing {total_segments} segments...'))
 
     def _on_processing_stopped(self):
         """Handles the end of the segment processing task."""
         self._disable_ui_when_processing(False)
         self._segment_list.clear_highlights()
+        self._logger.append_log(styled_text('bold', 'blue', None, "Stopped cutting processes..."))
+
+    def _on_segment_processed(self, segment_data: tuple[int, int]):
+        self._segment_manager.delete_segment_by_data(segment_data)
+        log_message = styled_text('bold', 'green', None, 
+                                  f'Processed: Segment ({ms_to_time_str(segment_data[0])}, {ms_to_time_str(segment_data[1])})')
+        self._logger.append_log(log_message)
 
     def _on_processor_status_update(self, segment_data: tuple[int, int], status: str):
         """Highlights the segment row based on its processing status."""
@@ -219,7 +228,9 @@ class VideoCutter(QDialog):
             elif status == "Stopped":
                 self._segment_list.clear_highlight(row)
         else:
-            self._logger.append_log(styled_text('bold', 'red', None, f'Could not find segment {segment_data} in the list to update status.'))
+            self._logger.append_log(styled_text('bold', 'red', None, 
+                                                f'Could not find segment ({ms_to_time_str(segment_data[0])}, {ms_to_time_str(segment_data[1])}) '
+                                                f'in the list to update status.'))
 
     def _on_cut_clicked(self):
         self._media_player.pause()
@@ -227,14 +238,14 @@ class VideoCutter(QDialog):
         if not segments:
             return
         jobs = []
-        for segment_data in segments:
-            start_ms, end_ms = segment_data
-            row = self._segment_list.find_segment_by_data(segment_data)
+        for segment in segments:
+            start_ms, end_ms = segment
             command = self._command_template.generate_command(start_ms, end_ms)
             if not command:
                 self._show_error_message("Command Error", "Could not generate command. Check the command template.")
                 return # Stop if any command fails to generate
-            jobs.append({'row': row, 'data': segment_data, 'command': command})
+            # jobs is a list of tuple, tuple = (job_id, [command])
+            jobs.append((str(segment), [command]))
         self._processor.start_processing(jobs)
 
     # ==================================================================
