@@ -20,8 +20,12 @@ class BaseCommandTemplate(QWidget):
 
         layout.addWidget(self._cmd_input)
 
-    def get_command_template(self) -> str:
-        return self._cmd_input.toPlainText().strip()
+    def get_command_template(self) -> list[str]:
+        """
+        Returns the command(s) from the input widget as a list of strings.
+        Each line is treated as a separate command.
+        """
+        return [line.strip() for line in self._cmd_input.toPlainText().splitlines() if line.strip()]
     
     def generate_command(self, *args, **kwargs) -> str:
         raise NotImplementedError("Subclasses must implement this method.")
