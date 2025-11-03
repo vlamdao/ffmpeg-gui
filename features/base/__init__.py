@@ -1,5 +1,5 @@
-from .processor import *
+from .processor import BaseProcessor
 
-___all___ = [
-    BaseProcessor
+__all__ = [
+    'BaseProcessor'
 ]
