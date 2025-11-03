@@ -39,4 +39,9 @@ def styled_text(font_weight: str | None,
         color = 'goldenrod'
     return f'<span style="font-weight:{font_weight}; color:{color}; font-style:{font_style};">{text}</span>'
     
-
+def folder_name_ext_from_path(path: str):
+    folder = os.path.dirname(path)
+    filename = os.path.basename(path)
+    name, ext = os.path.splitext(filename)
+    ext = ext.lstrip('.')
+    return folder, name, ext

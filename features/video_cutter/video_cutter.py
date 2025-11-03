@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 from PyQt5.QtGui import QColor
 
+from components import PlaceholdersTable
 from features.player import MediaPlayer, MediaControls, MarkerSlider
 from .components import (SegmentControls, SegmentList,
                          SegmentManager, EditSegmentDialog,
@@ -74,45 +75,54 @@ class VideoCutter(QDialog):
                 super().keyPressEvent(event)
 
     def _setup_ui(self):
+        """Initializes and lays out the UI components."""
+        self._create_widgets()
+        self._setup_layout()
+
+    def _create_widgets(self):
+        """Creates all the widgets needed for the dialog."""
+        self._segment_manager = SegmentManager(self)
+        self._media_player = MediaPlayer()
+        self._media_controls = MediaControls(slider_class=MarkerSlider)
+        self._segment_controls = SegmentControls()
+        self._placeholders = VideoCutterPlaceholders()
+        self._placeholders_table = PlaceholdersTable(
+            placeholders_list=self._placeholders.get_placeholders_list(),
+            num_columns=4,
+            parent=self
+        )
+        self._cmd_template = CommandTemplate(placeholders=self._placeholders, parent=self)
+        self._segment_list = SegmentList()
+        self._segment_list.setItemDelegate(FontDelegate(font_family="Consolas"))
+        self._processor = Processor(self)
+
+        self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
+        
+    def _setup_layout(self):
+        """Configures the layout and adds widgets to it."""
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
-        self._segment_manager = SegmentManager(self)
 
         # Left panel for video and controls
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
-        self._media_player = MediaPlayer()
-        self._media_controls = MediaControls(slider_class=MarkerSlider)
-        self._segment_controls = SegmentControls()
-        self._placeholders = VideoCutterPlaceholders()
-        self._command_template = CommandTemplate(
-            input_file=self._input_file,
-            output_folder=self._output_folder,
-            placeholders=self._placeholders,
-            parent=self
-        )
 
         # Create a container for the bottom controls (media control + segment + command)
         bottom_controls = QWidget()
         bottom_layout = QVBoxLayout(bottom_controls)
         bottom_layout.setContentsMargins(0, 0, 0, 0)
         bottom_layout.setSpacing(5)
-        bottom_layout.addWidget(self._media_controls)
-        bottom_layout.addWidget(self._segment_controls)
-        bottom_layout.addWidget(self._command_template)
-
-        left_layout.addWidget(self._media_player, 1)
-        left_layout.addWidget(bottom_controls)
-
-        self._segment_list = SegmentList()
-        self._segment_list.setItemDelegate(FontDelegate(font_family="Consolas"))
-        
+        bottom_layout.addWidget(self._media_controls) # Add created widgets to layout
+        bottom_layout.addWidget(self._segment_controls) # Add created widgets to layout
+        bottom_layout.addWidget(self._placeholders_table) # Add created widgets to layout
+        self._placeholders_table.set_compact_height()
+        bottom_layout.addWidget(self._cmd_template) # Add created widgets to layout
+        left_layout.addWidget(self._media_player, 1) # Add created widgets to layout
+        left_layout.addWidget(bottom_controls) # Add created widgets to layout
         main_layout.addWidget(left_panel, self._LEFT_PANEL_STRETCH)
         main_layout.addWidget(self._segment_list)
-
-        self._processor = Processor(self)
 
     def _connect_signals(self):
         """Connects signals and slots between all the components."""
@@ -197,7 +207,7 @@ class VideoCutter(QDialog):
         """Enables or disables UI components based on processing state."""
         self._media_controls.setEnabled(not is_processing)
         self._segment_list.setEnabled(not is_processing)
-        self._command_template.setEnabled(not is_processing)
+        self._cmd_template.setEnabled(not is_processing)
         self._segment_controls.set_enable(not is_processing)
 
     def _on_processing_started(self, total_segments: int):
@@ -244,12 +254,15 @@ class VideoCutter(QDialog):
         jobs = []
         for segment in segments:
             start_ms, end_ms = segment
-            command = self._command_template.generate_command(start_ms, end_ms)
-            if not command:
+            commands = self._cmd_template.generate_commands(input_file=self._input_file,
+                                                            output_folder=self._output_folder,
+                                                            start_ms=start_ms,
+                                                            end_ms=end_ms)
+            if not commands:
                 self._show_error_message("Command Error", "Could not generate command. Check the command template.")
                 return # Stop if any command fails to generate
-            # jobs is a list of tuple, tuple = (job_id, [command])
-            jobs.append((str(segment), [command]))
+            
+            jobs.append((str(segment), commands))
         self._processor.start(jobs)
 
     # ==================================================================

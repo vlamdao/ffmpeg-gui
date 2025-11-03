@@ -1,5 +1,6 @@
 import os
 from typing import TYPE_CHECKING
+from helper import folder_name_ext_from_path
 
 if TYPE_CHECKING:
     from ..output_folder import OutputFolder
@@ -31,15 +32,13 @@ class Placeholders:
         if not input_file:
             return {}
 
-        infile_folder = os.path.dirname(input_file)
-        filename = os.path.basename(input_file)
-        infile_name, infile_ext = os.path.splitext(filename)
-        
+        infile_folder, infile_name, infile_ext = folder_name_ext_from_path(input_file)
+
         replacements = {
-            self._INFILE_FOLDER: str(infile_folder),
-            self._INFILE_NAME: str(infile_name),
-            self._INFILE_EXT: infile_ext.lstrip('.'),
-            self._OUTPUT_FOLDER: str(output_folder),
+            self._INFILE_FOLDER: infile_folder,
+            self._INFILE_NAME: infile_name,
+            self._INFILE_EXT: infile_ext,
+            self._OUTPUT_FOLDER: output_folder,
         }
         return replacements
 

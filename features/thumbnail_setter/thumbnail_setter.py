@@ -5,7 +5,10 @@ from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtCore import QSize
 
 from features.player import MediaPlayer, MediaControls
-from .processor import Processor
+from .processor import ThumbnailProcessor
+from .command import CommandTemplates
+from .placeholders import ThumbnailSetterPlaceholders
+from components import PlaceholdersTable
 from helper import ms_to_time_str, time_str_to_ms, resource_path
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -36,6 +39,7 @@ class ThumbnailSetter(QDialog):
         self._video_path = video_path
         self._logger = logger
         self._output_folder = output_folder
+        self._placeholders = ThumbnailSetterPlaceholders()
 
         # UI Components
         self._media_player: MediaPlayer
@@ -43,9 +47,11 @@ class ThumbnailSetter(QDialog):
         self._timestamp_edit: QLineEdit
         self._go_to_button: QPushButton
         self._set_thumbnail_button: QPushButton
+        self._command_template: CommandTemplates
+        self._placeholders_table: PlaceholdersTable
 
-        # Thumbnail Processor
-        self._processor = Processor(self)
+        # Thumbnail ThumbnailProcessor
+        self._processor = ThumbnailProcessor(self)
 
         self._setup_ui()
         self._connect_signals()
@@ -103,10 +109,23 @@ class ThumbnailSetter(QDialog):
         thumbnail_controls_layout.addWidget(self._go_to_button)
         thumbnail_controls_layout.addWidget(self._set_thumbnail_button)
 
+        # --- Placeholders and Command Template ---
+        self._placeholders_table = PlaceholdersTable(
+            placeholders_list=self._placeholders.get_placeholders_list(),
+            num_columns=6,
+            parent=self
+        )
+        self._placeholders_table.set_compact_height()
+
+        self._command_template = CommandTemplates(placeholders=self._placeholders)
+        self._command_template.setFixedHeight(100)
+
         # --- Assemble Layout ---
         main_layout.addWidget(self._media_player, 1) # Player takes expanding space
         main_layout.addWidget(self._media_controls)
         main_layout.addWidget(thumbnail_controls_widget)
+        main_layout.addWidget(self._placeholders_table)
+        main_layout.addWidget(self._command_template)
 
     def _connect_signals(self):
         """Connects signals and slots for the dialog's components."""
@@ -127,6 +146,8 @@ class ThumbnailSetter(QDialog):
         self._set_thumbnail_button.clicked.connect(self._on_set_thumbnail)
         self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
+
+        self._placeholders_table.placeholder_double_clicked.connect(self._command_template.insert_placeholder)
 
     @pyqtSlot('qint64')
     def _on_position_changed(self, position):
@@ -164,7 +185,11 @@ class ThumbnailSetter(QDialog):
         self._timestamp_edit.setEnabled(False)
         self._media_player.pause()
         
-        self._processor.start(self._video_path, self._output_folder, timestamp)
+        self._processor.start(
+            input_file=self._video_path, 
+            output_folder=self._output_folder, 
+            cmd_template=self._command_template,
+            timestamp = timestamp)
 
     @pyqtSlot()
     def _on_processing_finished(self):
@@ -172,4 +197,3 @@ class ThumbnailSetter(QDialog):
         self._set_thumbnail_button.setEnabled(True)
         self._go_to_button.setEnabled(True)
         self._timestamp_edit.setEnabled(True)
-

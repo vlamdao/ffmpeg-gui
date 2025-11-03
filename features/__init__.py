@@ -1,6 +1,11 @@
 from .video_cutter import VideoCutter
 from .thumbnail_setter import ThumbnailSetter
 from .video_joiner import VideoJoiner
+from .base import BaseProcessor
 
-
-__all__ = ['VideoCutter', 'ThumbnailSetter', 'VideoJoiner']
+__all__ = [
+    'VideoCutter', 
+    'ThumbnailSetter', 
+    'VideoJoiner', 
+    'BaseProcessor'
+]
