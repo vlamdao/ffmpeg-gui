@@ -27,7 +27,8 @@ class Processor(QObject):
     def start(self, jobs: list[tuple[str, list[str]]]):
         """Initiates the sequential cutting process for all defined segments."""
         if self._processing_queue or self._active_workers:
-            self.log_signal.emit(styled_text('bold', 'blue', None, "WARNING: A cutting process is already running."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, f"Features: Video Cutter | "
+                                                                    f"WARNING: A cutting process is already running."))
             return
 
         # Set processing queue
@@ -38,7 +39,8 @@ class Processor(QObject):
     def _process_next_in_queue(self):
         """Processes the next segment in the queue."""
         if not self._processing_queue:
-            self.log_signal.emit(styled_text('bold', 'blue', None, "All segments have been processed."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, f"Features: Video Cutter | "
+                                                                    f"All segments have been processed."))
             self.processing_stopped.emit()
             return
 
@@ -69,7 +71,8 @@ class Processor(QObject):
                 segment_data = ast.literal_eval(job_id)
                 self.segment_processed.emit(segment_data)
             except Exception as e:
-                self.log_signal.emit(styled_text('bold', 'red', None, f"Exception: {e}"))
+                self.log_signal.emit(styled_text('bold', 'red', None, f"Features: Video Cutter | "
+                                                                        f"Exception: {e}"))
             self._process_next_in_queue()
 
     @pyqtSlot(str, str)
@@ -79,12 +82,14 @@ class Processor(QObject):
             segment_data = ast.literal_eval(job_id)
             self.status_updated.emit(segment_data, status)
         except Exception as e:
-            self.log_signal.emit(styled_text('bold', 'red', None, f"Exception: {e}"))
+            self.log_signal.emit(styled_text('bold', 'red', None, f"Features: Video Cutter | "
+                                                                    f"Exception: {e}"))
 
     def stop(self):
         """Stops the current cutting process."""
         if not self._processing_queue and not self._active_workers:
-            self.log_signal.emit(styled_text('bold', 'blue', None, "No cutting process is currently running."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, "Features: Video Cutter | "
+                                                                    f"No cutting process is currently running."))
             return
 
         # Emit "Stopped" status for all segments remaining in the queue
@@ -93,7 +98,8 @@ class Processor(QObject):
                 segment_data = ast.literal_eval(job[0])
                 self.status_updated.emit(segment_data, "Stopped")
             except Exception as e:
-                self.log_signal.emit(styled_text('bold', 'red', None, f"Exception: {e}"))
+                self.log_signal.emit(styled_text('bold', 'red', None, f"Features: Video Cutter | "
+                                                                        f"Exception: {e}"))
             
         self._processing_queue.clear()
         for worker in self._active_workers:
