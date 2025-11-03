@@ -34,18 +34,7 @@ class CommandTemplate(BaseCommandTemplate):
                          selected_files: list[tuple[int, str, str]], 
                          output_folder: str, 
                          join_method: str) -> tuple[str | None, str | None]:
-        """
-        Creates the final FFmpeg command string and returns it along with any temp file path.
 
-        Args:
-            selected_files: List of files to be joined.
-            output_folder: The target folder for the output.
-            join_method: The method to use for joining ('demuxer' or 'filter').
-
-        Returns:
-            A tuple containing the generated command (str) and the path to the temporary
-            concat file (str) if one was created, otherwise (None, None).
-        """
         command_templates = self.get_command_template()
         if not command_templates:
             return None, None
@@ -58,16 +47,19 @@ class CommandTemplate(BaseCommandTemplate):
         temp_concat_file_path = None
 
         if join_method == "demuxer":
-            concat_fd, concat_path = tempfile.mkstemp(suffix=".txt", text=True)
-            with os.fdopen(concat_fd, 'w', encoding='utf-8') as f:
-                for _, infile_name, infile_folder in selected_files:
-                    full_path = os.path.join(infile_folder, infile_name).replace('\\', '/')
-                    f.write(f"file '{full_path}'\n")
-            temp_concat_file_path = concat_path
+            temp_concat_file_path = self._create_concat_file(selected_files)
             replacements.update({
                 self._placeholders.get_CONCATFILE_PATH(): temp_concat_file_path,
             })
-        # Replace placeholders in the command template
         cmd = self._placeholders.replace_placeholders(command_template, replacements)
 
         return [cmd], temp_concat_file_path
+    
+    def _create_concat_file(self, selected_files: list[tuple[int, str, str]]):
+        concat_fd, concat_path = tempfile.mkstemp(suffix=".txt", text=True)
+        with os.fdopen(concat_fd, 'w', encoding='utf-8') as f:
+            for _, infile_name, infile_folder in selected_files:
+                full_path = os.path.join(infile_folder, infile_name).replace('\\', '/')
+                f.write(f"file '{full_path}'\n")
+
+        return concat_path
