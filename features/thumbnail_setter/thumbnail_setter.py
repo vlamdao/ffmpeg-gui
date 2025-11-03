@@ -5,7 +5,8 @@ from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtCore import QSize
 
 from features.player import MediaPlayer, MediaControls
-from .processor import Processor
+from .processor import ThumbnailProcessor
+from .command import CommandTemplates
 from helper import ms_to_time_str, time_str_to_ms, resource_path
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -44,8 +45,8 @@ class ThumbnailSetter(QDialog):
         self._go_to_button: QPushButton
         self._set_thumbnail_button: QPushButton
 
-        # Thumbnail Processor
-        self._processor = Processor(self)
+        # Thumbnail ThumbnailProcessor
+        self._processor = ThumbnailProcessor(self)
 
         self._setup_ui()
         self._connect_signals()
@@ -164,7 +165,11 @@ class ThumbnailSetter(QDialog):
         self._timestamp_edit.setEnabled(False)
         self._media_player.pause()
         
-        self._processor.start(self._video_path, self._output_folder, timestamp)
+        self._processor.start(
+            input_file=self._video_path, 
+            output_folder=self._output_folder, 
+            cmd_template=CommandTemplates(),
+            timestamp = timestamp)
 
     @pyqtSlot()
     def _on_processing_finished(self):

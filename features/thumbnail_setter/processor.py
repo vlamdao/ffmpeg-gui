@@ -1,64 +1,36 @@
 import os
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
-from processor import FFmpegWorker
 from .command import CommandTemplates
 from helper import styled_text
+from ..base import BaseProcessor
 
-class Processor(QObject):
+class ThumbnailProcessor(BaseProcessor):
     """
     Handles the background processing for setting a video thumbnail using FFmpeg.
     """
-    log_signal = pyqtSignal(str)
-    processing_finished = pyqtSignal()
-
     def __init__(self, parent=None):
-        """Initializes the Processor."""
         super().__init__(parent)
-        self._worker: FFmpegWorker | None = None
         self._temp_thumb_path: str | None = None
 
-    def is_running(self) -> bool:
-        """Checks if a thumbnail process is currently active."""
-        return self._worker is not None and self._worker.isRunning()
-
-    def start(self, video_path: str, output_folder: str, timestamp: str):
-        """Starts the process of setting the thumbnail."""
-        if self.is_running():
-            self.log_signal.emit(styled_text('bold', 'blue', None, "Thumbnail processing is already in progress."))
-            return
-        try:
-            command_template = CommandTemplates(video_path, output_folder, timestamp)
-            commands, self._temp_thumb_path = command_template.generate_commands()
-            self._start_worker(commands)
-            self.log_signal.emit(styled_text('bold', 'blue', None, f"Setting thumbnail for '{os.path.basename(video_path)}' at {timestamp}..."))
-        except Exception as e:
-            self.log_signal.emit(styled_text('bold', 'red', None, f'Error: {e}'))
-            self.processing_finished.emit()
-
-    def _start_worker(self, commands: list[str]):
-        """Initializes and starts the FFmpegWorker."""
-        job = ("thumbnail_setter_job", commands) # Use a string job_id for a single job
-        self._worker = FFmpegWorker([job])
-        self._worker.log_signal.connect(self.log_signal)
-        self._worker.status_updated.connect(self._on_worker_status_update)
-        self._worker.finished.connect(self._on_worker_thread_finished)
-        self._worker.start()
-
-    @pyqtSlot(str, str)
-    def _on_worker_status_update(self, job_id: str, status: str):
-        """Handles status updates from the worker and emits the final result."""
-        # We only care about the final status, not "Processing"
-        if status in ("Success", "Failed", "Stopped"):
-            if status == "Success":
-                log_message = styled_text('bold', 'green', None, "Thumbnail has been set successfully.")
-            else:
-                log_message = styled_text('bold', 'red', None, f"Failed to set thumbnail. Status: {status}")
-            self.log_signal.emit(log_message)
-            self.processing_finished.emit()
-
-    def _on_worker_thread_finished(self):
+    def _prepare_job(self, 
+                     input_file: str, 
+                     output_folder: str, 
+                     cmd_template: 'CommandTemplates',
+                     timestamp: str) -> tuple[list[tuple[str, list[str]]], str]:
+        
+        commands, self._temp_thumb_path = cmd_template.generate_commands(input_file=input_file, 
+                                                                         output_folder=output_folder, 
+                                                                         timestamp=timestamp)
+        job = [("thumbnail_setter_job", commands)]
+        message = styled_text('bold', 'blue', None, f"Features: {self.get_feature_name()} | "
+                                                 f"Starting to set thumbnail for '{os.path.basename(input_file)}' at {timestamp}...")
+        return (job, message)
+    
+    def get_feature_name(self):
+        return "Thumbnail Setter"
+    
+    def _cleanup(self):
         """Cleans up resources after the worker thread has completely finished."""
         if self._temp_thumb_path and os.path.exists(self._temp_thumb_path):
             os.remove(self._temp_thumb_path)
-        
-        self._worker = None
+        super()._cleanup()
+
