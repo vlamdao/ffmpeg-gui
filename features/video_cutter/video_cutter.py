@@ -254,7 +254,10 @@ class VideoCutter(QDialog):
         jobs = []
         for segment in segments:
             start_ms, end_ms = segment
-            commands = self._cmd_template.generate_commands(start_ms, end_ms)
+            commands = self._cmd_template.generate_commands(input_file=self._input_file,
+                                                            output_folder=self._output_folder,
+                                                            start_ms=start_ms,
+                                                            end_ms=end_ms)
             if not commands:
                 self._show_error_message("Command Error", "Could not generate command. Check the command template.")
                 return # Stop if any command fails to generate
