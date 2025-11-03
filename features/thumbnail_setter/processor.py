@@ -31,6 +31,13 @@ class ThumbnailProcessor(BaseProcessor):
     def _cleanup(self):
         """Cleans up resources after the worker thread has completely finished."""
         if self._temp_thumb_path and os.path.exists(self._temp_thumb_path):
-            os.remove(self._temp_thumb_path)
+            try:
+                os.remove(self._temp_thumb_path)
+                self.log_signal.emit(styled_text('bold', 'green', None, f'Features: {self.get_feature_name()} | '
+                                         f'cleaned up temporary file: {os.path.basename(self._temp_thumb_path)}'))
+            except OSError as e:
+                self.log_signal.emit(styled_text('bold', 'red', None, f"Features: {self.get_feature_name()} | "
+                                         f"Error removing temporary file: {e}"))
+        self._temp_thumb_path = None
         super()._cleanup()
 
