@@ -121,7 +121,7 @@ class VideoJoiner(QDialog):
         """Updates the command template based on the selected join method."""
         method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
         self._cmd_template.set_command_for_method(method)
-        self._set_buttons_enabled(True)
+        self._set_ui_enabled_for_processing(is_processing=False)
 
     def _start_join_process(self):
         """Initiates the video joining process."""
@@ -131,7 +131,7 @@ class VideoJoiner(QDialog):
 
         join_method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
 
-        self._set_buttons_enabled(False)
+        self._set_ui_enabled_for_processing(is_processing=True)
 
         self._processor.start(
             selected_files=self._selected_files,
@@ -146,10 +146,16 @@ class VideoJoiner(QDialog):
         if self._processor.is_running():
             self._processor.stop()
 
-    def _set_buttons_enabled(self, is_enabled: bool):
+    def _set_ui_enabled_for_processing(self, is_processing: bool):
+        """Disables UI elements during processing, leaving only Stop enabled."""
+        is_enabled = not is_processing
         self._join_video_button.setEnabled(is_enabled)
-        self._stop_button.setEnabled(not is_enabled)
+        self._concat_demuxer_radio.setEnabled(is_enabled)
+        self._concat_filter_radio.setEnabled(is_enabled)
+        self._placeholders_table.setEnabled(is_enabled)
+        self._cmd_template.setEnabled(is_enabled)
+        self._stop_button.setEnabled(is_processing)
 
     def _on_processing_finished(self):
         """Handles the completion of the joining process."""
-        self._set_buttons_enabled(True)
+        self._set_ui_enabled_for_processing(is_processing=False)

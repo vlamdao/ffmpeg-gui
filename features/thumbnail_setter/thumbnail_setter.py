@@ -55,7 +55,7 @@ class ThumbnailSetter(QDialog):
         self._processor = ThumbnailProcessor(self)
 
         self._setup_ui()
-        self._set_buttons_enabled(True) # Set initial state
+        self._set_ui_enabled_for_processing(is_processing=False) # Set initial state
         self._connect_signals()
 
     def showEvent(self, event):
@@ -192,7 +192,7 @@ class ThumbnailSetter(QDialog):
         timestamp = ms_to_time_str(self._media_player.position())
         
         # Disable button and pause video when processing
-        self._set_buttons_enabled(False)
+        self._set_ui_enabled_for_processing(is_processing=True)
         self._media_player.pause()
         
         self._processor.start(
@@ -207,14 +207,19 @@ class ThumbnailSetter(QDialog):
         if self._processor.is_running():
             self._processor.stop()
 
-    def _set_buttons_enabled(self, is_enabled: bool):
+    def _set_ui_enabled_for_processing(self, is_processing: bool):
         """Enables or disables UI controls based on processing state."""
+        is_enabled = not is_processing
         self._set_thumbnail_button.setEnabled(is_enabled)
         self._go_to_button.setEnabled(is_enabled)
         self._timestamp_edit.setEnabled(is_enabled)
-        self._stop_button.setEnabled(not is_enabled)
+        self._media_controls.setEnabled(is_enabled)
+        self._placeholders_table.setEnabled(is_enabled)
+        self._command_template.setEnabled(is_enabled)
+        self._stop_button.setEnabled(is_processing)
 
     @pyqtSlot()
     def _on_processing_finished(self):
         """Handles the completion of the thumbnail process."""
-        self._set_buttons_enabled(True)
+        self._set_ui_enabled_for_processing(is_processing=False)
+        self._media_player.play() # Resume playback after processing
