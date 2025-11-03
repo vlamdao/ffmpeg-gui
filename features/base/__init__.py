@@ -1,8 +1,7 @@
 from .processor import BaseProcessor
-from .command import CommandTemplate
-
+from .command import BaseCommandTemplate
 __all__ = [
     'BaseProcessor',
-    'CommandTemplate',
+    'BaseCommandTemplate',
 
 ]
