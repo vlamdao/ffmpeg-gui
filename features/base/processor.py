@@ -3,6 +3,9 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from abc import ABC, abstractmethod
 from processor import FFmpegWorker
 from helper import styled_text
+# from typing import TYPE_CHECKING
+# if TYPE_CHECKING:
+#     from processor import FFmpegWorker
 
 
 class BaseProcessor(QObject):
@@ -12,6 +15,7 @@ class BaseProcessor(QObject):
     """
     log_signal = pyqtSignal(str)
     processing_finished = pyqtSignal()
+    worker_created = pyqtSignal('FFmpegWorker')
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -72,6 +76,7 @@ class BaseProcessor(QObject):
         self._worker.log_signal.connect(self.log_signal)
         self._worker.status_updated.connect(self._on_worker_status_update)
         self._worker.finished.connect(self._on_worker_thread_finished)
+        self.worker_created.emit(self._worker)
         self._worker.start()
 
     @pyqtSlot(str, str)
