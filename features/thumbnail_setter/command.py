@@ -36,8 +36,6 @@ class CommandTemplates(BaseCommandTemplate):
 		thumb_fd, thumb_path = tempfile.mkstemp(suffix=".jpg", prefix=f"{filename}_thumb_")
 		os.close(thumb_fd)
 
-		os.makedirs(output_folder, exist_ok=True)
-
 		replacements = {
 			self._placeholders.get_INFILE_FOLDER(): os.path.dirname(input_file),
 			self._placeholders.get_INFILE_NAME(): os.path.splitext(filename)[0],

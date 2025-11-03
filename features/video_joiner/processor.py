@@ -20,6 +20,9 @@ class VideoJoinerProcessor(BaseProcessor):
               cmd_template: 'CommandTemplate', 
               join_method: str) -> tuple[list[tuple[str, list[str]]], str]:
         
+        # Ensure the output directory exists before generating commands that use it.
+        os.makedirs(output_folder, exist_ok=True)
+
         commands, self._temp_concat_file_path = cmd_template.generate_commands(selected_files, output_folder, join_method)
         job = [("video_joiner_job", commands)]
         message = styled_text('bold', 'blue', None, f"Features: {self.get_feature_name()} | "

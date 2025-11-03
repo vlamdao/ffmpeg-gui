@@ -17,6 +17,9 @@ class ThumbnailProcessor(BaseProcessor):
                      cmd_template: 'CommandTemplates',
                      timestamp: str) -> tuple[list[tuple[str, list[str]]], str]:
         
+        # Ensure the output directory exists before generating commands that use it.
+        os.makedirs(output_folder, exist_ok=True)
+
         commands, self._temp_thumb_path = cmd_template.generate_commands(input_file=input_file, 
                                                                          output_folder=output_folder, 
                                                                          timestamp=timestamp)
@@ -40,4 +43,3 @@ class ThumbnailProcessor(BaseProcessor):
                                          f"Error removing temporary file: {e}"))
         self._temp_thumb_path = None
         super()._cleanup()
-
