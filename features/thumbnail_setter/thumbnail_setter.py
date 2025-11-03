@@ -116,7 +116,6 @@ class ThumbnailSetter(QDialog):
             parent=self
         )
         self._placeholders_table.set_compact_height()
-        self._placeholders_table.set_disabled_placeholders([self._placeholders.get_THUMB_PATH()])
 
         self._command_template = CommandTemplates(placeholders=self._placeholders)
         self._command_template.setFixedHeight(100)
