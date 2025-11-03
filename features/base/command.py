@@ -33,6 +33,9 @@ class BaseCommandTemplate(QWidget):
         else:
             self._cmd_input.setText("\n\n".join(command))       
 
+    def insert_placeholder(self, placeholder: str):
+        self._cmd_input.insertPlainText(placeholder)
+
     def get_command_template(self) -> list[str]:
         """
         Returns the command(s) from the input widget as a list of strings.
