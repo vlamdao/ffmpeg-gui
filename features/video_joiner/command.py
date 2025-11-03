@@ -46,9 +46,10 @@ class CommandTemplate(BaseCommandTemplate):
             A tuple containing the generated command (str) and the path to the temporary
             concat file (str) if one was created, otherwise (None, None).
         """
-        command_template = self.get_command_template()
-        if not command_template:
+        command_templates = self.get_command_template()
+        if not command_templates:
             return None, None
+        command_template = command_templates[0] # Video joiner only uses the first command
 
         replacements = {
             self._placeholders.get_OUTPUT_FOLDER(): output_folder,
