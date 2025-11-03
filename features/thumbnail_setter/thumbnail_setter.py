@@ -47,6 +47,7 @@ class ThumbnailSetter(QDialog):
         self._timestamp_edit: QLineEdit
         self._go_to_button: QPushButton
         self._set_thumbnail_button: QPushButton
+        self._stop_button: QPushButton
         self._command_template: CommandTemplates
         self._placeholders_table: PlaceholdersTable
 
@@ -54,6 +55,7 @@ class ThumbnailSetter(QDialog):
         self._processor = ThumbnailProcessor(self)
 
         self._setup_ui()
+        self._set_buttons_enabled(True) # Set initial state
         self._connect_signals()
 
     def showEvent(self, event):
@@ -104,10 +106,16 @@ class ThumbnailSetter(QDialog):
         self._set_thumbnail_button.setMinimumHeight(min_height)
         self._set_thumbnail_button.setToolTip("Set the thumbnail at the current frame")
 
+        self._stop_button = QPushButton(" Stop")
+        self._stop_button.setIcon(QIcon(resource_path("icon/stop.png")))
+        self._stop_button.setIconSize(QSize(19, 19))
+        self._stop_button.setMinimumHeight(min_height)
+
         thumbnail_controls_layout.addStretch()
         thumbnail_controls_layout.addWidget(self._timestamp_edit)
         thumbnail_controls_layout.addWidget(self._go_to_button)
         thumbnail_controls_layout.addWidget(self._set_thumbnail_button)
+        thumbnail_controls_layout.addWidget(self._stop_button)
 
         # --- Placeholders and Command Template ---
         self._placeholders_table = PlaceholdersTable(
@@ -144,6 +152,7 @@ class ThumbnailSetter(QDialog):
         # --- Custom Controls ---
         self._go_to_button.clicked.connect(self._on_go_to_timestamp)
         self._set_thumbnail_button.clicked.connect(self._on_set_thumbnail)
+        self._stop_button.clicked.connect(self._stop_process)
         self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
 
@@ -180,9 +189,7 @@ class ThumbnailSetter(QDialog):
         timestamp = ms_to_time_str(self._media_player.position())
         
         # Disable button and pause video when processing
-        self._set_thumbnail_button.setEnabled(False)
-        self._go_to_button.setEnabled(False)
-        self._timestamp_edit.setEnabled(False)
+        self._set_buttons_enabled(False)
         self._media_player.pause()
         
         self._processor.start(
@@ -192,8 +199,19 @@ class ThumbnailSetter(QDialog):
             timestamp = timestamp)
 
     @pyqtSlot()
+    def _stop_process(self):
+        """Stops the thumbnail process if it is running."""
+        if self._processor.is_running():
+            self._processor.stop()
+
+    def _set_buttons_enabled(self, is_enabled: bool):
+        """Enables or disables UI controls based on processing state."""
+        self._set_thumbnail_button.setEnabled(is_enabled)
+        self._go_to_button.setEnabled(is_enabled)
+        self._timestamp_edit.setEnabled(is_enabled)
+        self._stop_button.setEnabled(not is_enabled)
+
+    @pyqtSlot()
     def _on_processing_finished(self):
         """Handles the completion of the thumbnail process."""
-        self._set_thumbnail_button.setEnabled(True)
-        self._go_to_button.setEnabled(True)
-        self._timestamp_edit.setEnabled(True)
+        self._set_buttons_enabled(True)
