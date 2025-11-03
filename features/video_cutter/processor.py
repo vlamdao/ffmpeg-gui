@@ -107,6 +107,12 @@ class Processor(QObject):
         self._active_workers.clear()
         self.processing_stopped.emit()
     
+    def wait(self):
+        """Waits for all active worker threads to finish."""
+        for worker in self._active_workers:
+            if worker.isRunning():
+                worker.wait()
+
     def get_active_workers(self):
         """Returns the list of active workers."""
         return self._active_workers

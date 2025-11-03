@@ -21,6 +21,11 @@ class BaseProcessor(QObject):
         """Checks if a process is currently active."""
         return self._worker is not None and self._worker.isRunning()
 
+    def wait(self):
+        """Waits for the worker thread to finish."""
+        if self.is_running():
+            self._worker.wait()
+
     def stop(self):
         """Stops the running worker thread."""
         if self.is_running():

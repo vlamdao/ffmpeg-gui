@@ -63,6 +63,7 @@ class VideoCutter(QDialog):
         self._media_player.cleanup()
         if self._processor and (self._processor.get_active_workers() or self._processor._processing_queue):
             self._processor.stop()
+            self._processor.wait()
         super().closeEvent(event)
 
     def keyPressEvent(self, event):
