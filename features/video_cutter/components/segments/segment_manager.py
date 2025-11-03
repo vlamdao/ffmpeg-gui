@@ -51,7 +51,7 @@ class SegmentManager(QObject):
         """Centralized method for changing the state and logging it."""
         if self._state != new_state:
             self._state = new_state
-            print(f"State changed to: {self._state}")
+            # print(f"State changed to: {self._state}")
     
     def _reset_to_idle_state(self):
         """Resets the manager to the initial IDLE state."""
