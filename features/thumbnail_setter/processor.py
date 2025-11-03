@@ -23,6 +23,10 @@ class ThumbnailProcessor(BaseProcessor):
         commands, self._temp_thumb_path = cmd_template.generate_commands(input_file=input_file, 
                                                                          output_folder=output_folder, 
                                                                          timestamp=timestamp)
+        if not commands:
+            return None, styled_text('bold', 'red', None, f'Features: {self.get_feature_name()} | '
+                                                        f'Could not generate command. Check the command template.')
+                                                        
         job = [("thumbnail_setter_job", commands)]
         message = styled_text('bold', 'blue', None, f"Features: {self.get_feature_name()} | "
                                                  f"Starting to set thumbnail for '{os.path.basename(input_file)}' at {timestamp}...")

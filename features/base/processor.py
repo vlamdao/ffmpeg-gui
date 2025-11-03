@@ -51,13 +51,12 @@ class BaseProcessor(QObject):
 
         try:
             prepaird_job = self._prepare_job(*args, **kwargs)
-            if not prepaird_job:
-                self.processing_finished.emit()
-                self.log_signal.emit(styled_text('bold', 'red', None, f'Features: {self.get_feature_name()} | '
-                                                                        f'Error:No job to run'))
-                return
-            
+
             jobs, message = prepaird_job
+            if not jobs:
+                self.processing_finished.emit()
+                self.log_signal.emit(styled_text('bold', 'red', None, message))
+                return
             self._start_worker(jobs=jobs)
             self.log_signal.emit(styled_text('bold', 'blue', None, message))
         except Exception as e:

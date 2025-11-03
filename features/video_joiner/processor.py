@@ -24,6 +24,10 @@ class VideoJoinerProcessor(BaseProcessor):
         os.makedirs(output_folder, exist_ok=True)
 
         commands, self._temp_concat_file_path = cmd_template.generate_commands(selected_files, output_folder, join_method)
+        if not commands:
+            return None, styled_text('bold', 'red', None, f'Features: {self.get_feature_name()} | '
+                                                        f'Could not generate command. Check the command template.')
+    
         job = [("video_joiner_job", commands)]
         message = styled_text('bold', 'blue', None, f"Features: {self.get_feature_name()} | "
                                                  f"Starting to join {len(selected_files)} files...")
