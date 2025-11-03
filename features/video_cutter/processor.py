@@ -1,3 +1,4 @@
+import ast
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from processor.ffmpeg_worker import FFmpegWorker
 from helper import styled_text
@@ -23,10 +24,11 @@ class Processor(QObject):
         self._active_workers = []
         self._processing_queue = []
 
-    def start_processing(self, jobs: list[tuple[str, list[str]]]):
+    def start(self, jobs: list[tuple[str, list[str]]]):
         """Initiates the sequential cutting process for all defined segments."""
         if self._processing_queue or self._active_workers:
-            self.log_signal.emit(styled_text('bold', 'blue', None, "WARNING: A cutting process is already running."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, f"Features: Video Cutter | "
+                                                                    f"WARNING: A cutting process is already running."))
             return
 
         # Set processing queue
@@ -37,15 +39,16 @@ class Processor(QObject):
     def _process_next_in_queue(self):
         """Processes the next segment in the queue."""
         if not self._processing_queue:
-            self.log_signal.emit(styled_text('bold', 'blue', None, "All segments have been processed."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, f"Features: Video Cutter | "
+                                                                    f"All segments have been processed."))
             self.processing_stopped.emit()
             return
 
         # Get the data for the next segment from the queue
         job = self._processing_queue.pop(0)
-        self._start_cut_worker(job)
+        self._start_worker(job)
         
-    def _start_cut_worker(self, job):
+    def _start_worker(self, job):
         """Creates and starts an FFmpegWorker for a single segment."""
         # FFmpeg can process list of job,
         # but in here we used queue, so worker only process 1 job each time
@@ -65,34 +68,38 @@ class Processor(QObject):
         if not was_stopped:
             self._active_workers.remove(worker_ref)
             try:
-                segment_data = eval(job_id)
+                segment_data = ast.literal_eval(job_id)
                 self.segment_processed.emit(segment_data)
             except Exception as e:
-                self.log_signal.emit(styled_text('bold', 'red', None, f"Exception: {e}"))
+                self.log_signal.emit(styled_text('bold', 'red', None, f"Features: Video Cutter | "
+                                                                        f"Exception: {e}"))
             self._process_next_in_queue()
 
     @pyqtSlot(str, str)
     def _on_worker_status_update(self, job_id: str, status: str):
         """Receives status from worker and forwards it to the main dialog."""
         try:
-            segment_data = eval(job_id)
+            segment_data = ast.literal_eval(job_id)
             self.status_updated.emit(segment_data, status)
         except Exception as e:
-            self.log_signal.emit(styled_text('bold', 'red', None, f"Exception: {e}"))
+            self.log_signal.emit(styled_text('bold', 'red', None, f"Features: Video Cutter | "
+                                                                    f"Exception: {e}"))
 
-    def stop_processing(self):
+    def stop(self):
         """Stops the current cutting process."""
         if not self._processing_queue and not self._active_workers:
-            self.log_signal.emit(styled_text('bold', 'blue', None, "No cutting process is currently running."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, "Features: Video Cutter | "
+                                                                    f"No cutting process is currently running."))
             return
 
         # Emit "Stopped" status for all segments remaining in the queue
         for job in self._processing_queue:
             try:
-                segment_data = eval(job[0])
+                segment_data = ast.literal_eval(job[0])
                 self.status_updated.emit(segment_data, "Stopped")
             except Exception as e:
-                self.log_signal.emit(styled_text('bold', 'red', None, f"Exception: {e}"))
+                self.log_signal.emit(styled_text('bold', 'red', None, f"Features: Video Cutter | "
+                                                                        f"Exception: {e}"))
             
         self._processing_queue.clear()
         for worker in self._active_workers:

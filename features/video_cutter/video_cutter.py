@@ -135,7 +135,7 @@ class VideoCutter(QDialog):
         # --- Segment Controls and List ---
         self._segment_controls.set_start_clicked.connect(self._on_set_start_time)
         self._segment_controls.set_end_clicked.connect(self._on_set_end_time)
-        self._segment_controls.stop_clicked.connect(self._processor.stop_processing)
+        self._segment_controls.stop_clicked.connect(self._processor.stop)
         self._segment_controls.cut_clicked.connect(self._on_cut_clicked)
 
         self._segment_list.itemSelectionChanged.connect(self._on_segment_selected)
@@ -205,17 +205,20 @@ class VideoCutter(QDialog):
         self._disable_ui_when_processing(True)
         for i in range(total_segments):
             self._segment_list.highlight_row(i, self._PENDING_COLOR)
-        self._logger.append_log(styled_text('bold', 'blue', None, f'Start processing {total_segments} segments...'))
+        self._logger.append_log(styled_text('bold', 'blue', None, f'Features: Video Cutter | '
+                                                                    f'Start processing {total_segments} segments...'))
 
     def _on_processing_stopped(self):
         """Handles the end of the segment processing task."""
         self._disable_ui_when_processing(False)
         self._segment_list.clear_highlights()
-        self._logger.append_log(styled_text('bold', 'blue', None, "Stopped cutting processes..."))
+        self._logger.append_log(styled_text('bold', 'blue', None, "Features: Video Cutter | "
+                                                                    f"Stopped cutting processes..."))
 
     def _on_segment_processed(self, segment_data: tuple[int, int]):
         self._segment_manager.delete_segment_by_data(segment_data)
         log_message = styled_text('bold', 'green', None, 
+                                  f'Features: Video Cutter | '
                                   f'Processed: Segment ({ms_to_time_str(segment_data[0])}, {ms_to_time_str(segment_data[1])})')
         self._logger.append_log(log_message)
 
@@ -229,6 +232,7 @@ class VideoCutter(QDialog):
                 self._segment_list.clear_highlight(row)
         else:
             self._logger.append_log(styled_text('bold', 'red', None, 
+                                                f'Features: Video Cutter | '
                                                 f'Could not find segment ({ms_to_time_str(segment_data[0])}, {ms_to_time_str(segment_data[1])}) '
                                                 f'in the list to update status.'))
 
@@ -246,7 +250,7 @@ class VideoCutter(QDialog):
                 return # Stop if any command fails to generate
             # jobs is a list of tuple, tuple = (job_id, [command])
             jobs.append((str(segment), [command]))
-        self._processor.start_processing(jobs)
+        self._processor.start(jobs)
 
     # ==================================================================
     # Segment List Slots
