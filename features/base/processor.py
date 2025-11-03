@@ -25,7 +25,8 @@ class BaseProcessor(QObject):
         """Stops the running worker thread."""
         if self.is_running():
             self._worker.stop()
-            self.log_signal.emit(styled_text('bold', 'blue', None, "Process stopped by user."))
+            self.log_signal.emit(styled_text('bold', 'blue', None, f"Features: {self.get_feature_name()} | "
+                                                                    f"Process stopped"))
             self.processing_finished.emit()
             self._cleanup()
     
@@ -43,7 +44,8 @@ class BaseProcessor(QObject):
 
     def start(self, *args, **kwargs):
         if self.is_running():
-            msg = f"{self.get_feature_name()} is already in progress."
+            msg = (f"Features: {self.get_feature_name()} | " 
+                   f"Process is already in progress.")
             self.log_signal.emit(styled_text('bold', 'blue', None, msg))
             return
 
@@ -51,14 +53,16 @@ class BaseProcessor(QObject):
             prepaird_job = self._prepare_job(*args, **kwargs)
             if not prepaird_job:
                 self.processing_finished.emit()
-                self.log_signal.emit(styled_text('bold', 'red', None, f'Features: {self.get_feature_name()}: No job to run'))
+                self.log_signal.emit(styled_text('bold', 'red', None, f'Features: {self.get_feature_name()} | '
+                                                                        f'Error:No job to run'))
                 return
             
             jobs, message = prepaird_job
             self._start_worker(jobs=jobs)
             self.log_signal.emit(styled_text('bold', 'blue', None, message))
         except Exception as e:
-            self.log_signal.emit(styled_text('bold', 'red', None, f'Error: {e}'))
+            self.log_signal.emit(styled_text('bold', 'red', None, f'Features: {self.get_feature_name()} | '
+                                                                    f'Error: {e}'))
             self.processing_finished.emit()
             self._cleanup()
 
@@ -75,9 +79,11 @@ class BaseProcessor(QObject):
         """Handles status updates from the worker and emits the final result."""
         if status in ("Success", "Failed", "Stopped"):
             if status == "Success":
-                log_message = styled_text('bold', 'green', None, "Process completed successfully.")
+                log_message = styled_text('bold', 'green', None, f"Features: {self.get_feature_name()} | "
+                                                                    f"Process completed successfully.")
             else:
-                log_message = styled_text('bold', 'red', None, f"Process failed. Status: {status}")
+                log_message = styled_text('bold', 'red', None, f"Features: {self.get_feature_name()} | "
+                                                                    f"Process failed. Status: {status}")
             self.log_signal.emit(log_message)
             self.processing_finished.emit()
 
