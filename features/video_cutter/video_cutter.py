@@ -61,11 +61,8 @@ class VideoCutter(QDialog):
     def closeEvent(self, event):
         """Override closeEvent to stop the media player and any active workers."""
         self._media_player.cleanup()
-        if self._processor:
-            # Terminate any running FFmpeg processes to prevent orphaned processes.
-            for worker in self._processor.get_active_workers():
-                if worker.isRunning():
-                    worker.terminate()
+        if self._processor and (self._processor.get_active_workers() or self._processor._processing_queue):
+            self._processor.stop()
         super().closeEvent(event)
 
     def keyPressEvent(self, event):
