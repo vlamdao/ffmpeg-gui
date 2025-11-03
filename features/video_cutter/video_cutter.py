@@ -135,7 +135,7 @@ class VideoCutter(QDialog):
         # --- Segment Controls and List ---
         self._segment_controls.set_start_clicked.connect(self._on_set_start_time)
         self._segment_controls.set_end_clicked.connect(self._on_set_end_time)
-        self._segment_controls.stop_clicked.connect(self._processor.stop_processing)
+        self._segment_controls.stop_clicked.connect(self._processor.stop)
         self._segment_controls.cut_clicked.connect(self._on_cut_clicked)
 
         self._segment_list.itemSelectionChanged.connect(self._on_segment_selected)
@@ -246,7 +246,7 @@ class VideoCutter(QDialog):
                 return # Stop if any command fails to generate
             # jobs is a list of tuple, tuple = (job_id, [command])
             jobs.append((str(segment), [command]))
-        self._processor.start_processing(jobs)
+        self._processor.start(jobs)
 
     # ==================================================================
     # Segment List Slots
