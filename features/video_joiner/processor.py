@@ -22,7 +22,7 @@ class VideoJoinerProcessor(BaseProcessor):
         
         command, self._temp_concat_file_path = cmd_template.generate_command(selected_files, output_folder, join_method)
         job = [("video_joiner_job", [command])]
-        message = styled_text('bold', 'blue', None, f"Features: {self.get_feature_name()} "
+        message = styled_text('bold', 'blue', None, f"Features: {self.get_feature_name()} | "
                                                  f"Starting to join {len(selected_files)} files...")
         return (job, message)
     
@@ -33,10 +33,10 @@ class VideoJoinerProcessor(BaseProcessor):
         if self._temp_concat_file_path and os.path.exists(self._temp_concat_file_path):
             try:
                 os.remove(self._temp_concat_file_path)
-                self.log_signal.emit(styled_text('bold', 'green', None, f'Features: {self.get_feature_name()} '
+                self.log_signal.emit(styled_text('bold', 'green', None, f'Features: {self.get_feature_name()} | '
                                                  f'cleaned up temporary file: {os.path.basename(self._temp_concat_file_path)}'))
             except OSError as e:
-                self.log_signal.emit(styled_text('bold', 'red', None, f"Features: {self.get_feature_name()} "
+                self.log_signal.emit(styled_text('bold', 'red', None, f"Features: {self.get_feature_name()} | "
                                                  f"Error removing temporary file: {e}"))
         self._temp_concat_file_path = None
         super()._cleanup()
