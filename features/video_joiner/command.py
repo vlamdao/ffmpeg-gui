@@ -14,6 +14,7 @@ class CommandTemplate(BaseCommandTemplate):
     def __init__(self, placeholders: 'VideoJoinerPlaceholders', parent=None):
         super().__init__(parent)
         self._placeholders = placeholders
+        
         self._CONCAT_DEMUXER_CMD = (
             f'ffmpeg -y -loglevel warning -f concat -safe 0 '
             f'-i "{self._placeholders.get_CONCATFILE_PATH()}" '
@@ -25,20 +26,15 @@ class CommandTemplate(BaseCommandTemplate):
             f'-map "[v]" -map "[a]" '
             f'"{self._placeholders.get_OUTPUT_FOLDER()}/joined_video_re-encoded.mp4"'
         )
-
+        
     def set_command_for_method(self, method: str):
         """Updates the command template based on the selected join method."""
-        self._cmd_input.setText(self._CONCAT_DEMUXER_CMD if method == "demuxer" else self._CONCAT_FILTER_CMD)
+        self._set_command(self._CONCAT_DEMUXER_CMD if method == "demuxer" else self._CONCAT_FILTER_CMD)
 
     def generate_commands(self, 
                          selected_files: list[tuple[int, str, str]], 
                          output_folder: str, 
                          join_method: str) -> tuple[str | None, str | None]:
-
-        command_templates = self.get_command_template()
-        if not command_templates:
-            return None, None
-        command_template = command_templates[0] # Video joiner only uses the first command
 
         replacements = {
             self._placeholders.get_OUTPUT_FOLDER(): output_folder,
@@ -51,9 +47,17 @@ class CommandTemplate(BaseCommandTemplate):
             replacements.update({
                 self._placeholders.get_CONCATFILE_PATH(): temp_concat_file_path,
             })
-        cmd = self._placeholders.replace_placeholders(command_template, replacements)
 
-        return [cmd], temp_concat_file_path
+        command_templates = self.get_command_template()
+        if not command_templates:
+            return None, None
+        
+        commands = []
+        for template in command_templates:
+            cmd = self._placeholders.replace_placeholders(template, replacements)
+            commands.append(cmd)
+
+        return commands, temp_concat_file_path
     
     def _create_concat_file(self, selected_files: list[tuple[int, str, str]]):
         concat_fd, concat_path = tempfile.mkstemp(suffix=".txt", text=True)
