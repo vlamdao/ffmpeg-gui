@@ -1,8 +1,9 @@
 import os
 import tempfile
 from ..base import BaseCommandTemplate
+from helper import folder_name_ext_from_path
 from typing import TYPE_CHECKING
-	
+
 if TYPE_CHECKING:
 	from .placeholders import ThumbnailSetterPlaceholders
 
@@ -32,14 +33,15 @@ class CommandTemplates(BaseCommandTemplate):
 					   timestamp: str) -> tuple[list[str], str]:
 		"""Creates the FFmpeg commands for extracting and embedding a thumbnail."""
 		
-		filename = os.path.basename(input_file)
-		thumb_fd, thumb_path = tempfile.mkstemp(suffix=".jpg", prefix=f"{filename}_thumb_")
+		infile_folder, infile_name, infile_ext = folder_name_ext_from_path(input_file)
+
+		thumb_fd, thumb_path = tempfile.mkstemp(suffix=".jpg", prefix=f"{infile_name}_thumb_")
 		os.close(thumb_fd)
 
 		replacements = {
-			self._placeholders.get_INFILE_FOLDER(): os.path.dirname(input_file),
-			self._placeholders.get_INFILE_NAME(): os.path.splitext(filename)[0],
-			self._placeholders.get_INFILE_EXT(): os.path.splitext(filename)[1][1:],
+			self._placeholders.get_INFILE_FOLDER(): infile_folder,
+			self._placeholders.get_INFILE_NAME(): infile_name,
+			self._placeholders.get_INFILE_EXT(): infile_ext,
 			self._placeholders.get_OUTPUT_FOLDER(): output_folder,
 			self._placeholders.get_TIMESTAMP(): timestamp,
 			self._placeholders.get_THUMB_PATH(): thumb_path,
