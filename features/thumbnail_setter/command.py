@@ -25,9 +25,6 @@ class CommandTemplates(BaseCommandTemplate):
 
 		self._set_default_cmd()
 
-	def _set_default_cmd(self):
-		self._cmd_input.setText("\n\n".join(self._DEFAULT_CMD))
-
 	def generate_commands(self, 
 					   input_file: str, 
 					   output_folder: str, 
