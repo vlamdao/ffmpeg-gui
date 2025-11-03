@@ -20,8 +20,8 @@ class VideoJoinerProcessor(BaseProcessor):
               cmd_template: 'CommandTemplate', 
               join_method: str) -> tuple[list[tuple[str, list[str]]], str]:
         
-        command, self._temp_concat_file_path = cmd_template.generate_command(selected_files, output_folder, join_method)
-        job = [("video_joiner_job", [command])]
+        commands, self._temp_concat_file_path = cmd_template.generate_commands(selected_files, output_folder, join_method)
+        job = [("video_joiner_job", commands)]
         message = styled_text('bold', 'blue', None, f"Features: {self.get_feature_name()} | "
                                                  f"Starting to join {len(selected_files)} files...")
         return (job, message)

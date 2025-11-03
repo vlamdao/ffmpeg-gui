@@ -30,7 +30,7 @@ class CommandTemplate(BaseCommandTemplate):
         """Updates the command template based on the selected join method."""
         self._cmd_input.setText(self._CONCAT_DEMUXER_CMD if method == "demuxer" else self._CONCAT_FILTER_CMD)
 
-    def generate_command(self, 
+    def generate_commands(self, 
                          selected_files: list[tuple[int, str, str]], 
                          output_folder: str, 
                          join_method: str) -> tuple[str | None, str | None]:
@@ -70,4 +70,4 @@ class CommandTemplate(BaseCommandTemplate):
         # Replace placeholders in the command template
         cmd = self._placeholders.replace_placeholders(command_template, replacements)
 
-        return cmd, temp_concat_file_path
+        return [cmd], temp_concat_file_path
