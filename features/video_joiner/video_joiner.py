@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QGroupBox, QRadioButton, QHBoxLayout,
-                             QPushButton, QMessageBox)
+                             QPushButton, QMessageBox, QSizePolicy)
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QSize, pyqtSlot, Qt
 
 from helper import resource_path
 from .processor import VideoJoinerProcessor
@@ -58,8 +58,18 @@ class VideoJoiner(QDialog):
 
         self._cmd_template = CommandTemplate(placeholders=self._placeholders)
 
-        self._join_video_button = QPushButton("Join Videos")
-        self._join_video_button.setMinimumHeight(32)
+        min_height = 36
+        self._join_video_button = QPushButton("Join Videos ")
+        self._join_video_button.setIcon(QIcon(resource_path("icon/join-video-button.png")))
+        self._join_video_button.setIconSize(QSize(20, 20))
+        self._join_video_button.setStyleSheet("padding-left: 12px; padding-right: 12px;")
+        self._join_video_button.setLayoutDirection(Qt.RightToLeft)
+        self._join_video_button.setMinimumHeight(min_height)
+
+        self._stop_button = QPushButton(" Stop")
+        self._stop_button.setIcon(QIcon(resource_path("icon/stop.png")))
+        self._stop_button.setIconSize(QSize(19, 19))
+        self._stop_button.setMinimumHeight(min_height)
 
     def _setup_layout(self):
         self.main_layout = QVBoxLayout(self)
@@ -84,6 +94,7 @@ class VideoJoiner(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         button_layout.addWidget(self._join_video_button)
+        button_layout.addWidget(self._stop_button)
 
         self.main_layout.addWidget(method_group)
         self.main_layout.addWidget(placeholder_group)
@@ -95,6 +106,7 @@ class VideoJoiner(QDialog):
         self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
         self._concat_demuxer_radio.toggled.connect(self._on_method_changed)
         self._join_video_button.clicked.connect(self._start_join_process)
+        self._stop_button.clicked.connect(self._stop_join_process)
         self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
 
@@ -102,6 +114,7 @@ class VideoJoiner(QDialog):
         """Updates the command template based on the selected join method."""
         method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
         self._cmd_template.set_command_for_method(method)
+        self._set_buttons_enabled(True)
 
     def _start_join_process(self):
         """Initiates the video joining process."""
@@ -111,7 +124,7 @@ class VideoJoiner(QDialog):
 
         join_method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
 
-        self._join_video_button.setEnabled(False)
+        self._set_buttons_enabled(False)
 
         self._processor.start(
             selected_files=self._selected_files,
@@ -120,6 +133,16 @@ class VideoJoiner(QDialog):
             join_method=join_method
         )
 
+    @pyqtSlot()
+    def _stop_join_process(self):
+        """Stops the video joining process if it is running."""
+        if self._processor.is_running():
+            self._processor.stop()
+
+    def _set_buttons_enabled(self, is_enabled: bool):
+        self._join_video_button.setEnabled(is_enabled)
+        self._stop_button.setEnabled(not is_enabled)
+
     def _on_processing_finished(self):
         """Handles the completion of the joining process."""
-        self._join_video_button.setEnabled(True)
+        self._set_buttons_enabled(True)
