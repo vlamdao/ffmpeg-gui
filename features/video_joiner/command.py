@@ -3,19 +3,19 @@ import tempfile
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTextEdit)
 from PyQt5.QtGui import QFont
 from typing import TYPE_CHECKING
+from ..base import BaseCommandTemplate
 
 if TYPE_CHECKING:
     from .placeholders import VideoJoinerPlaceholders
 
 
-class CommandTemplate(QWidget):
+class CommandTemplate(BaseCommandTemplate):
     """
     A widget for managing the command template for video joining.
     It includes placeholders and a text input for the FFmpeg command.
     """
     def __init__(self, placeholders: 'VideoJoinerPlaceholders', parent=None):
         super().__init__(parent)
-        self._cmd_input: QTextEdit
         self._placeholders = placeholders
         self._CONCAT_DEMUXER_CMD = (
             f'ffmpeg -y -loglevel warning -f concat -safe 0 '
@@ -29,26 +29,9 @@ class CommandTemplate(QWidget):
             f'"{self._placeholders.get_OUTPUT_FOLDER()}/joined_video_re-encoded.mp4"'
         )
 
-        self._setup_ui()
-
-    def _setup_ui(self):
-        """Initializes and lays out the UI components."""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        self._cmd_input = QTextEdit()
-        self._cmd_input.setFont(QFont("Consolas", 9))
-        self._cmd_input.setMinimumHeight(80)
-
-        layout.addWidget(self._cmd_input)
-
     def set_command_for_method(self, method: str):
         """Updates the command template based on the selected join method."""
         self._cmd_input.setText(self._CONCAT_DEMUXER_CMD if method == "demuxer" else self._CONCAT_FILTER_CMD)
-
-    def get_command_template(self) -> str:
-        """Returns the current command template from the input field."""
-        return self._cmd_input.toPlainText().strip()
 
     def generate_command(self, 
                          selected_files: list[tuple[int, str, str]], 
