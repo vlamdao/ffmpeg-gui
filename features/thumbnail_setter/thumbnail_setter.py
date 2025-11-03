@@ -7,6 +7,7 @@ from PyQt5.QtCore import QSize
 from features.player import MediaPlayer, MediaControls
 from .processor import ThumbnailProcessor
 from .command import CommandTemplates
+from .placeholders import ThumbnailSetterPlaceholders
 from helper import ms_to_time_str, time_str_to_ms, resource_path
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -37,6 +38,7 @@ class ThumbnailSetter(QDialog):
         self._video_path = video_path
         self._logger = logger
         self._output_folder = output_folder
+        self._placeholders = ThumbnailSetterPlaceholders()
 
         # UI Components
         self._media_player: MediaPlayer
@@ -44,6 +46,7 @@ class ThumbnailSetter(QDialog):
         self._timestamp_edit: QLineEdit
         self._go_to_button: QPushButton
         self._set_thumbnail_button: QPushButton
+        self._command_template: CommandTemplates
 
         # Thumbnail ThumbnailProcessor
         self._processor = ThumbnailProcessor(self)
@@ -104,10 +107,14 @@ class ThumbnailSetter(QDialog):
         thumbnail_controls_layout.addWidget(self._go_to_button)
         thumbnail_controls_layout.addWidget(self._set_thumbnail_button)
 
+        # --- Command Template ---
+        self._command_template = CommandTemplates(placeholders=self._placeholders)
+
         # --- Assemble Layout ---
         main_layout.addWidget(self._media_player, 1) # Player takes expanding space
         main_layout.addWidget(self._media_controls)
         main_layout.addWidget(thumbnail_controls_widget)
+        main_layout.addWidget(self._command_template)
 
     def _connect_signals(self):
         """Connects signals and slots for the dialog's components."""
@@ -168,7 +175,7 @@ class ThumbnailSetter(QDialog):
         self._processor.start(
             input_file=self._video_path, 
             output_folder=self._output_folder, 
-            cmd_template=CommandTemplates(),
+            cmd_template=self._command_template,
             timestamp = timestamp)
 
     @pyqtSlot()
@@ -177,4 +184,3 @@ class ThumbnailSetter(QDialog):
         self._set_thumbnail_button.setEnabled(True)
         self._go_to_button.setEnabled(True)
         self._timestamp_edit.setEnabled(True)
-
