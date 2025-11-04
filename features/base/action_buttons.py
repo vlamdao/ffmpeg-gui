@@ -48,9 +48,11 @@ class ActionButtons(QWidget):
         self._run_button.clicked.connect(self.run_clicked)
         self._stop_button.clicked.connect(self.stop_clicked)
 
-    def set_enable(self, is_enable: bool):
-        self._run_button.setEnabled(is_enable)
-        self._stop_button.setEnabled(not is_enable)
+    def disable_run_button(self, is_disable: bool):
+        self._run_button.setEnabled(not is_disable)
+        
+    def disable_stop_button(self, is_disable: bool):
+        self._stop_button.setEnabled(not is_disable)
 
     def set_run_button_text(self, text: str):
         self._run_button.setText(text)
