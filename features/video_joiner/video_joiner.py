@@ -101,7 +101,7 @@ class VideoJoiner(QDialog):
         """Updates the command template based on the selected join method."""
         method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
         self._cmd_template.set_command_for_method(method)
-        self._disable_ui_while_processing(is_disable=False)
+        self._update_ui_state('enable')
 
     def _start_join_process(self):
         """Initiates the video joining process."""
@@ -111,7 +111,7 @@ class VideoJoiner(QDialog):
 
         join_method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
 
-        self._disable_ui_while_processing(is_disable=True)
+        self._update_ui_state('disable')
 
         self._processor.start(
             selected_files=self._selected_files,
@@ -126,14 +126,23 @@ class VideoJoiner(QDialog):
         if self._processor.is_running():
             self._processor.stop()
 
-    def _disable_ui_while_processing(self, is_disable: bool):
+    def _update_ui_state(self, state: str):
         """Disables UI elements during processing, leaving only Stop enabled."""
-        self._concat_demuxer_radio.setEnabled(not is_disable)
-        self._concat_filter_radio.setEnabled(not is_disable)
-        self._placeholders_table.setEnabled(not is_disable)
-        self._cmd_template.setEnabled(not is_disable)
-        self._action_panel.disable_action_panel(is_disable)
+        if state == "enable":
+            self._action_panel.update_ui_state('enable')
+            self._placeholders_table.setEnabled(True)
+            self._cmd_template.setEnabled(True)
+            self._concat_demuxer_radio.setEnabled(True)
+            self._concat_filter_radio.setEnabled(True)
+        elif state == "disable":
+            self._action_panel.update_ui_state('disable')
+            self._placeholders_table.setDisabled(True)
+            self._cmd_template.setDisabled(True)
+            self._concat_demuxer_radio.setDisabled(True)
+            self._concat_filter_radio.setDisabled(True)
+        else:
+            return
 
     def _on_processing_finished(self):
         """Handles the completion of the joining process."""
-        self._disable_ui_while_processing(is_disable=False)
+        self._update_ui_state('enable')

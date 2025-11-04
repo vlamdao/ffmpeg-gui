@@ -20,6 +20,12 @@ class ActionPanel(ActionButtons):
     def _setup_layout(self):
         super()._setup_layout()
     
-    def disable_action_panel(self, is_disable: bool):
-        self.disable_run_button(is_disable)
-        self.disable_stop_button(not is_disable)
+    def update_ui_state(self, state: str):
+        if state == "enable":
+            self.enable_run_button()
+            self.disable_stop_button()
+        elif state == "disable":
+            self.disable_run_button()
+            self.enable_stop_button()
+        else:
+            return
