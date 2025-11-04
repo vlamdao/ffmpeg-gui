@@ -1,7 +1,7 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem
 from PyQt5.QtGui import QColor
-from helper import ms_to_time_str
+from helper import ms_to_time_str, FontDelegate
 
 class DeselectableListWidget(QListWidget):
     """A QListWidget that allows deselecting items by clicking outside."""
@@ -24,6 +24,7 @@ class SegmentList(DeselectableListWidget):
         super().__init__(parent)
         self.setFixedWidth(275)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setItemDelegate(FontDelegate(font_family="Consolas"))
 
     def _create_item(self, start_ms: int, end_ms: int) -> QListWidgetItem:
         """Creates a QListWidgetItem with embedded segment data."""

@@ -8,7 +8,7 @@ from components import PlaceholdersTable, StyledButton
 from features.player import MediaPlayer, MediaControls, MarkerSlider
 from .components import (SegmentControls, SegmentList,
                          SegmentManager, EditSegmentDialog,
-                         CommandTemplate, VideoCutterPlaceholders
+                         CommandTemplate, VideoCutterPlaceholders, ActionPanel
                          )
 from .processor import Processor
 from helper import FontDelegate, styled_text, ms_to_time_str, resource_path
@@ -24,7 +24,6 @@ class VideoCutter(QDialog):
     assembles all the necessary UI components (player, controls, segment list)
     and wires them together, orchestrating the interactions between them.
     """
-    _LEFT_PANEL_STRETCH = 3
     _PROCESSING_COLOR = QColor("#5cce77")  # A light green color
     _PENDING_COLOR = QColor("#ffe58e")  # A light yellow color
 
@@ -46,9 +45,6 @@ class VideoCutter(QDialog):
         self._input_file = input_file
         self._logger = logger
         self._output_folder = output_folder
-
-        # Logic and State Management
-        self._processor = None # Will be initialized in _setup_ui
 
         self._setup_ui()
         self._connect_signals()
@@ -82,32 +78,17 @@ class VideoCutter(QDialog):
         self._segment_manager = SegmentManager(self)
         self._media_player = MediaPlayer()
         self._media_controls = MediaControls(slider_class=MarkerSlider)
-        self._segment_controls = SegmentControls()
-
-        min_height = 36
-        self._cut_button = StyledButton(
-            text=" Cut All Segments",
-            icon_name="cut-segments.png",
-            icon_size=QSize(25, 25),
-            min_height=min_height,
-            padding=(12, 0, 12, 0),
-        )
-        self._stop_button = StyledButton(
-            text=" Stop",
-            icon_name="stop.png",
-            icon_size=QSize(19, 19),
-            min_height=min_height
-        )
+        self._action_panel = ActionPanel()
 
         self._placeholders = VideoCutterPlaceholders()
-        self._placeholders_table = PlaceholdersTable(
-            placeholders_list=self._placeholders.get_placeholders_list(),
-            num_columns=4,
-            parent=self
-        )
+        self._placeholders_table = PlaceholdersTable(placeholders_list=self._placeholders.get_placeholders_list(),
+                                                     num_columns=6,
+                                                     parent=self
+                                                     )
+        self._placeholders_table.set_compact_height()
+
         self._cmd_template = CommandTemplate(placeholders=self._placeholders, parent=self)
         self._segment_list = SegmentList()
-        self._segment_list.setItemDelegate(FontDelegate(font_family="Consolas"))
         self._processor = Processor(self)
 
         self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
@@ -118,30 +99,16 @@ class VideoCutter(QDialog):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        # Left panel for video and controls
-        left_panel = QWidget()
-        left_layout = QVBoxLayout(left_panel)
+        left_layout = QVBoxLayout(self)
         left_layout.setContentsMargins(0, 0, 0, 0)
+        
+        left_layout.addWidget(self._media_player, 1)
+        left_layout.addWidget(self._media_controls)
+        left_layout.addWidget(self._action_panel)
+        left_layout.addWidget(self._placeholders_table)
+        left_layout.addWidget(self._cmd_template)
 
-        # Create a container for the bottom controls (media control + segment + command)
-        bottom_controls = QWidget()
-        bottom_layout = QVBoxLayout(bottom_controls)
-        bottom_layout.setContentsMargins(0, 0, 0, 0)
-        bottom_layout.setSpacing(5)
-        bottom_layout.addWidget(self._media_controls) # Add created widgets to layout
-
-        action_layout = QHBoxLayout()
-        action_layout.addWidget(self._segment_controls)
-        action_layout.addStretch()
-        action_layout.addWidget(self._cut_button)
-        action_layout.addWidget(self._stop_button)
-        bottom_layout.addLayout(action_layout)
-        bottom_layout.addWidget(self._placeholders_table) # Add created widgets to layout
-        self._placeholders_table.set_compact_height()
-        bottom_layout.addWidget(self._cmd_template) # Add created widgets to layout
-        left_layout.addWidget(self._media_player, 1) # Add created widgets to layout
-        left_layout.addWidget(bottom_controls) # Add created widgets to layout
-        main_layout.addWidget(left_panel, self._LEFT_PANEL_STRETCH)
+        main_layout.addLayout(left_layout)
         main_layout.addWidget(self._segment_list)
 
     def _connect_signals(self):
@@ -162,12 +129,13 @@ class VideoCutter(QDialog):
         self._media_player.duration_changed.connect(self._on_duration_changed)
         self._media_player.double_clicked.connect(self._media_player.toggle_play)
 
-        # --- Segment Controls and List ---
-        self._segment_controls.set_start_clicked.connect(self._on_set_start_time)
-        self._segment_controls.set_end_clicked.connect(self._on_set_end_time)
-        self._cut_button.clicked.connect(self._on_cut_clicked)
-        self._stop_button.clicked.connect(self._processor.stop)
-
+        # --- Connect ActionPanel signal ---
+        self._action_panel.set_start_clicked.connect(self._on_set_start_time)
+        self._action_panel.set_end_clicked.connect(self._on_set_end_time)
+        self._action_panel.run_clicked.connect(self._on_cut_clicked)
+        self._action_panel.stop_clicked.connect(self._processor.stop)
+        
+        # --- Connect SegmentList signal ---
         self._segment_list.itemSelectionChanged.connect(self._on_segment_selected)
         self._segment_list.customContextMenuRequested.connect(self._show_segment_context_menu)
 
@@ -223,20 +191,16 @@ class VideoCutter(QDialog):
     # ==================================================================
     # Processor Slots
     # ==================================================================
-    def _set_ui_enabled_for_processing(self, is_processing: bool):
-        """Enables or disables UI components based on processing state."""
-        is_enabled = not is_processing
-        self._media_controls.setEnabled(is_enabled)
-        self._segment_list.setEnabled(is_enabled)
-        self._cmd_template.setEnabled(is_enabled)
-        self._placeholders_table.setEnabled(is_enabled)
-        self._segment_controls.set_enable(is_enabled)
-        self._cut_button.setEnabled(is_enabled)
-        self._stop_button.setEnabled(is_processing)
+    def _disable_ui_while_processing(self, is_disable: bool):
+        self._action_panel.disable_action_panel(is_disable)
+        self._media_controls.setEnabled(not is_disable)
+        self._segment_list.setEnabled(not is_disable)
+        self._cmd_template.setEnabled(not is_disable)
+        self._placeholders_table.setEnabled(not is_disable)
 
     def _on_processing_started(self, total_segments: int):
         """Handles the start of the segment processing task."""
-        self._set_ui_enabled_for_processing(is_processing=True)
+        self._disable_ui_while_processing(is_disable=True)
         for i in range(total_segments):
             self._segment_list.highlight_row(i, self._PENDING_COLOR)
         self._logger.append_log(styled_text('bold', 'blue', None, f'Features: Video Cutter | '
@@ -244,7 +208,7 @@ class VideoCutter(QDialog):
 
     def _on_processing_stopped(self):
         """Handles the end of the segment processing task."""
-        self._set_ui_enabled_for_processing(is_processing=False)
+        self._disable_ui_while_processing(is_disable=False)
         self._segment_list.clear_highlights()
         self._logger.append_log(styled_text('bold', 'blue', None, "Features: Video Cutter | "
                                                                     f"Stopped cutting processes..."))

@@ -2,6 +2,8 @@ from .segments import (SegmentControls, SegmentList, SegmentManager,
                        EditSegmentDialog)
 from .command import CommandTemplate
 from .placeholders import VideoCutterPlaceholders
+from .action_panel import ActionPanel
+
 
 __all__ = [
     'SegmentControls', 
@@ -10,4 +12,5 @@ __all__ = [
     'EditSegmentDialog',
     'CommandTemplate',
     'VideoCutterPlaceholders',
+    'ActionPanel'
     ]
