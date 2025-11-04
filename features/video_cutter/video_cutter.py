@@ -1,17 +1,17 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, 
-                             QWidget, QMessageBox, QMenu, QPushButton
+                             QMessageBox, QMenu
                              )
-from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QSize
+from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor, QIcon
 
-from components import PlaceholdersTable, StyledButton
+from components import PlaceholdersTable
 from features.player import MediaPlayer, MediaControls, MarkerSlider
-from .components import (SegmentControls, SegmentList,
+from .components import (SegmentList,
                          SegmentManager, EditSegmentDialog,
                          CommandTemplate, VideoCutterPlaceholders, ActionPanel
                          )
 from .processor import Processor
-from helper import FontDelegate, styled_text, ms_to_time_str, resource_path
+from helper import styled_text, ms_to_time_str, resource_path
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -38,6 +38,7 @@ class VideoCutter(QDialog):
         """
         super().__init__(parent)
         self.setWindowTitle("Video Cutter")
+        self.setWindowIcon(QIcon(resource_path("icon/cut-video.png")))
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
         self.setMinimumSize(1200, 750)
 
@@ -114,44 +115,23 @@ class VideoCutter(QDialog):
 
     def _connect_signals(self):
         """Connects signals and slots between all the components."""
-        # --- Media Player and Controls ---
-        self._media_controls.play_clicked.connect(self._media_player.toggle_play)
-        self._media_controls.seek_backward_clicked.connect(self._media_player.seek_backward)
-        self._media_controls.seek_forward_clicked.connect(self._media_player.seek_forward)
-        # self._media_controls.slider_pressed.connect(self._media_player.pause)
-        
-        # Use the new seek_requested signal for immediate seeking on click.
-        # The original position_changed is now only for dragging.
-        self._media_controls.seek_requested.connect(self._media_player.set_position)
-
-        self._media_player.media_loaded.connect(self._media_controls.set_play_button_enabled)
-        self._media_player.state_changed.connect(self._media_controls.update_media_state)
-        self._media_player.position_changed.connect(self._on_position_changed)
-        self._media_player.duration_changed.connect(self._on_duration_changed)
-        self._media_player.double_clicked.connect(self._media_player.toggle_play)
-
-        # --- Connect ActionPanel signal ---
         self._action_panel.set_start_clicked.connect(self._on_set_start_time)
         self._action_panel.set_end_clicked.connect(self._on_set_end_time)
         self._action_panel.run_clicked.connect(self._on_cut_clicked)
         self._action_panel.stop_clicked.connect(self._processor.stop)
-        
-        # --- Connect SegmentList signal ---
+
         self._segment_list.itemSelectionChanged.connect(self._on_segment_selected)
         self._segment_list.customContextMenuRequested.connect(self._show_segment_context_menu)
 
-        # --- Connect Segment Manager to UI Components ---
         self._segment_manager.error_occurred.connect(self._show_error_message)
         self._segment_manager.segments_updated.connect(self._media_controls.set_segment_markers)
         self._segment_manager.start_marker_updated.connect(self._media_controls.set_current_start_marker)
-        
-        # Connect manager to list widget
+
         self._segment_manager.segment_added.connect(self._segment_list.add_segment)
         self._segment_manager.segment_updated.connect(self._segment_list.update_segment)
         self._segment_manager.segment_removed.connect(self._segment_list.takeItem)
         self._segment_manager.selection_cleared.connect(self._segment_list.clearSelection)
 
-        # --- Connect Segment Processor to UI ---
         self._processor.processing_started.connect(self._on_processing_started)
         self._processor.processing_stopped.connect(self._on_processing_stopped)
         self._processor.status_updated.connect(self._on_processor_status_update)

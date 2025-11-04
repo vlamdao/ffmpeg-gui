@@ -1,11 +1,5 @@
-import os
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTextEdit)
-from PyQt5.QtGui import QFont
-
 from .placeholders import VideoCutterPlaceholders
-from ...base import BaseCommandTemplate
-from helper import folder_name_ext_from_path, ms_to_time_str
-from components import PlaceholdersTable
+from features.base import BaseCommandTemplate
 
 class CommandTemplate(BaseCommandTemplate):
 

@@ -1,6 +1,5 @@
 from enum import Enum, auto
-from PyQt5.QtCore import QObject, pyqtSignal, QTime
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtCore import QObject, pyqtSignal
 
 class SegmentState(Enum):
     """Defines the possible states for the segment management logic."""
