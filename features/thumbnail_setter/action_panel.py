@@ -36,7 +36,6 @@ class ActionPanel(ActionButtons):
 
     def _setup_layout(self):
         super()._setup_layout()
-
         self.layout.insertWidget(1, self._timestamp_edit)
         self.layout.insertWidget(2, self._go_to_button)
 
@@ -46,13 +45,12 @@ class ActionPanel(ActionButtons):
 
     def get_timestamp_text(self) -> str:
         return self._timestamp_edit.text()
-    
-    def set_custom_controls_enabled(self, is_enabled: bool):
-        self._timestamp_edit.setEnabled(is_enabled)
-        self._go_to_button.setEnabled(is_enabled)
 
-    def set_processing_state(self, is_processing: bool):
-        """Ánh xạ tới phương thức set_enable của lớp cha."""
-        self.set_enable(not is_processing)
+    def disable_action_panel(self, is_disable: bool):
+        self.disable_run_button(is_disable)
+        self.disable_stop_button(not is_disable)
+        self._timestamp_edit.setEnabled(not is_disable)
+        self._go_to_button.setEnabled(not is_disable)
+
 
         
