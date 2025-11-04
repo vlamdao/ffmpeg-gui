@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor, QIcon
 
 from components import PlaceholdersTable
-from features.player import ControlledPlayer
+from features.player import ControlledPlayer, MarkerSlider
 from .components import (SegmentList,
                          SegmentManager, EditSegmentDialog,
                          CommandTemplate, VideoCutterPlaceholders, ActionPanel
@@ -62,7 +62,7 @@ class VideoCutter(QDialog):
 
     def _create_widgets(self):
         self._segment_manager = SegmentManager(self)
-        self._controlled_player = ControlledPlayer()
+        self._controlled_player = ControlledPlayer(slider_class=MarkerSlider)
         self._action_panel = ActionPanel()
 
         self._placeholders = VideoCutterPlaceholders()

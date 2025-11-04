@@ -1,20 +1,14 @@
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QWidget, 
-                             QPushButton, QLabel, QLineEdit, QMessageBox)
-from PyQt5.QtCore import Qt, pyqtSlot
-from PyQt5.QtGui import QIcon, QFont
-from PyQt5.QtCore import QSize
-
-from features.player import MediaPlayer, MediaControls
-from components import PlaceholdersTable
-from helper import ms_to_time_str, time_str_to_ms, resource_path
+from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QSlider)
+from PyQt5.QtCore import pyqtSlot
+from features.player import MediaPlayer, MediaControls, SeekSlider
 
 class ControlledPlayer(QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, slider_class: type[QSlider] = SeekSlider, parent=None):
         super().__init__(parent)
 
-        self._media_player: MediaPlayer
-        self._media_controls: MediaControls
+        self._media_player = MediaPlayer()
+        self._media_controls = MediaControls(slider_class=slider_class)
 
         self._setup_ui()
         self._connect_signals()
@@ -24,9 +18,6 @@ class ControlledPlayer(QDialog):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
-
-        self._media_player = MediaPlayer()
-        self._media_controls = MediaControls()
 
         main_layout.addWidget(self._media_player, 1)
         main_layout.addWidget(self._media_controls)
