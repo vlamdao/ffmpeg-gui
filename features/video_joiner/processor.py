@@ -1,14 +1,16 @@
 import os
-from typing import TYPE_CHECKING
 from helper import styled_text
-from ..base import BaseProcessor
+from features.base import BaseProcessor
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .components import CommandTemplate
 
 class VideoJoinerProcessor(BaseProcessor):
     """
     Handles the background processing for joining videos using FFmpeg.
     """
-    if TYPE_CHECKING:
-        from .command import CommandTemplate
+
 
     def __init__(self, parent=None):
         super().__init__(parent)

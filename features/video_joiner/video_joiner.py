@@ -1,14 +1,13 @@
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QGroupBox, QRadioButton, QHBoxLayout,
-                             QPushButton, QMessageBox, QSizePolicy)
+from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QGroupBox, 
+                             QRadioButton, QHBoxLayout, QMessageBox)
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSignal, QSize, pyqtSlot, Qt
+from PyQt5.QtCore import pyqtSlot
 
 from helper import resource_path
 from .processor import VideoJoinerProcessor
-from .command import CommandTemplate
-from .placeholders import VideoJoinerPlaceholders
-from components import PlaceholdersTable, StyledButton
-from .action_panel import ActionPanel
+from .components import ActionPanel, CommandTemplate, VideoJoinerPlaceholders
+from components import PlaceholdersTable
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from components import Logger
@@ -47,7 +46,7 @@ class VideoJoiner(QDialog):
 
     def _create_widgets(self):
         """Creates all the widgets for the dialog."""
-        # --- Join Method Selection ---
+
         self._concat_demuxer_radio = QRadioButton("Concat Demuxer (Fast, No Re-encoding)")
         self._concat_filter_radio = QRadioButton("Concat Filter (Slower, Re-encodes)")
         self._concat_demuxer_radio.setChecked(True)
@@ -90,12 +89,15 @@ class VideoJoiner(QDialog):
 
     def _connect_signals(self):
         """Connects UI element signals to corresponding slots."""
-        self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
         self._concat_demuxer_radio.toggled.connect(self._on_method_changed)
+
         self._action_panel.run_clicked.connect(self._start_join_process)
         self._action_panel.stop_clicked.connect(self._stop_join_process)
+
         self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
+
+        self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
 
     def _on_method_changed(self):
         """Updates the command template based on the selected join method."""

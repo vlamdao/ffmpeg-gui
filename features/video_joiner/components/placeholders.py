@@ -1,6 +1,5 @@
 from components import Placeholders
 
-
 class VideoJoinerPlaceholders(Placeholders):
     def __init__(self):
         super().__init__()

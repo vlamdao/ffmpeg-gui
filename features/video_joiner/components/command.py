@@ -1,8 +1,8 @@
 import os
 import tempfile
-from typing import TYPE_CHECKING
-from ..base import BaseCommandTemplate
+from features.base import BaseCommandTemplate
 
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .placeholders import VideoJoinerPlaceholders
 
@@ -60,6 +60,7 @@ class CommandTemplate(BaseCommandTemplate):
     
     def _create_concat_file(self, selected_files: list[tuple[int, str, str]]):
         concat_fd, concat_path = tempfile.mkstemp(suffix=".txt", text=True)
+        
         with os.fdopen(concat_fd, 'w', encoding='utf-8') as f:
             for _, infile_name, infile_folder in selected_files:
                 full_path = os.path.join(infile_folder, infile_name).replace('\\', '/')
