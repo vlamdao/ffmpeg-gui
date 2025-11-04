@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtCore import QSize
 
-from features.player import MediaPlayer, MediaControls
+from features.player import MediaPlayer, MediaControls, ControlledPlayer
 from .processor import ThumbnailProcessor
 from .command import CommandTemplates
 from .action_panel import ActionPanel
@@ -43,8 +43,7 @@ class ThumbnailSetter(QDialog):
         self._placeholders = ThumbnailSetterPlaceholders()
 
         # UI Components
-        self._media_player: MediaPlayer
-        self._media_controls: MediaControls
+        self._controlled_player: ControlledPlayer
         self._action_panel: ActionPanel
         self._command_template: CommandTemplates
         self._placeholders_table: PlaceholdersTable
@@ -53,19 +52,20 @@ class ThumbnailSetter(QDialog):
         self._processor = ThumbnailProcessor(self)
 
         self._setup_ui()
-        self._update_ui_state('enable') # Set initial state
         self._connect_signals()
+        self._update_ui_state('enable') # Set initial state
+        
 
     def showEvent(self, event):
         """Override showEvent to load media only when the dialog is shown."""
         super().showEvent(event)
-        self._media_player.load_media(self._video_path)
+        self._controlled_player.load_media(self._video_path)
 
     def closeEvent(self, event):
         """Override closeEvent to stop the media player."""
         if self._processor.is_running():
             self._processor.stop()
-        self._media_player.cleanup()
+        self._controlled_player.cleanup()
         self._processor.wait() # Wait for the thread to finish cleanly
         super().closeEvent(event)
 
@@ -75,40 +75,24 @@ class ThumbnailSetter(QDialog):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        self._media_player = MediaPlayer()
-        self._media_controls = MediaControls()
+        self._controlled_player = ControlledPlayer()
         self._action_panel = ActionPanel()
-
-        self._placeholders_table = PlaceholdersTable(
-            placeholders_list=self._placeholders.get_placeholders_list(),
-            num_columns=6,
-            parent=self
-        )
+        self._placeholders_table = PlaceholdersTable(placeholders_list=self._placeholders.get_placeholders_list(),
+                                                     num_columns=6,
+                                                     parent=self
+                                                     )
         self._placeholders_table.set_compact_height()
 
         self._command_template = CommandTemplates(placeholders=self._placeholders)
         self._command_template.setFixedHeight(100)
 
-        main_layout.addWidget(self._media_player, 1)
-        main_layout.addWidget(self._media_controls)
+        main_layout.addWidget(self._controlled_player)
         main_layout.addWidget(self._action_panel)
         main_layout.addWidget(self._placeholders_table)
         main_layout.addWidget(self._command_template)
 
     def _connect_signals(self):
         """Connects signals and slots for the dialog's components."""
-        # --- Media Player and Controls ---
-        self._media_controls.play_clicked.connect(self._media_player.toggle_play)
-        self._media_controls.seek_backward_clicked.connect(self._media_player.seek_backward)
-        self._media_controls.seek_forward_clicked.connect(self._media_player.seek_forward)
-        self._media_controls.seek_requested.connect(self._media_player.set_position)
-
-        self._media_player.media_loaded.connect(self._media_controls.set_play_button_enabled)
-        self._media_player.state_changed.connect(self._media_controls.update_media_state)
-        self._media_player.position_changed.connect(self._on_position_changed)
-        self._media_player.duration_changed.connect(self._media_controls.update_duration)
-        self._media_player.double_clicked.connect(self._media_player.toggle_play)
-
         # --- Custom Controls ---
         self._action_panel.go_clicked.connect(self._on_go_to_timestamp)
         self._action_panel.run_clicked.connect(self._on_set_thumbnail)
@@ -118,20 +102,15 @@ class ThumbnailSetter(QDialog):
 
         self._placeholders_table.placeholder_double_clicked.connect(self._command_template.insert_placeholder)
 
-    @pyqtSlot('qint64')
-    def _on_position_changed(self, position):
-        """Updates the media controls when the player's position changes."""
-        self._media_controls.update_position(position, self._media_player.duration())
-
     @pyqtSlot()
     def _on_go_to_timestamp(self):
         """When the user clicks 'Go', seek the player to the manually entered time."""
         time_str = self._action_panel.get_timestamp_text()
         try:
             pos_ms = time_str_to_ms(time_str)
-            if not (0 <= pos_ms <= self._media_player.duration()):
+            if not (0 <= pos_ms <= self._controlled_player.duration()):
                 raise ValueError("Time is out of video duration range.")
-            self._media_player.set_position(pos_ms)
+            self._controlled_player.set_position(pos_ms)
         except ValueError as e:
             QMessageBox.warning(self, "Invalid Time", f"Invalid timestamp format or value: {time_str}\n{e}")
 
@@ -146,11 +125,11 @@ class ThumbnailSetter(QDialog):
             return
         
         # Always use the current player position for setting the thumbnail
-        timestamp = ms_to_time_str(self._media_player.position())
+        timestamp = ms_to_time_str(self._controlled_player.position())
         
         # Disable button and pause video when processing
         self._update_ui_state('disable')
-        self._media_player.pause()
+        self._controlled_player.pause()
         
         self._processor.start(
             input_file=self._video_path, 
@@ -168,12 +147,12 @@ class ThumbnailSetter(QDialog):
         """Enables or disables UI controls based on processing state."""
         if state == "enable":
             self._action_panel.update_ui_state('enable')
-            self._media_controls.setEnabled(True)
+            self._controlled_player.setEnabled(True)
             self._placeholders_table.setEnabled(True)
             self._command_template.setEnabled(True)
         elif state == "disable":
             self._action_panel.update_ui_state('disable')
-            self._media_controls.setDisabled(True)
+            self._controlled_player.setDisabled(True)
             self._placeholders_table.setDisabled(True)
             self._command_template.setDisabled(True)
         else:
