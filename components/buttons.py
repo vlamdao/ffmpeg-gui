@@ -21,16 +21,15 @@ class StyledButton(QPushButton):
         if icon_name:
             self.setIcon(QIcon(resource_path(f"icon/{icon_name}")))
         if icon_size:
-            self.setIconSize(icon_size)
+            self.set_icon_size(icon_size)
         if min_width:
-            self.setMinimumWidth(min_width)
+            self.set_min_width(min_width)
         if min_height:
-            self.setMinimumHeight(min_height)
+            self.set_min_height(min_height)
         if tooltip:
-            self.setToolTip(tooltip)
+            self.set_tooltip(tooltip)
         if padding:
             self.set_padding(padding)
-
         if layout_direction is not None:
             self.set_layout_direction(layout_direction)
 
@@ -51,3 +50,18 @@ class StyledButton(QPushButton):
 
     def set_layout_direction(self, layout_direction: Qt.LayoutDirection):
         self.setLayoutDirection(layout_direction)
+
+    def set_icon(self, icon_name: str):
+        self.setIcon(QIcon(resource_path(f"icon/{icon_name}")))
+
+    def set_icon_size(self, icon_size: QSize):
+        self.setIconSize(icon_size)
+
+    def set_min_width(self, min_width: int):
+        self.setMinimumWidth(min_width)
+
+    def set_min_height(self, min_height: int):
+        self.setMinimumHeight(min_height)
+
+    def set_tooltip(self, tooltip: str):
+        self.setToolTip(tooltip)
