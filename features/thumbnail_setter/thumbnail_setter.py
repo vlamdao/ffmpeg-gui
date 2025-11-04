@@ -61,7 +61,6 @@ class ThumbnailSetter(QDialog):
         if self._processor.is_running():
             self._processor.stop()
         self._controlled_player.cleanup()
-        self._processor.wait() # Wait for the thread to finish cleanly
         super().closeEvent(event)
 
     def _setup_ui(self):

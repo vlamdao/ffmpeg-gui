@@ -116,12 +116,14 @@ class MediaPlayer(QWidget):
 
     def cleanup(self):
         """Stops playback and releases VLC resources."""
-        if self._is_cleaned_up:
+        # This method is intended to be called when a dialog is closed,
+        # not when the application exits. We should only release the
+        # media player, not the entire VLC instance, to avoid blocking.
+        if self._is_cleaned_up or self._media_player is None:
             return
 
         self.stop_and_release_player()
-        self._vlc_instance.release()
-        self._is_cleaned_up = True
+        # self._vlc_instance.release() # This can block and should be avoided here.
 
     def stop_and_release_player(self):
         """Stops playback and releases the media player object, but not the VLC instance."""
