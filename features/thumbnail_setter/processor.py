@@ -1,7 +1,10 @@
 import os
-from .command import CommandTemplates
 from helper import styled_text
-from ..base import BaseProcessor
+from features.base import BaseProcessor
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .components import CommandTemplates
 
 class ThumbnailProcessor(BaseProcessor):
     """

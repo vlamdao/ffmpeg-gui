@@ -1,6 +1,6 @@
 from components import Placeholders
 
-class ThumbnailSetterPlaceholders(Placeholders):
+class ThumbnailPlaceholders(Placeholders):
     def __init__(self):
         super().__init__()
         self._TIMESTAMP = "{timestamp}"

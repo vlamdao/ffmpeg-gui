@@ -1,15 +1,15 @@
 import os
 import tempfile
-from ..base import BaseCommandTemplate
+from features.base import BaseCommandTemplate
 from helper import folder_name_ext_from_path
-from typing import TYPE_CHECKING
 
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-	from .placeholders import ThumbnailSetterPlaceholders
+	from .placeholders import ThumbnailPlaceholders
 
 class CommandTemplates(BaseCommandTemplate):
 
-	def __init__(self, placeholders: 'ThumbnailSetterPlaceholders', parent=None):
+	def __init__(self, placeholders: 'ThumbnailPlaceholders', parent=None):
 		super().__init__(parent)
 		self._placeholders = placeholders
 

@@ -1,16 +1,15 @@
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QWidget, 
-                             QPushButton, QLabel, QLineEdit, QMessageBox)
+from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QMessageBox)
 from PyQt5.QtCore import Qt, pyqtSlot
-from PyQt5.QtGui import QIcon, QFont
-from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QIcon
 
-from features.player import MediaPlayer, MediaControls, ControlledPlayer
+from features.player import ControlledPlayer
 from .processor import ThumbnailProcessor
-from .command import CommandTemplates
-from .action_panel import ActionPanel
-from .placeholders import ThumbnailSetterPlaceholders
+from .components import (CommandTemplates, ThumbnailPlaceholders,
+                         ActionPanel
+                         )
 from components import PlaceholdersTable
 from helper import ms_to_time_str, time_str_to_ms, resource_path
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from components import Logger
@@ -31,30 +30,26 @@ class ThumbnailSetter(QDialog):
             parent (QWidget, optional): The parent widget. Defaults to None.
         """
         super().__init__(parent)
-        self.setWindowTitle("Set Thumbnail")
+        self.setWindowTitle("Set Video Thumbnail")
+        self.setWindowIcon(QIcon(resource_path("icon/set-thumbnail.png")))
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
         self.setMinimumSize(950, 650)
-        self.setModal(False) # Allow interaction with main window
 
-        # Dependencies
         self._video_path = video_path
         self._logger = logger
         self._output_folder = output_folder
-        self._placeholders = ThumbnailSetterPlaceholders()
+        self._placeholders = ThumbnailPlaceholders()
 
-        # UI Components
         self._controlled_player: ControlledPlayer
         self._action_panel: ActionPanel
         self._command_template: CommandTemplates
         self._placeholders_table: PlaceholdersTable
 
-        # Thumbnail ThumbnailProcessor
         self._processor = ThumbnailProcessor(self)
 
         self._setup_ui()
         self._connect_signals()
-        self._update_ui_state('enable') # Set initial state
-        
+        self._update_ui_state('enable')
 
     def showEvent(self, event):
         """Override showEvent to load media only when the dialog is shown."""
@@ -93,10 +88,10 @@ class ThumbnailSetter(QDialog):
 
     def _connect_signals(self):
         """Connects signals and slots for the dialog's components."""
-        # --- Custom Controls ---
         self._action_panel.go_clicked.connect(self._on_go_to_timestamp)
         self._action_panel.run_clicked.connect(self._on_set_thumbnail)
         self._action_panel.stop_clicked.connect(self._stop_process)
+
         self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
 
@@ -115,16 +110,13 @@ class ThumbnailSetter(QDialog):
             QMessageBox.warning(self, "Invalid Time", f"Invalid timestamp format or value: {time_str}\n{e}")
 
     @pyqtSlot()
-    def _on_set_thumbnail(self):
-        """
-        Generates and executes FFmpeg commands to extract a thumbnail image
-        and then embed it into the video file.
-        """
+    def _on_set_thumbnail(self): 
+        """When the user clicks 'Set Thumbnail', start the thumbnail process."""
         if self._processor.is_running():
             QMessageBox.warning(self, "In Progress", "A thumbnail operation is already in progress.")
             return
         
-        # Always use the current player position for setting the thumbnail
+        # Use the current player position for setting the thumbnail
         timestamp = ms_to_time_str(self._controlled_player.position())
         
         # Disable button and pause video when processing

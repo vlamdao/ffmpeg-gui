@@ -1,9 +1,8 @@
-from ..base import ActionButtons
-from PyQt5.QtWidgets import (QLineEdit, QPushButton, QHBoxLayout)
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtCore import QSize, Qt, pyqtSignal
+from PyQt5.QtWidgets import QLineEdit
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, pyqtSignal
 from components import StyledButton
-from helper import resource_path
+from features.base import ActionButtons
 
 class ActionPanel(ActionButtons):
 
