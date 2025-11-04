@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QSize
 from PyQt5.QtGui import QColor, QIcon
 
-from components import PlaceholdersTable
+from components import PlaceholdersTable, StyledButton
 from features.player import MediaPlayer, MediaControls, MarkerSlider
 from .components import (SegmentControls, SegmentList,
                          SegmentManager, EditSegmentDialog,
@@ -85,16 +85,19 @@ class VideoCutter(QDialog):
         self._segment_controls = SegmentControls()
 
         min_height = 36
-        self._cut_button = QPushButton(" Cut All Segments")
-        self._cut_button.setIcon(QIcon(resource_path("icon/cut-segments.png")))
-        self._cut_button.setIconSize(QSize(25, 25))
-        self._cut_button.setStyleSheet("padding-left: 12px; padding-right: 12px;")
-        self._cut_button.setMinimumHeight(min_height)
-
-        self._stop_button = QPushButton(" Stop")
-        self._stop_button.setIcon(QIcon(resource_path("icon/stop.png")))
-        self._stop_button.setIconSize(QSize(19, 19))
-        self._stop_button.setMinimumHeight(min_height)
+        self._cut_button = StyledButton(
+            text=" Cut All Segments",
+            icon_name="cut-segments.png",
+            icon_size=QSize(25, 25),
+            min_height=min_height,
+            padding=(12, 0, 12, 0),
+        )
+        self._stop_button = StyledButton(
+            text=" Stop",
+            icon_name="stop.png",
+            icon_size=QSize(19, 19),
+            min_height=min_height
+        )
 
         self._placeholders = VideoCutterPlaceholders()
         self._placeholders_table = PlaceholdersTable(

@@ -8,7 +8,7 @@ from features.player import MediaPlayer, MediaControls
 from .processor import ThumbnailProcessor
 from .command import CommandTemplates
 from .placeholders import ThumbnailSetterPlaceholders
-from components import PlaceholdersTable
+from components import PlaceholdersTable, StyledButton
 from helper import ms_to_time_str, time_str_to_ms, resource_path
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -86,33 +86,37 @@ class ThumbnailSetter(QDialog):
         thumbnail_controls_layout = QHBoxLayout(thumbnail_controls_widget)
         thumbnail_controls_layout.setContentsMargins(0, 0, 0, 0)
         
-        min_height = 32
+        min_height = 36
         self._timestamp_edit = QLineEdit()
         self._timestamp_edit.setInputMask("00:00:00.000")
         self._timestamp_edit.setText("00:00:00.000")
         self._timestamp_edit.setFixedWidth(120)
-        self._timestamp_edit.setMinimumHeight(min_height)
+        self._timestamp_edit.setMinimumHeight(min_height - 4)
         self._timestamp_edit.setFont(QFont("Consolas", 9))
         self._timestamp_edit.setAlignment(Qt.AlignCenter)
         
-        self._go_to_button = QPushButton("Go ")
-        self._go_to_button.setIcon(QIcon(resource_path("icon/go.png")))
-        self._go_to_button.setIconSize(QSize(20, 20))
-        self._go_to_button.setLayoutDirection(Qt.RightToLeft)
-        self._go_to_button.setMinimumHeight(min_height)
-        self._go_to_button.setToolTip("Seek to the entered timestamp")
+        self._go_to_button = StyledButton(
+            text="Go ",
+            icon_name="go.png",
+            icon_size=QSize(20, 20),
+            min_height=min_height,
+            layout_direction=Qt.RightToLeft
+        )
 
-        self._set_thumbnail_button = QPushButton(" Set Thumbnail")
-        self._set_thumbnail_button.setIcon(QIcon(resource_path("icon/run-set-thumbnail.png")))
-        self._set_thumbnail_button.setIconSize(QSize(20, 20))
-        self._set_thumbnail_button.setStyleSheet("padding-left: 12px; padding-right: 12px;")
-        self._set_thumbnail_button.setMinimumHeight(min_height)
-        self._set_thumbnail_button.setToolTip("Set the thumbnail at the current frame")
+        self._set_thumbnail_button = StyledButton(
+            text=" Set Thumbnail",
+            icon_name="run-set-thumbnail.png",
+            icon_size=QSize(20, 20),
+            min_height=min_height,
+            padding=(12, 0, 12, 0),
+        )
 
-        self._stop_button = QPushButton(" Stop")
-        self._stop_button.setIcon(QIcon(resource_path("icon/stop.png")))
-        self._stop_button.setIconSize(QSize(19, 19))
-        self._stop_button.setMinimumHeight(min_height)
+        self._stop_button = StyledButton(
+            text=" Stop",
+            icon_name="stop.png",
+            icon_size=QSize(19, 19),
+            min_height=min_height
+        )
 
         thumbnail_controls_layout.addStretch()
         thumbnail_controls_layout.addWidget(self._timestamp_edit)

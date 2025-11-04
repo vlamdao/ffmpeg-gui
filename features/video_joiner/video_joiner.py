@@ -7,7 +7,7 @@ from helper import resource_path
 from .processor import VideoJoinerProcessor
 from .command import CommandTemplate
 from .placeholders import VideoJoinerPlaceholders
-from components import PlaceholdersTable
+from components import PlaceholdersTable, StyledButton
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from components import Logger
@@ -66,17 +66,20 @@ class VideoJoiner(QDialog):
         self._cmd_template = CommandTemplate(placeholders=self._placeholders)
 
         min_height = 36
-        self._join_video_button = QPushButton("Join Videos ")
-        self._join_video_button.setIcon(QIcon(resource_path("icon/join-video-button.png")))
-        self._join_video_button.setIconSize(QSize(20, 20))
-        self._join_video_button.setStyleSheet("padding-left: 12px; padding-right: 12px;")
-        self._join_video_button.setLayoutDirection(Qt.RightToLeft)
-        self._join_video_button.setMinimumHeight(min_height)
-
-        self._stop_button = QPushButton(" Stop")
-        self._stop_button.setIcon(QIcon(resource_path("icon/stop.png")))
-        self._stop_button.setIconSize(QSize(19, 19))
-        self._stop_button.setMinimumHeight(min_height)
+        self._join_video_button = StyledButton(
+            text="Join Videos ",
+            icon_name="join-video-button.png",
+            icon_size=QSize(20, 20),
+            min_height=min_height,
+            padding=(12, 0, 12, 0),
+            layout_direction=Qt.RightToLeft
+        )
+        self._stop_button = StyledButton(
+            text=" Stop",
+            icon_name="stop.png",
+            icon_size=QSize(19, 19),
+            min_height=min_height
+        )
 
     def _setup_layout(self):
         self.main_layout = QVBoxLayout(self)

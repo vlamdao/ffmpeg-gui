@@ -2,7 +2,8 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QPushButton, QLabel, QSizePol
 from PyQt5.QtCore import pyqtSignal, QSize, Qt
 from PyQt5.QtGui import QIcon
 
-from helper import ms_to_time_str, resource_path
+from helper import resource_path
+from components import StyledButton
 
 class SegmentControls(QWidget):
     """A widget containing the main controls for creating and processing segments.
@@ -37,17 +38,19 @@ class SegmentControls(QWidget):
     def _create_widgets(self):
         """Creates the individual widgets for the controls."""
         min_height = 36
-
-        self._set_start_button = QPushButton(" Set Start")
-        self._set_start_button.setIcon(QIcon(resource_path("icon/set-start.png")))
-        self._set_start_button.setIconSize(QSize(20, 20))
-        self._set_start_button.setMinimumHeight(min_height)
-
-        self._set_end_button = QPushButton("Set End ")
-        self._set_end_button.setIcon(QIcon(resource_path("icon/set-end.png")))
-        self._set_end_button.setIconSize(QSize(20, 20))
-        self._set_end_button.setLayoutDirection(Qt.RightToLeft)
-        self._set_end_button.setMinimumHeight(min_height)
+        self._set_start_button = StyledButton(
+            text=" Set Start",
+            icon_name="set-start.png",
+            icon_size=QSize(20, 20),
+            min_height=min_height
+        )
+        self._set_end_button = StyledButton(
+            text="Set End ",
+            icon_name="set-end.png",
+            icon_size=QSize(20, 20),
+            min_height=min_height,
+            layout_direction=Qt.RightToLeft
+        )
 
     def _setup_layout(self):
         """Sets up the layout for the controls."""
