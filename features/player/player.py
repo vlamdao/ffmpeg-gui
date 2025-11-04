@@ -17,7 +17,6 @@ class MediaPlayer(QWidget):
     position_changed = pyqtSignal('qint64')
     duration_changed = pyqtSignal('qint64')
     state_changed = pyqtSignal(QtMediaPlayerState.State)
-    double_clicked = pyqtSignal()
 
     def __init__(self, parent=None):
         """Initializes the VlcMediaPlayer widget."""
