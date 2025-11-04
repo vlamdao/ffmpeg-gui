@@ -6,6 +6,8 @@ from .output_folder import OutputFolder
 from .preset_dialog import PresetDialog
 from .preset_manager import PresetManager
 from .placeholders import Placeholders, PlaceholdersTable
+from .buttons import StyledButton
+
 
 __all__ = [ 'CommandInput', 
            'ControlPanel', 
@@ -15,5 +17,6 @@ __all__ = [ 'CommandInput',
            'PresetDialog',
            'PresetManager',
            'Placeholders',
-           'PlaceholdersTable'
+           'PlaceholdersTable',
+           'StyledButton'
          ]
