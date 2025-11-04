@@ -1,8 +1,8 @@
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QSlider)
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QSlider)
 from PyQt5.QtCore import pyqtSlot
 from features.player import MediaPlayer, MediaControls, SeekSlider
 
-class ControlledPlayer(QDialog):
+class ControlledPlayer(QWidget):
 
     def __init__(self, slider_class: type[QSlider] = SeekSlider, parent=None):
         super().__init__(parent)
