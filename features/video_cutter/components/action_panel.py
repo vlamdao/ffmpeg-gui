@@ -46,8 +46,16 @@ class ActionPanel(ActionButtons):
         self._set_start_button.clicked.connect(self.set_start_clicked)
         self._set_end_button.clicked.connect(self.set_end_clicked)
         
-    def disable_action_panel(self, is_disable: bool):
-        self.disable_run_button(is_disable)
-        self.disable_stop_button(not is_disable)
-        self._set_start_button.setEnabled(not is_disable)
-        self._set_end_button.setEnabled(not is_disable)
+    def update_ui_state(self, state: str):
+        if state == "enable":
+            self._set_start_button.setEnabled(True)
+            self._set_end_button.setEnabled(True)
+            self.enable_run_button()
+            self.disable_stop_button()
+        elif state == "disable":
+            self._set_start_button.setDisabled(True)
+            self._set_end_button.setDisabled(True)
+            self.disable_run_button()
+            self.enable_stop_button()
+        else:
+            return

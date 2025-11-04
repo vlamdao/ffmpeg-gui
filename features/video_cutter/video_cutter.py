@@ -183,24 +183,39 @@ class VideoCutter(QDialog):
     def _on_set_start_time(self):
         """Handles the event when the start time button is clicked."""
         self._segment_manager.set_start_time(self._media_player.position())
+        self._media_player.pause()
     
     def _on_set_end_time(self):
         """Handles the event when the end time button is clicked."""
         self._segment_manager.set_end_time(self._media_player.position())
+        self._media_player.pause()
 
     # ==================================================================
     # Processor Slots
     # ==================================================================
-    def _disable_ui_while_processing(self, is_disable: bool):
-        self._action_panel.disable_action_panel(is_disable)
-        self._media_controls.setEnabled(not is_disable)
-        self._segment_list.setEnabled(not is_disable)
-        self._cmd_template.setEnabled(not is_disable)
-        self._placeholders_table.setEnabled(not is_disable)
+    def _update_ui_state(self, state: str):
+        """Enables or disables UI controls based on processing state."""
+        if state == "enable":
+            self._action_panel.enable_run_button()
+            self._action_panel.disable_stop_button()
+            self._media_controls.setEnabled(True)
+            self._segment_list.setEnabled(True)
+            self._placeholders_table.setEnabled(True)
+            self._cmd_template.setEnabled(True)
+        elif state == "disable":
+            self._action_panel.disable_run_button()
+            self._action_panel.enable_stop_button()
+            self._media_controls.setDisabled(True)
+            self._segment_list.setDisabled(True)
+            self._placeholders_table.setDisabled(True)
+            self._cmd_template.setDisabled(True)
+        else:
+            return
 
     def _on_processing_started(self, total_segments: int):
         """Handles the start of the segment processing task."""
-        self._disable_ui_while_processing(is_disable=True)
+        self._update_ui_state('disable')
+        self._media_player.pause()
         for i in range(total_segments):
             self._segment_list.highlight_row(i, self._PENDING_COLOR)
         self._logger.append_log(styled_text('bold', 'blue', None, f'Features: Video Cutter | '
@@ -208,7 +223,7 @@ class VideoCutter(QDialog):
 
     def _on_processing_stopped(self):
         """Handles the end of the segment processing task."""
-        self._disable_ui_while_processing(is_disable=False)
+        self._update_ui_state('enable')
         self._segment_list.clear_highlights()
         self._logger.append_log(styled_text('bold', 'blue', None, "Features: Video Cutter | "
                                                                     f"Stopped cutting processes..."))
