@@ -8,18 +8,24 @@ from typing import Optional
 class StyledButton(QPushButton):
     def __init__(self,
                  text: str,
-                 icon_name: str,
-                 icon_size: QSize,
-                 min_height: int,
+                 icon_name: Optional[str] = None,
+                 icon_size: Optional[QSize] = None,
+                 min_height: Optional[int] = None,
+                 min_width: Optional[int] = None,
                  tooltip: Optional[str] = None,
                  padding: Optional[tuple[int, int, int, int]] = None,
                  layout_direction: Optional[Qt.LayoutDirection] = None,
                  parent=None):
         super().__init__(text)
-        self.setIcon(QIcon(resource_path(f"icon/{icon_name}")))
-        self.setIconSize(icon_size)
-        self.setMinimumHeight(min_height)
 
+        if icon_name:
+            self.setIcon(QIcon(resource_path(f"icon/{icon_name}")))
+        if icon_size:
+            self.setIconSize(icon_size)
+        if min_width:
+            self.setMinimumWidth(min_width)
+        if min_height:
+            self.setMinimumHeight(min_height)
         if tooltip:
             self.setToolTip(tooltip)
         if padding:
