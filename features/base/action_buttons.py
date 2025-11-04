@@ -25,13 +25,13 @@ class ActionButtons(QWidget):
         self._setup_layout()
     
     def _create_widgets(self):
-        self._run_button = StyledButton(text="Run",
+        self._run_button = StyledButton(text=" Run",
                                         icon_name="run.png",
                                         icon_size=self._ICON_SIZE,
                                         padding=self._BUTTON_PADDING,
                                         min_height=self._BUTTON_MIN_HEIGHT,
                                         )
-        self._stop_button = StyledButton(text="Stop",
+        self._stop_button = StyledButton(text=" Stop",
                                          icon_name="stop.png",
                                          icon_size=self._ICON_SIZE,
                                          min_height=self._BUTTON_MIN_HEIGHT,

@@ -15,7 +15,7 @@ class ActionPanel(ActionButtons):
     def _create_widgets(self):
         super()._create_widgets()
 
-        self.set_run_button_text("Set Thumbnail")
+        self.set_run_button_text(" Set Thumbnail")
         self._run_button.set_icon("run-set-thumbnail.png")
 
         self._timestamp_edit = QLineEdit()
@@ -27,7 +27,7 @@ class ActionPanel(ActionButtons):
         self._timestamp_edit.setAlignment(Qt.AlignCenter)
         
         self._go_to_button = StyledButton(
-            text="Go",
+            text="Go ",
             icon_name="go.png",
             icon_size=self._ICON_SIZE,
             min_height=self._BUTTON_MIN_HEIGHT,
