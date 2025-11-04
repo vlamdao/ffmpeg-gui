@@ -24,12 +24,16 @@ class MediaPlayer(QWidget):
 
         # --- VLC Setup ---
         vlc_options = [
+            "--vout=wingdi", # Force Windows GDI output for maximum compatibility
             "--no-xlib",  # Prevent VLC from creating its own X window on Linux
             "--no-video-title-show", # Don't show the video title
             "--no-stats", # Disable statistics gathering
-            "--avcodec-hw=any", # Try to use hardware decoding
-            "--file-caching=300" # Set file caching to 300ms
+            "--avcodec-hw=none", # Disable hardware decoding for stability
+            "--file-caching=1500" # Set file caching to 1500ms for smoother playback
         ]
+        if sys.platform != 'win32':
+            vlc_options.remove("--vout=wingdi") # This option is Windows-specific
+
         self._vlc_instance = vlc.Instance(" ".join(vlc_options))
         self._media_player = self._vlc_instance.media_player_new()
 
