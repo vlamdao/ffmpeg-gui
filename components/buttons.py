@@ -29,19 +29,25 @@ class StyledButton(QPushButton):
         if tooltip:
             self.setToolTip(tooltip)
         if padding:
-            padding_left, padding_top, padding_right, padding_bottom = padding
-
-            style_parts = []
-            if padding_left != 0:
-                style_parts.append(f"padding-left: {padding_left}px;")
-            if padding_right != 0:
-                style_parts.append(f"padding-right: {padding_right}px;")
-            if padding_top != 0:
-                style_parts.append(f"padding-top: {padding_top}px;")
-            if padding_bottom != 0:
-                style_parts.append(f"padding-bottom: {padding_bottom}px;")
-            if style_parts:
-                self.setStyleSheet(" ".join(style_parts))
+            self.set_padding(padding)
 
         if layout_direction is not None:
-            self.setLayoutDirection(layout_direction)
+            self.set_layout_direction(layout_direction)
+
+    def set_padding(self, padding: tuple[int, int, int, int]):
+        padding_left, padding_top, padding_right, padding_bottom = padding
+
+        style_parts = []
+        if padding_left != 0:
+            style_parts.append(f"padding-left: {padding_left}px;")
+        if padding_right != 0:
+            style_parts.append(f"padding-right: {padding_right}px;")
+        if padding_top != 0:
+            style_parts.append(f"padding-top: {padding_top}px;")
+        if padding_bottom != 0:
+            style_parts.append(f"padding-bottom: {padding_bottom}px;")
+        if style_parts:
+            self.setStyleSheet(" ".join(style_parts))
+
+    def set_layout_direction(self, layout_direction: Qt.LayoutDirection):
+        self.setLayoutDirection(layout_direction)
