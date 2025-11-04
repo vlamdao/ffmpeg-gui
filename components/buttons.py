@@ -16,7 +16,7 @@ class StyledButton(QPushButton):
                  padding: Optional[tuple[int, int, int, int]] = None,
                  layout_direction: Optional[Qt.LayoutDirection] = None,
                  parent=None):
-        super().__init__(text)
+        super().__init__(f' {text} ')
 
         if icon_name:
             self.setIcon(QIcon(resource_path(f"icon/{icon_name}")))
