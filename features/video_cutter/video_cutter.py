@@ -53,8 +53,11 @@ class VideoCutter(QDialog):
     def keyPressEvent(self, event):
         """Handle key presses for the dialog."""
         if event.key() == Qt.Key_Escape:
-            if not self._segment_manager.cancel_creation():
-                super().keyPressEvent(event)
+            # Attempt to cancel segment creation. If not in creation mode, do nothing.
+            # This prevents the dialog from closing on Escape.
+            self._segment_manager.cancel_creation()
+        else:
+            super().keyPressEvent(event)
 
     def _setup_ui(self):
         self._create_widgets()
