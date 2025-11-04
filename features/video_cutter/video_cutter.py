@@ -87,7 +87,7 @@ class VideoCutter(QDialog):
         left_layout = QVBoxLayout()
         left_layout.setContentsMargins(0, 0, 0, 0)
         
-        left_layout.addWidget(self._controlled_player)
+        left_layout.addWidget(self._controlled_player, 1)
         left_layout.addWidget(self._action_panel)
         left_layout.addWidget(self._placeholders_table)
         left_layout.addWidget(self._cmd_template)
