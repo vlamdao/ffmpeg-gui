@@ -46,11 +46,19 @@ class ActionPanel(ActionButtons):
     def get_timestamp_text(self) -> str:
         return self._timestamp_edit.text()
 
-    def disable_action_panel(self, is_disable: bool):
-        self.disable_run_button(is_disable)
-        self.disable_stop_button(not is_disable)
-        self._timestamp_edit.setEnabled(not is_disable)
-        self._go_to_button.setEnabled(not is_disable)
+    def update_ui_state(self, state: str):
+        if state == "enable":
+            self.enable_run_button()
+            self.disable_stop_button()
+            self._timestamp_edit.setEnabled(True)
+            self._go_to_button.setEnabled(True)
+        elif state == "disable":
+            self.disable_run_button()
+            self.enable_stop_button()
+            self._timestamp_edit.setDisabled(True)
+            self._go_to_button.setDisabled(True)
+        else:
+            return
 
 
         

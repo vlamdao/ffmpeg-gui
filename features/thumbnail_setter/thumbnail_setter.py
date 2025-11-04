@@ -53,7 +53,7 @@ class ThumbnailSetter(QDialog):
         self._processor = ThumbnailProcessor(self)
 
         self._setup_ui()
-        self._disable_ui_while_processing(is_disable=False) # Set initial state
+        self._update_ui_state('enable') # Set initial state
         self._connect_signals()
 
     def showEvent(self, event):
@@ -149,7 +149,7 @@ class ThumbnailSetter(QDialog):
         timestamp = ms_to_time_str(self._media_player.position())
         
         # Disable button and pause video when processing
-        self._disable_ui_while_processing(is_disable=True)
+        self._update_ui_state('disable')
         self._media_player.pause()
         
         self._processor.start(
@@ -164,15 +164,22 @@ class ThumbnailSetter(QDialog):
         if self._processor.is_running():
             self._processor.stop()
 
-    def _disable_ui_while_processing(self,is_disable: bool):
+    def _update_ui_state(self, state: str):
         """Enables or disables UI controls based on processing state."""
-        self._action_panel.disable_action_panel(is_disable)
-        self._media_controls.setEnabled(not is_disable)
-        self._placeholders_table.setEnabled(not is_disable)
-        self._command_template.setEnabled(not is_disable)
+        if state == "enable":
+            self._action_panel.update_ui_state('enable')
+            self._media_controls.setEnabled(True)
+            self._placeholders_table.setEnabled(True)
+            self._command_template.setEnabled(True)
+        elif state == "disable":
+            self._action_panel.update_ui_state('disable')
+            self._media_controls.setDisabled(True)
+            self._placeholders_table.setDisabled(True)
+            self._command_template.setDisabled(True)
+        else:
+            return
 
     @pyqtSlot()
     def _on_processing_finished(self):
         """Handles the completion of the thumbnail process."""
-        self._disable_ui_while_processing(is_disable=False)
-        self._media_player.play() # Resume playback after processing
+        self._update_ui_state('enable')
