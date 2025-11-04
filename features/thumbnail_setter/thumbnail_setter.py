@@ -7,8 +7,9 @@ from PyQt5.QtCore import QSize
 from features.player import MediaPlayer, MediaControls
 from .processor import ThumbnailProcessor
 from .command import CommandTemplates
+from .action_panel import ActionPanel
 from .placeholders import ThumbnailSetterPlaceholders
-from components import PlaceholdersTable, StyledButton
+from components import PlaceholdersTable
 from helper import ms_to_time_str, time_str_to_ms, resource_path
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -44,10 +45,7 @@ class ThumbnailSetter(QDialog):
         # UI Components
         self._media_player: MediaPlayer
         self._media_controls: MediaControls
-        self._timestamp_edit: QLineEdit
-        self._go_to_button: QPushButton
-        self._set_thumbnail_button: QPushButton
-        self._stop_button: QPushButton
+        self._action_panel: ActionPanel
         self._command_template: CommandTemplates
         self._placeholders_table: PlaceholdersTable
 
@@ -55,7 +53,7 @@ class ThumbnailSetter(QDialog):
         self._processor = ThumbnailProcessor(self)
 
         self._setup_ui()
-        self._set_ui_enabled_for_processing(is_processing=False) # Set initial state
+        self._disable_ui_while_processing(is_disable=False) # Set initial state
         self._connect_signals()
 
     def showEvent(self, event):
@@ -77,54 +75,10 @@ class ThumbnailSetter(QDialog):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        # --- Player and Controls ---
         self._media_player = MediaPlayer()
         self._media_controls = MediaControls()
+        self._action_panel = ActionPanel()
 
-        # --- Thumbnail Controls ---
-        thumbnail_controls_widget = QWidget()
-        thumbnail_controls_layout = QHBoxLayout(thumbnail_controls_widget)
-        thumbnail_controls_layout.setContentsMargins(0, 0, 0, 0)
-        
-        min_height = 36
-        self._timestamp_edit = QLineEdit()
-        self._timestamp_edit.setInputMask("00:00:00.000")
-        self._timestamp_edit.setText("00:00:00.000")
-        self._timestamp_edit.setFixedWidth(120)
-        self._timestamp_edit.setMinimumHeight(min_height - 4)
-        self._timestamp_edit.setFont(QFont("Consolas", 9))
-        self._timestamp_edit.setAlignment(Qt.AlignCenter)
-        
-        self._go_to_button = StyledButton(
-            text="Go ",
-            icon_name="go.png",
-            icon_size=QSize(20, 20),
-            min_height=min_height,
-            layout_direction=Qt.RightToLeft
-        )
-
-        self._set_thumbnail_button = StyledButton(
-            text=" Set Thumbnail",
-            icon_name="run-set-thumbnail.png",
-            icon_size=QSize(20, 20),
-            min_height=min_height,
-            padding=(12, 0, 12, 0),
-        )
-
-        self._stop_button = StyledButton(
-            text=" Stop",
-            icon_name="stop.png",
-            icon_size=QSize(19, 19),
-            min_height=min_height
-        )
-
-        thumbnail_controls_layout.addStretch()
-        thumbnail_controls_layout.addWidget(self._timestamp_edit)
-        thumbnail_controls_layout.addWidget(self._go_to_button)
-        thumbnail_controls_layout.addWidget(self._set_thumbnail_button)
-        thumbnail_controls_layout.addWidget(self._stop_button)
-
-        # --- Placeholders and Command Template ---
         self._placeholders_table = PlaceholdersTable(
             placeholders_list=self._placeholders.get_placeholders_list(),
             num_columns=6,
@@ -135,10 +89,9 @@ class ThumbnailSetter(QDialog):
         self._command_template = CommandTemplates(placeholders=self._placeholders)
         self._command_template.setFixedHeight(100)
 
-        # --- Assemble Layout ---
-        main_layout.addWidget(self._media_player, 1) # Player takes expanding space
+        main_layout.addWidget(self._media_player, 1)
         main_layout.addWidget(self._media_controls)
-        main_layout.addWidget(thumbnail_controls_widget)
+        main_layout.addWidget(self._action_panel)
         main_layout.addWidget(self._placeholders_table)
         main_layout.addWidget(self._command_template)
 
@@ -157,9 +110,9 @@ class ThumbnailSetter(QDialog):
         self._media_player.double_clicked.connect(self._media_player.toggle_play)
 
         # --- Custom Controls ---
-        self._go_to_button.clicked.connect(self._on_go_to_timestamp)
-        self._set_thumbnail_button.clicked.connect(self._on_set_thumbnail)
-        self._stop_button.clicked.connect(self._stop_process)
+        self._action_panel.go_clicked.connect(self._on_go_to_timestamp)
+        self._action_panel.run_clicked.connect(self._on_set_thumbnail)
+        self._action_panel.stop_clicked.connect(self._stop_process)
         self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
 
@@ -173,7 +126,7 @@ class ThumbnailSetter(QDialog):
     @pyqtSlot()
     def _on_go_to_timestamp(self):
         """When the user clicks 'Go', seek the player to the manually entered time."""
-        time_str = self._timestamp_edit.text()
+        time_str = self._action_panel.get_timestamp_text()
         try:
             pos_ms = time_str_to_ms(time_str)
             if not (0 <= pos_ms <= self._media_player.duration()):
@@ -196,7 +149,7 @@ class ThumbnailSetter(QDialog):
         timestamp = ms_to_time_str(self._media_player.position())
         
         # Disable button and pause video when processing
-        self._set_ui_enabled_for_processing(is_processing=True)
+        self._disable_ui_while_processing(is_disable=True)
         self._media_player.pause()
         
         self._processor.start(
@@ -211,19 +164,15 @@ class ThumbnailSetter(QDialog):
         if self._processor.is_running():
             self._processor.stop()
 
-    def _set_ui_enabled_for_processing(self, is_processing: bool):
+    def _disable_ui_while_processing(self,is_disable: bool):
         """Enables or disables UI controls based on processing state."""
-        is_enabled = not is_processing
-        self._set_thumbnail_button.setEnabled(is_enabled)
-        self._go_to_button.setEnabled(is_enabled)
-        self._timestamp_edit.setEnabled(is_enabled)
-        self._media_controls.setEnabled(is_enabled)
-        self._placeholders_table.setEnabled(is_enabled)
-        self._command_template.setEnabled(is_enabled)
-        self._stop_button.setEnabled(is_processing)
+        self._action_panel.disable_action_panel(is_disable)
+        self._media_controls.setEnabled(not is_disable)
+        self._placeholders_table.setEnabled(not is_disable)
+        self._command_template.setEnabled(not is_disable)
 
     @pyqtSlot()
     def _on_processing_finished(self):
         """Handles the completion of the thumbnail process."""
-        self._set_ui_enabled_for_processing(is_processing=False)
+        self._disable_ui_while_processing(is_disable=False)
         self._media_player.play() # Resume playback after processing
