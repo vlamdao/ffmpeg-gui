@@ -52,11 +52,10 @@ class VideoJoiner(QDialog):
         self._concat_filter_radio = QRadioButton("Concat Filter (Slower, Re-encodes)")
         self._concat_demuxer_radio.setChecked(True)
 
-        self._placeholders_table = PlaceholdersTable(
-            placeholders_list=self._placeholders.get_placeholders_list(),
-            num_columns=4,
-            parent=self
-        )
+        self._placeholders_table = PlaceholdersTable(placeholders_list=self._placeholders.get_placeholders_list(),
+                                                     num_columns=4,
+                                                     parent=self
+                                                     )
         self._placeholders_table.set_compact_height()
         self._placeholders_table.set_disabled_placeholders([self._placeholders.get_INFILE_NAME(),
                                                             self._placeholders.get_INFILE_EXT()])

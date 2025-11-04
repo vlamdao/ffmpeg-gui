@@ -14,11 +14,11 @@ class CommandTemplates(BaseCommandTemplate):
 		self._placeholders = placeholders
 
 		self._DEFAULT_CMD = [
-			f'ffmpeg -y -loglevel warning -ss {self._placeholders.get_TIMESTAMP()} '
+			f'ffmpeg -y -loglevel info -ss {self._placeholders.get_TIMESTAMP()} '
 			f'-i "{self._placeholders.get_INFILE_FOLDER()}/{self._placeholders.get_INFILE_NAME()}.{self._placeholders.get_INFILE_EXT()}" '
 			f'-frames:v 1 "{self._placeholders.get_THUMB_PATH()}"',
 
-			f'ffmpeg -y -loglevel warning '
+			f'ffmpeg -y -loglevel info '
 			f'-i "{self._placeholders.get_INFILE_FOLDER()}/{self._placeholders.get_INFILE_NAME()}.{self._placeholders.get_INFILE_EXT()}" '
 			f'-i "{self._placeholders.get_THUMB_PATH()}" '
 			f'-map 0 -map 1 -c copy -c:s copy -disposition:v:1 attached_pic '

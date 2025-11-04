@@ -13,7 +13,7 @@ class CommandTemplate(BaseCommandTemplate):
         super().__init__(parent)
         self._placeholders = placeholders
         self._DEFAULT_CMD = (
-            f'ffmpeg -y -loglevel warning -i "{self._placeholders.get_INFILE_FOLDER()}/{self._placeholders.get_INFILE_NAME()}.{self._placeholders.get_INFILE_EXT()}" '
+            f'ffmpeg -y -loglevel info -i "{self._placeholders.get_INFILE_FOLDER()}/{self._placeholders.get_INFILE_NAME()}.{self._placeholders.get_INFILE_EXT()}" '
             f'-ss {self._placeholders.get_START_TIME()} -to {self._placeholders.get_END_TIME()} '
             f'-c copy "{self._placeholders.get_OUTPUT_FOLDER()}/{self._placeholders.get_INFILE_NAME()}--{self._placeholders.get_SAFE_START_TIME()}--'
             f'{self._placeholders.get_SAFE_END_TIME()}.{self._placeholders.get_INFILE_EXT()}"'

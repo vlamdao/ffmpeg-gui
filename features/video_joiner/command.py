@@ -16,12 +16,12 @@ class CommandTemplate(BaseCommandTemplate):
         self._placeholders = placeholders
         
         self._CONCAT_DEMUXER_CMD = (
-            f'ffmpeg -y -loglevel warning -f concat -safe 0 '
+            f'ffmpeg -y -loglevel info -f concat -safe 0 '
             f'-i "{self._placeholders.get_CONCATFILE_PATH()}" '
             f'-c copy "{self._placeholders.get_OUTPUT_FOLDER()}/joined_video.mp4"'
         )
         self._CONCAT_FILTER_CMD = (
-            f'ffmpeg -y -loglevel warning tempvar '
+            f'ffmpeg -y -loglevel info tempvar '
             f'-filter_complex "tempvar" '
             f'-map "[v]" -map "[a]" '
             f'"{self._placeholders.get_OUTPUT_FOLDER()}/joined_video_re-encoded.mp4"'
