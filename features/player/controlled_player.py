@@ -78,4 +78,18 @@ class ControlledPlayer(QDialog):
         """Pauses the player."""
         self._media_player.pause()
 
-    
+    def update_duration(self, duration: int):
+        """Updates the duration of the player."""
+        self._media_controls.update_duration(duration)
+
+    def update_position(self, position: int, duration: int):
+        """Updates the position of the player."""
+        self._media_controls.update_position(position, duration)
+
+    def set_segment_markers(self, segments: list):
+        """Sets the segment markers for the player."""
+        self._media_controls.set_segment_markers(segments)
+
+    def set_current_start_marker(self, position: int):
+        """Sets the current start marker for the player."""
+        self._media_controls.set_current_start_marker(position)

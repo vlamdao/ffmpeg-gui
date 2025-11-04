@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor, QIcon
 
 from components import PlaceholdersTable
-from features.player import MediaPlayer, MediaControls, MarkerSlider
+from features.player import ControlledPlayer
 from .components import (SegmentList,
                          SegmentManager, EditSegmentDialog,
                          CommandTemplate, VideoCutterPlaceholders, ActionPanel
@@ -18,31 +18,17 @@ if TYPE_CHECKING:
     from components import Logger
 
 class VideoCutter(QDialog):
-    """A dialog for cutting segments from a video file.
 
-    This class acts as the main controller for the video cutting feature. It
-    assembles all the necessary UI components (player, controls, segment list)
-    and wires them together, orchestrating the interactions between them.
-    """
     _PROCESSING_COLOR = QColor("#5cce77")  # A light green color
     _PENDING_COLOR = QColor("#ffe58e")  # A light yellow color
 
     def __init__(self, input_file, output_folder, logger: 'Logger', parent=None):
-        """Initializes the VideoCutter dialog.
-
-        Args:
-            input_file (str): The absolute path to the video file to be loaded.
-            output_folder (str): The directory where cut segments will be saved.
-            logger (Logger): An instance of the logger for displaying messages.
-            parent (QWidget, optional): The parent widget. Defaults to None.
-        """
         super().__init__(parent)
         self.setWindowTitle("Video Cutter")
         self.setWindowIcon(QIcon(resource_path("icon/cut-video.png")))
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
         self.setMinimumSize(1200, 750)
 
-        # Dependencies
         self._input_file = input_file
         self._logger = logger
         self._output_folder = output_folder
@@ -54,11 +40,11 @@ class VideoCutter(QDialog):
     def showEvent(self, event):
         """Override showEvent to load media only when the dialog is shown."""
         super().showEvent(event)
-        self._media_player.load_media(self._input_file)
+        self._controlled_player.load_media(self._input_file)
 
     def closeEvent(self, event):
         """Override closeEvent to stop the media player and any active workers."""
-        self._media_player.cleanup()
+        self._controlled_player.cleanup()
         if self._processor and (self._processor.get_active_workers() or self._processor._processing_queue):
             self._processor.stop()
             self._processor.wait()
@@ -71,15 +57,12 @@ class VideoCutter(QDialog):
                 super().keyPressEvent(event)
 
     def _setup_ui(self):
-        """Initializes and lays out the UI components."""
         self._create_widgets()
         self._setup_layout()
 
     def _create_widgets(self):
-        """Creates all the widgets needed for the dialog."""
         self._segment_manager = SegmentManager(self)
-        self._media_player = MediaPlayer()
-        self._media_controls = MediaControls(slider_class=MarkerSlider)
+        self._controlled_player = ControlledPlayer()
         self._action_panel = ActionPanel()
 
         self._placeholders = VideoCutterPlaceholders()
@@ -104,8 +87,7 @@ class VideoCutter(QDialog):
         left_layout = QVBoxLayout()
         left_layout.setContentsMargins(0, 0, 0, 0)
         
-        left_layout.addWidget(self._media_player, 1)
-        left_layout.addWidget(self._media_controls)
+        left_layout.addWidget(self._controlled_player)
         left_layout.addWidget(self._action_panel)
         left_layout.addWidget(self._placeholders_table)
         left_layout.addWidget(self._cmd_template)
@@ -124,8 +106,8 @@ class VideoCutter(QDialog):
         self._segment_list.customContextMenuRequested.connect(self._show_segment_context_menu)
 
         self._segment_manager.error_occurred.connect(self._show_error_message)
-        self._segment_manager.segments_updated.connect(self._media_controls.set_segment_markers)
-        self._segment_manager.start_marker_updated.connect(self._media_controls.set_current_start_marker)
+        self._segment_manager.segments_updated.connect(self._controlled_player.set_segment_markers)
+        self._segment_manager.start_marker_updated.connect(self._controlled_player.set_current_start_marker)
 
         self._segment_manager.segment_added.connect(self._segment_list.add_segment)
         self._segment_manager.segment_updated.connect(self._segment_list.update_segment)
@@ -151,25 +133,25 @@ class VideoCutter(QDialog):
             When media is loaded, update the duration in the media controls.
             And update the position to 0.
         """
-        self._media_controls.update_duration(duration)
-        self._media_controls.update_position(self._media_player.position(), duration)
-
+        self._controlled_player.update_duration(duration)
+        self._controlled_player.update_position(self._controlled_player.position(), duration)
+        
     def _on_position_changed(self, position):
         """Slot to handle the player's positionChanged signal."""
-        self._media_controls.update_position(position, self._media_player.duration())
+        self._controlled_player.update_position(position, self._controlled_player.duration())
 
     # ==================================================================
     # Segment Manager Slots
     # ==================================================================
     def _on_set_start_time(self):
         """Handles the event when the start time button is clicked."""
-        self._segment_manager.set_start_time(self._media_player.position())
-        self._media_player.pause()
+        self._segment_manager.set_start_time(self._controlled_player.position())
+        self._controlled_player.pause()
     
     def _on_set_end_time(self):
         """Handles the event when the end time button is clicked."""
-        self._segment_manager.set_end_time(self._media_player.position())
-        self._media_player.pause()
+        self._segment_manager.set_end_time(self._controlled_player.position())
+        self._controlled_player.pause()
 
     # ==================================================================
     # Processor Slots
@@ -178,13 +160,13 @@ class VideoCutter(QDialog):
         """Enables or disables UI controls based on processing state."""
         if state == "enable":
             self._action_panel.update_ui_state('enable')
-            self._media_controls.setEnabled(True)
+            self._controlled_player.setEnabled(True)
             self._segment_list.setEnabled(True)
             self._placeholders_table.setEnabled(True)
             self._cmd_template.setEnabled(True)
         elif state == "disable":
             self._action_panel.update_ui_state('disable')
-            self._media_controls.setDisabled(True)
+            self._controlled_player.setDisabled(True)
             self._segment_list.setDisabled(True)
             self._placeholders_table.setDisabled(True)
             self._cmd_template.setDisabled(True)
@@ -194,7 +176,7 @@ class VideoCutter(QDialog):
     def _on_processing_started(self, total_segments: int):
         """Handles the start of the segment processing task."""
         self._update_ui_state('disable')
-        self._media_player.pause()
+        self._controlled_player.pause()
         for i in range(total_segments):
             self._segment_list.highlight_row(i, self._PENDING_COLOR)
         self._logger.append_log(styled_text('bold', 'blue', None, f'Features: Video Cutter | '
@@ -229,7 +211,7 @@ class VideoCutter(QDialog):
                                                 f'in the list to update status.'))
 
     def _on_cut_clicked(self):
-        self._media_player.pause()
+        self._controlled_player.pause()
         segments = self._segment_manager.get_segments_for_processing()
         if not segments:
             return
@@ -263,8 +245,8 @@ class VideoCutter(QDialog):
         # get selected segment and seek to its start time
         selected_segment = self._segment_manager.get_segment_by_index(segment_index)
         if selected_segment:
-            self._media_player.set_position(selected_segment[0])
-            self._media_player.pause()
+            self._controlled_player.set_position(selected_segment[0])
+            self._controlled_player.pause()
 
     def _show_segment_context_menu(self, pos: QPoint):
         """Shows a context menu for a segment item (Edit, Delete)."""
