@@ -48,6 +48,7 @@ class VideoCutter(QDialog):
 
         self._setup_ui()
         self._connect_signals()
+        self._update_ui_state('enable')
 
     def showEvent(self, event):
         """Override showEvent to load media only when the dialog is shown."""
@@ -196,15 +197,13 @@ class VideoCutter(QDialog):
     def _update_ui_state(self, state: str):
         """Enables or disables UI controls based on processing state."""
         if state == "enable":
-            self._action_panel.enable_run_button()
-            self._action_panel.disable_stop_button()
+            self._action_panel.update_ui_state('enable')
             self._media_controls.setEnabled(True)
             self._segment_list.setEnabled(True)
             self._placeholders_table.setEnabled(True)
             self._cmd_template.setEnabled(True)
         elif state == "disable":
-            self._action_panel.disable_run_button()
-            self._action_panel.enable_stop_button()
+            self._action_panel.update_ui_state('disable')
             self._media_controls.setDisabled(True)
             self._segment_list.setDisabled(True)
             self._placeholders_table.setDisabled(True)
