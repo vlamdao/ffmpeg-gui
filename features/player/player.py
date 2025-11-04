@@ -24,12 +24,16 @@ class MediaPlayer(QWidget):
 
         # --- VLC Setup ---
         vlc_options = [
+            "--vout=direct3d", # Force Direct3D9 output to avoid d3d11 errors on some systems
             "--no-xlib",  # Prevent VLC from creating its own X window on Linux
             "--no-video-title-show", # Don't show the video title
             "--no-stats", # Disable statistics gathering
             "--avcodec-hw=any", # Try to use hardware decoding
             "--file-caching=300" # Set file caching to 300ms
         ]
+        if sys.platform != 'win32':
+            vlc_options.remove("--vout=direct3d") # This option is Windows-specific
+
         self._vlc_instance = vlc.Instance(" ".join(vlc_options))
         self._media_player = self._vlc_instance.media_player_new()
 
