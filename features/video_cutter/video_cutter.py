@@ -85,7 +85,6 @@ class VideoCutter(QDialog):
         """Configures the layout and adds widgets to it."""
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(10)
 
         left_layout = QVBoxLayout()
         left_layout.setContentsMargins(0, 0, 0, 0)

@@ -16,8 +16,7 @@ class ControlledPlayer(QDialog):
     def _setup_ui(self):
         """Initializes and lays out the UI components."""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
         main_layout.addWidget(self._media_player, 1)
         main_layout.addWidget(self._media_controls)
