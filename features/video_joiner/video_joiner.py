@@ -8,6 +8,7 @@ from .processor import VideoJoinerProcessor
 from .command import CommandTemplate
 from .placeholders import VideoJoinerPlaceholders
 from components import PlaceholdersTable, StyledButton
+from .action_panel import ActionPanel
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from components import Logger
@@ -57,29 +58,11 @@ class VideoJoiner(QDialog):
             parent=self
         )
         self._placeholders_table.set_compact_height()
-        disable_placeholder = [
-            self._placeholders.get_INFILE_NAME(),
-            self._placeholders.get_INFILE_EXT()
-        ]
-        self._placeholders_table.set_disabled_placeholders(disable_placeholder)
+        self._placeholders_table.set_disabled_placeholders([self._placeholders.get_INFILE_NAME(),
+                                                            self._placeholders.get_INFILE_EXT()])
 
         self._cmd_template = CommandTemplate(placeholders=self._placeholders)
-
-        min_height = 36
-        self._join_video_button = StyledButton(
-            text="Join Videos ",
-            icon_name="join-video-button.png",
-            icon_size=QSize(20, 20),
-            min_height=min_height,
-            padding=(12, 0, 12, 0),
-            layout_direction=Qt.RightToLeft
-        )
-        self._stop_button = StyledButton(
-            text=" Stop",
-            icon_name="stop.png",
-            icon_size=QSize(19, 19),
-            min_height=min_height
-        )
+        self._action_panel = ActionPanel()
 
     def _setup_layout(self):
         self.main_layout = QVBoxLayout(self)
@@ -101,22 +84,17 @@ class VideoJoiner(QDialog):
         cmd_template_layout.addWidget(self._cmd_template)
         cmd_template_group.setLayout(cmd_template_layout)
 
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        button_layout.addWidget(self._join_video_button)
-        button_layout.addWidget(self._stop_button)
-
         self.main_layout.addWidget(method_group)
         self.main_layout.addWidget(placeholder_group)
         self.main_layout.addWidget(cmd_template_group)
-        self.main_layout.addLayout(button_layout)
+        self.main_layout.addWidget(self._action_panel)
 
     def _connect_signals(self):
         """Connects UI element signals to corresponding slots."""
         self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
         self._concat_demuxer_radio.toggled.connect(self._on_method_changed)
-        self._join_video_button.clicked.connect(self._start_join_process)
-        self._stop_button.clicked.connect(self._stop_join_process)
+        self._action_panel.run_clicked.connect(self._start_join_process)
+        self._action_panel.stop_clicked.connect(self._stop_join_process)
         self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
 
@@ -124,7 +102,7 @@ class VideoJoiner(QDialog):
         """Updates the command template based on the selected join method."""
         method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
         self._cmd_template.set_command_for_method(method)
-        self._set_ui_enabled_for_processing(is_processing=False)
+        self._disable_ui_while_processing(is_disable=False)
 
     def _start_join_process(self):
         """Initiates the video joining process."""
@@ -134,7 +112,7 @@ class VideoJoiner(QDialog):
 
         join_method = "demuxer" if self._concat_demuxer_radio.isChecked() else "filter"
 
-        self._set_ui_enabled_for_processing(is_processing=True)
+        self._disable_ui_while_processing(is_disable=True)
 
         self._processor.start(
             selected_files=self._selected_files,
@@ -149,16 +127,14 @@ class VideoJoiner(QDialog):
         if self._processor.is_running():
             self._processor.stop()
 
-    def _set_ui_enabled_for_processing(self, is_processing: bool):
+    def _disable_ui_while_processing(self, is_disable: bool):
         """Disables UI elements during processing, leaving only Stop enabled."""
-        is_enabled = not is_processing
-        self._join_video_button.setEnabled(is_enabled)
-        self._concat_demuxer_radio.setEnabled(is_enabled)
-        self._concat_filter_radio.setEnabled(is_enabled)
-        self._placeholders_table.setEnabled(is_enabled)
-        self._cmd_template.setEnabled(is_enabled)
-        self._stop_button.setEnabled(is_processing)
+        self._concat_demuxer_radio.setEnabled(not is_disable)
+        self._concat_filter_radio.setEnabled(not is_disable)
+        self._placeholders_table.setEnabled(not is_disable)
+        self._cmd_template.setEnabled(not is_disable)
+        self._action_panel.disable_action_panel(is_disable)
 
     def _on_processing_finished(self):
         """Handles the completion of the joining process."""
-        self._set_ui_enabled_for_processing(is_processing=False)
+        self._disable_ui_while_processing(is_disable=False)
