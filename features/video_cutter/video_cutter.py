@@ -100,7 +100,7 @@ class VideoCutter(QDialog):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        left_layout = QVBoxLayout(self)
+        left_layout = QVBoxLayout()
         left_layout.setContentsMargins(0, 0, 0, 0)
         
         left_layout.addWidget(self._media_player, 1)

@@ -12,7 +12,6 @@ class ActionPanel(ActionButtons):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._setup_ui()
 
     def _create_widgets(self):
         super()._create_widgets()
