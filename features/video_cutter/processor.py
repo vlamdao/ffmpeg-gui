@@ -107,7 +107,7 @@ class Processor(QObject):
         self._processing_queue.clear()
         for worker in self._active_workers:
             worker.stop()
-        self._active_workers.clear()
+        # self._active_workers.clear() # Let the wait() method handle the cleanup
         self.processing_stopped.emit()
     
     def wait(self):
@@ -119,3 +119,7 @@ class Processor(QObject):
     def get_active_workers(self):
         """Returns the list of active workers."""
         return self._active_workers
+
+    def get_processing_queue(self):
+        """Returns the list of jobs in the processing queue."""
+        return self._processing_queue
