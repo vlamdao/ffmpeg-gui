@@ -72,6 +72,15 @@ class MediaPlayer(QWidget):
         self._event_manager.event_attach(vlc.EventType.MediaPlayerPositionChanged, self._on_vlc_position_change)
         self._event_manager.event_attach(vlc.EventType.MediaPlayerLengthChanged, self._on_vlc_duration_change)
 
+    def _disconnect_vlc_events(self):
+        """Disconnects all attached VLC events to prevent callbacks to a deleted object."""
+        self._event_manager.event_detach(vlc.EventType.MediaPlayerPlaying)
+        self._event_manager.event_detach(vlc.EventType.MediaPlayerPaused)
+        self._event_manager.event_detach(vlc.EventType.MediaPlayerStopped)
+        self._event_manager.event_detach(vlc.EventType.MediaPlayerEndReached)
+        self._event_manager.event_detach(vlc.EventType.MediaPlayerPositionChanged)
+        self._event_manager.event_detach(vlc.EventType.MediaPlayerLengthChanged)
+
     def _on_vlc_position_change(self, event):
         """Handles position changes from VLC and emits a Qt signal."""
         self.position_changed.emit(self.position())
@@ -126,16 +135,19 @@ class MediaPlayer(QWidget):
         if self._is_cleaned_up or self._media_player is None:
             return
 
+        self._is_cleaned_up = True
         self.stop_and_release_player()
-        # self._vlc_instance.release() # This can block and should be avoided here.
+        # self._vlc_instance.release() # This can block and should be avoided.
 
     def stop_and_release_player(self):
         """Stops playback and releases the media player object, but not the VLC instance."""
         if self._media_player is not None:
+            self._disconnect_vlc_events()
             self.stop()
             self._media_player.release()
             self._media_player = None
         self._is_media_loaded = False
+
 
     def stop(self):
         """Stops the media player."""
