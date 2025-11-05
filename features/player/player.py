@@ -31,8 +31,6 @@ class MediaPlayer(QWidget):
             "--avcodec-hw=none", # Disable hardware decoding for stability
             "--file-caching=1500" # Set file caching to 1500ms for smoother playback
         ]
-        if sys.platform != 'win32':
-            vlc_options.remove("--vout=wingdi") # This option is Windows-specific
 
         self._vlc_instance = vlc.Instance(" ".join(vlc_options))
         self._media_player = self._vlc_instance.media_player_new()
@@ -45,12 +43,7 @@ class MediaPlayer(QWidget):
         layout.addWidget(self._video_frame)
 
         # Set the window handle for VLC to draw on
-        if sys.platform.startswith('linux'):
-            self._media_player.set_xwindow(self._video_frame.winId())
-        elif sys.platform == 'win32':
-            self._media_player.set_hwnd(self._video_frame.winId())
-        elif sys.platform == 'darwin':
-            self._media_player.set_nsobject(int(self._video_frame.winId()))
+        self._media_player.set_hwnd(self._video_frame.winId())
 
         # --- State Management ---
         self._is_media_loaded = False
@@ -81,12 +74,18 @@ class MediaPlayer(QWidget):
         self._event_manager.event_detach(vlc.EventType.MediaPlayerPositionChanged)
         self._event_manager.event_detach(vlc.EventType.MediaPlayerLengthChanged)
 
+    # =========================================
+    # Emit vlc events
+    # =========================================
     def _on_vlc_position_change(self, event):
         """Handles position changes from VLC and emits a Qt signal."""
+        if self._is_cleaned_up: return
         self.position_changed.emit(self.position())
 
     def _on_vlc_state_change(self, event):
         """Handles state changes from VLC and maps them to Qt states."""
+        if self._is_cleaned_up: return
+
         new_state = self._media_player.get_state()
         qt_state = QtMediaPlayerState.StoppedState
 
@@ -103,9 +102,13 @@ class MediaPlayer(QWidget):
 
     def _on_vlc_duration_change(self, event):
         """Handles duration changes from VLC."""
+        if self._is_cleaned_up: return
         # event.u.new_length is the new length in ms
         self.duration_changed.emit(self.duration())
 
+    # =========================================
+    # Load and clean player
+    # =========================================
     def load_media(self, video_path: str):
         """Loads media from a file path."""
         # Stop any currently playing media before loading a new one.
@@ -135,20 +138,17 @@ class MediaPlayer(QWidget):
         if self._is_cleaned_up or self._media_player is None:
             return
 
-        self._is_cleaned_up = True
-        self.stop_and_release_player()
-        # self._vlc_instance.release() # This can block and should be avoided.
-
-    def stop_and_release_player(self):
-        """Stops playback and releases the media player object, but not the VLC instance."""
         if self._media_player is not None:
+            self._is_cleaned_up = True # Set flag immediately before detaching/releasing
             self._disconnect_vlc_events()
             self.stop()
             self._media_player.release()
             self._media_player = None
         self._is_media_loaded = False
 
-
+    # =========================================
+    # Player functions
+    # =========================================
     def stop(self):
         """Stops the media player."""
         if self._media_player:
@@ -183,6 +183,9 @@ class MediaPlayer(QWidget):
         new_pos = self.position() - self._seek_interval_ms
         self.set_position(max(0, new_pos))
 
+    # =========================================
+    # Getters and setters
+    # =========================================
     def set_position(self, position_ms: int):
         """Sets the media player's position in milliseconds."""
         # Avoid seeking if the position is the same or media is not seekable
@@ -208,8 +211,3 @@ class MediaPlayer(QWidget):
     def state(self) -> QtMediaPlayerState.State:
         """Returns the current state of the media player."""
         return self._current_state
-
-    def closeEvent(self, event):
-        """Ensures resources are cleaned up when the widget is closed."""
-        self.cleanup()
-        super().closeEvent(event)

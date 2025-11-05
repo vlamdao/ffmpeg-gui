@@ -22,8 +22,6 @@ class ControlledPlayer(QWidget):
         main_layout.addWidget(self._media_controls)
     
     def _connect_signals(self):
-        """Connects signals and slots for the dialog's components."""
-        # --- Media Player and Controls ---
         self._media_controls.play_clicked.connect(self._media_player.toggle_play)
         self._media_controls.seek_backward_clicked.connect(self._media_player.seek_backward)
         self._media_controls.seek_forward_clicked.connect(self._media_player.seek_forward)
@@ -31,15 +29,14 @@ class ControlledPlayer(QWidget):
 
         self._media_player.media_loaded.connect(self._media_controls.set_play_button_enabled)
         self._media_player.state_changed.connect(self._media_controls.update_media_state)
-        self._media_player.position_changed.connect(self._on_position_changed)
+        self._media_player.position_changed.connect(
+            lambda position: self._media_controls.update_position(position, self.duration())
+        )
         self._media_player.duration_changed.connect(self._media_controls.update_duration)
-        # self._media_player.double_clicked.connect(self._media_player.toggle_play)
 
-    @pyqtSlot('qint64')
-    def _on_position_changed(self, position):
-        """Updates the media controls when the player's position changes."""
-        self._media_controls.update_position(position, self._media_player.duration())
-
+    # ========================================
+    # Load and cleanup
+    # ========================================
     def load_media(self, media_path):
         """Loads media into the player."""
         self._media_player.load_media(media_path)
@@ -48,6 +45,24 @@ class ControlledPlayer(QWidget):
         """Cleans up the player."""
         self._media_player.cleanup()
 
+    # ========================================
+    # Player function
+    # ========================================
+    def pause(self):
+        """Pauses the player."""
+        self._media_player.pause()
+
+    def play(self):
+        """Plays the media."""
+        self._media_player.play()
+
+    def stop(self):
+        """Stops the media."""
+        self._media_player.stop()
+
+    # ========================================
+    # Getters and setters
+    # ========================================
     def position(self):
         """Returns the current position of the player."""
         return self._media_player.position()
@@ -64,18 +79,9 @@ class ControlledPlayer(QWidget):
         """Sets the position of the player."""
         self._media_player.set_position(position)
         
-    def pause(self):
-        """Pauses the player."""
-        self._media_player.pause()
-
-    def update_duration(self, duration: int):
-        """Updates the duration of the player."""
-        self._media_controls.update_duration(duration)
-
-    def update_position(self, position: int, duration: int):
-        """Updates the position of the player."""
-        self._media_controls.update_position(position, duration)
-
+    # ========================================
+    # Controls function
+    # ========================================
     def set_segment_markers(self, segments: list):
         """Sets the segment markers for the player."""
         self._media_controls.set_segment_markers(segments)
