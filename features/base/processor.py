@@ -30,10 +30,8 @@ class BaseProcessor(QObject):
         """Stops the running worker thread."""
         if self.is_running():
             self._worker.stop()
-            self.log_signal.emit(styled_text('bold', 'blue', None, f"Features: {self.get_feature_name()} | "
-                                                                    f"Process stopped"))
-            self.processing_finished.emit()
-            self._cleanup()
+            # The worker will emit a "Stopped" status, which is handled by _on_worker_status_update.
+            # We don't need to emit signals or cleanup here, as the worker's lifecycle methods will handle it.
     
     @abstractmethod
     def get_feature_name(self) -> str:
@@ -90,6 +88,9 @@ class BaseProcessor(QObject):
             if status == "Success":
                 log_message = styled_text('bold', 'green', None, f"Features: {self.get_feature_name()} | "
                                                                     f"Process completed successfully.")
+            elif status == "Stopped":
+                log_message = styled_text('bold', 'blue', None, f"Features: {self.get_feature_name()} | "
+                                                                    f"Process stopped by user.")
             else:
                 log_message = styled_text('bold', 'red', None, f"Features: {self.get_feature_name()} | "
                                                                     f"Process failed. Status: {status}")

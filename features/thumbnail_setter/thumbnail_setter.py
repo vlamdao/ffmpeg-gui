@@ -59,8 +59,10 @@ class ThumbnailSetter(QDialog):
     def closeEvent(self, event):
         """Override closeEvent to stop the media player."""
         if self._processor.is_running():
+            # Signal the worker to stop, but don't wait here.
             self._processor.stop()
         self._controlled_player.cleanup()
+        self._processor.wait() # Wait for the worker thread to finish cleanly.
         super().closeEvent(event)
 
     def _setup_ui(self):
