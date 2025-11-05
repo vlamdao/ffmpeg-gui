@@ -52,11 +52,14 @@ class Processor(QObject):
         """Creates and starts an FFmpegWorker for a single segment."""
         # FFmpeg can process list of job,
         # but in here we used queue, so worker only process 1 job each time
-        worker = FFmpegWorker([job])
+        job_id, commands, outputfile_path = job
+
+        worker = FFmpegWorker([(job_id, commands)])
+        worker.set_outputfile_path(outputfile_path)
         worker.log_signal.connect(self.log_signal)
         worker.status_updated.connect(self._on_worker_status_update)
         worker.finished.connect(
-            lambda w=worker, job_id=job[0]: self._on_worker_finished(w, job_id)
+            lambda w=worker, j_id=job_id: self._on_worker_finished(w, j_id)
         )
         self._active_workers.append(worker)
         worker.start()
@@ -94,8 +97,8 @@ class Processor(QObject):
 
         # Emit "Stopped" status for all segments remaining in the queue
         for job in self._processing_queue:
-            try:
-                segment_data = ast.literal_eval(job[0])
+            try: # job is (job_id, commands, output_filepath)
+                segment_data = ast.literal_eval(job[0]) 
                 self.status_updated.emit(segment_data, "Stopped")
             except Exception as e:
                 self.log_signal.emit(styled_text('bold', 'red', None, f"Features: Video Cutter | "

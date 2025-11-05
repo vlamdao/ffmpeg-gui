@@ -70,10 +70,15 @@ class BaseProcessor(QObject):
             self.processing_finished.emit()
             self._cleanup()
 
-    def _start_worker(self, jobs: list[tuple[str, list[str]]]):
+    def _start_worker(self, jobs: list[tuple[str, list[str], str | None]]):
         """Initializes and starts the FFmpegWorker."""
-        self._worker = FFmpegWorker(jobs=jobs)
+        # Since BaseProcessor handles one job at a time, we can expect a specific structure.
+        job_id, commands, output_filepath = jobs[0]
+
+        self._worker = FFmpegWorker(jobs=[(job_id, commands)])
         self._worker.log_signal.connect(self.log_signal)
+        if output_filepath:
+            self._worker.set_outputfile_path(output_filepath)
         self._worker.status_updated.connect(self._on_worker_status_update)
         self._worker.finished.connect(self._on_worker_thread_finished)
         self._worker.start()

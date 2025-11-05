@@ -29,8 +29,11 @@ class ThumbnailProcessor(BaseProcessor):
         if not commands:
             return None, styled_text('bold', 'red', None, f'Features: {self.get_feature_name()} | '
                                                         f'Could not generate command. Check the command template.')
-                                                        
-        job = [("thumbnail_setter_job", commands)]
+
+        # The final output file is the modified video, not the temporary thumbnail.
+        # We can get this from the last command.
+        outputfile_path = commands[-1].split('"')[-2] if commands else None
+        job = [("thumbnail_setter_job", commands, outputfile_path)]
         message = styled_text('bold', 'blue', None, f"Features: {self.get_feature_name()} | "
                                                  f"Starting to set thumbnail for '{os.path.basename(input_file)}' at {timestamp}...")
         return (job, message)

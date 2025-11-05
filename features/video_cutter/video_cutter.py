@@ -99,23 +99,24 @@ class VideoCutter(QDialog):
 
     def _connect_signals(self):
         """Connects signals and slots between all the components."""
-        self._action_panel.set_start_clicked.connect(self._on_set_start_time)
-        self._action_panel.set_end_clicked.connect(self._on_set_end_time)
+        # ActionPanel now directly communicates with SegmentManager
+        self._action_panel.set_start_clicked.connect(lambda: self._segment_manager.set_start_time(self._controlled_player.position()))
+        self._action_panel.set_end_clicked.connect(lambda: self._segment_manager.set_end_time(self._controlled_player.position()))
         self._action_panel.run_clicked.connect(self._on_cut_clicked)
         self._action_panel.stop_clicked.connect(self._processor.stop)
 
+        # SegmentList now directly communicates with SegmentManager and ControlledPlayer
         self._segment_list.itemSelectionChanged.connect(self._on_segment_selected)
         self._segment_list.customContextMenuRequested.connect(self._show_segment_context_menu)
 
+        # SegmentManager now directly updates UI components
         self._segment_manager.error_occurred.connect(self._show_error_message)
         self._segment_manager.segments_updated.connect(self._controlled_player.set_segment_markers)
         self._segment_manager.start_marker_updated.connect(self._controlled_player.set_current_start_marker)
-
         self._segment_manager.segment_added.connect(self._segment_list.add_segment)
         self._segment_manager.segment_updated.connect(self._segment_list.update_segment)
         self._segment_manager.segment_removed.connect(self._segment_list.takeItem)
         self._segment_manager.selection_cleared.connect(self._segment_list.clearSelection)
-
         self._processor.processing_started.connect(self._on_processing_started)
         self._processor.processing_stopped.connect(self._on_processing_stopped)
         self._processor.status_updated.connect(self._on_processor_status_update)
@@ -125,35 +126,6 @@ class VideoCutter(QDialog):
     def _show_error_message(self, title: str, message: str) -> None:
         """Displays a warning message box."""
         QMessageBox.warning(self, title, message)
-
-    # ==================================================================
-    # Media Player Slots
-    # ==================================================================
-    def _on_duration_changed(self, duration):
-        """Slot to handle the player's durationChanged signal.
-            This event is only emitted once when the media is loaded.
-            When media is loaded, update the duration in the media controls.
-            And update the position to 0.
-        """
-        self._controlled_player.update_duration(duration)
-        self._controlled_player.update_position(self._controlled_player.position(), duration)
-        
-    def _on_position_changed(self, position):
-        """Slot to handle the player's positionChanged signal."""
-        self._controlled_player.update_position(position, self._controlled_player.duration())
-
-    # ==================================================================
-    # Segment Manager Slots
-    # ==================================================================
-    def _on_set_start_time(self):
-        """Handles the event when the start time button is clicked."""
-        self._segment_manager.set_start_time(self._controlled_player.position())
-        self._controlled_player.pause()
-    
-    def _on_set_end_time(self):
-        """Handles the event when the end time button is clicked."""
-        self._segment_manager.set_end_time(self._controlled_player.position())
-        self._controlled_player.pause()
 
     # ==================================================================
     # Processor Slots
@@ -228,7 +200,8 @@ class VideoCutter(QDialog):
                 self._show_error_message("Command Error", "Could not generate command. Check the command template.")
                 return # Stop if any command fails to generate
             
-            jobs.append((str(segment), commands))
+            outputfile_path = commands[-1].split('"')[-2] if commands else None
+            jobs.append((str(segment), commands, outputfile_path))
         self._processor.start(jobs)
 
     # ==================================================================

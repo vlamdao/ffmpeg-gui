@@ -30,6 +30,10 @@ class FFmpegWorker(QThread):
         self._jobs = jobs
         self._proc = None
         self._is_stopped = False
+        self._outputfile_path = None # Filepath to delete on stop
+
+    def set_outputfile_path(self, outputfile_path: str):
+        self._outputfile_path = outputfile_path
 
     def _process_command(self, cmd: str) -> str:
         """
@@ -125,5 +129,14 @@ class FFmpegWorker(QThread):
         """
         self._is_stopped = True
         if self._proc and self._proc.poll() is None:
-            # Terminate the process. The loop in process_command will handle it.
             self._proc.terminate()
+
+        # If an output file path is associated with this worker, delete it.
+        if self._outputfile_path and os.path.exists(self._outputfile_path):
+            try:
+                os.remove(self._outputfile_path)
+                self.log_signal.emit(styled_text('bold', 'orange', None, 
+                                                 f"Cleaned up incomplete output file: {self._outputfile_path}"))
+            except OSError as e:
+                self.log_signal.emit(styled_text('bold', 'red', None, 
+                                                 f"Error deleting incomplete file {self._outputfile_path}: {e}"))
