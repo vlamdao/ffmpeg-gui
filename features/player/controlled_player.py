@@ -1,14 +1,14 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QSlider)
 from PyQt5.QtCore import pyqtSlot
-from features.player import MediaPlayer, MediaControls, SeekSlider
+from features.player import MediaPlayer, MediaControls
 
 class ControlledPlayer(QWidget):
 
-    def __init__(self, slider_class: type[QSlider] = SeekSlider, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
 
         self._media_player = MediaPlayer()
-        self._media_controls = MediaControls(slider_class=slider_class)
+        self._media_controls = MediaControls()
 
         self._setup_ui()
         self._connect_signals()

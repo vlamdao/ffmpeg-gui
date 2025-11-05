@@ -2,31 +2,17 @@ from PyQt5.QtWidgets import QSlider, QStyle, QStyleOptionSlider
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QPainter, QPen, QBrush, QColor
 
-class SeekSlider(QSlider):
-    """
-    A custom QSlider that immediately jumps to the clicked position.
+class Slider(QSlider):
 
-    This slider overrides the default mouse press behavior. When a user
-    clicks anywhere on the slider's groove with the left mouse button,
-    the slider's value is instantly set to that position, providing a
-    "seek" functionality. This is different from the standard QSlider
-    behavior which might require dragging the handle.
-    """
     seek_requested = pyqtSignal(int)
 
     def __init__(self, orientation, parent=None):
+        """Initializes the MarkerSlider."""
         super().__init__(orientation, parent)
+        self._segment_markers = []
+        self._current_start_marker = -1
 
     def mousePressEvent(self, event):
-        """
-        Handles the mouse press event to jump to the clicked position.
-
-        Calculates the slider value corresponding to the mouse click's
-        x-coordinate and sets the slider to that value.
-
-        Args:
-            event (QMouseEvent): The mouse press event.
-        """
         if event.button() == Qt.LeftButton:
             value = QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), event.x(), self.width())
             self.setValue(value)
@@ -34,26 +20,13 @@ class SeekSlider(QSlider):
 
         super().mousePressEvent(event)
 
-class MarkerSlider(SeekSlider):
-    """A custom slider that visually indicates video segments and markers.
-
-    This slider extends SeekSlider to paint colored rectangles over the slider
-    groove, representing the defined video segments. It also draws a vertical
-    line to show a pending 'start' marker for a new segment.
-    """
-    def __init__(self, orientation, parent=None):
-        """Initializes the MarkerSlider."""
-        super().__init__(orientation, parent)
-        self.segment_markers = []
-        self.current_start_marker = -1
-
     def set_segment_markers(self, segments):
         """Sets the list of segments to be painted on the slider.
 
         Args:
             segments (list[tuple[int, int]]): A list of (start_ms, end_ms) tuples.
         """
-        self.segment_markers = segments
+        self._segment_markers = segments
         self.update()
 
     def set_current_start_marker(self, position):
@@ -62,7 +35,7 @@ class MarkerSlider(SeekSlider):
         Args:
             position (int): The position in milliseconds, or -1 to hide it.
         """
-        self.current_start_marker = position
+        self._current_start_marker = position
         self.update()
 
     def paintEvent(self, event):
@@ -84,14 +57,14 @@ class MarkerSlider(SeekSlider):
 
         painter.setPen(pen)
         painter.setBrush(brush)
-        for start_ms, end_ms in self.segment_markers:
+        for start_ms, end_ms in self._segment_markers:
             start_pos = int((start_ms / self.maximum()) * groove_rect.width()) + groove_rect.x()
             end_pos = int((end_ms / self.maximum()) * groove_rect.width()) + groove_rect.x()
             painter.drawRect(start_pos, groove_rect.y(), end_pos - start_pos, groove_rect.height())
 
         # Draw current start marker
-        if self.current_start_marker != -1:
+        if self._current_start_marker != -1:
             pen = QPen(Qt.blue, 1)
             painter.setPen(pen)
-            marker_pos = int((self.current_start_marker / self.maximum()) * groove_rect.width()) + groove_rect.x()
+            marker_pos = int((self._current_start_marker / self.maximum()) * groove_rect.width()) + groove_rect.x()
             painter.drawLine(marker_pos, groove_rect.top(), marker_pos, groove_rect.bottom())
