@@ -18,6 +18,7 @@ class ControlPanel(QWidget):
     remove_clicked = pyqtSignal()
     cut_video_clicked = pyqtSignal()
     join_video_clicked = pyqtSignal()
+    crop_video_clicked = pyqtSignal()
     set_thumbnail_clicked = pyqtSignal()
     add_preset_clicked = pyqtSignal()
 
@@ -86,6 +87,12 @@ class ControlPanel(QWidget):
                 'icon': 'join-video.png',
                 'tooltip': 'Join multiple videos into one',
                 'connection': self.join_video_clicked.emit
+            },
+            'crop_video': {
+                'text': ' Crop Video',
+                'icon': 'crop-video.png',
+                'tooltip': 'Crop a video',
+                'connection': self.crop_video_clicked.emit
             },
             'set_thumbnail': {
                 'text': ' Set Thumbnail',
