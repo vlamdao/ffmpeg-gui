@@ -46,6 +46,7 @@ class ThumbnailSetter(QDialog):
         self._placeholders_table: PlaceholdersTable
 
         self._processor = ThumbnailProcessor(self)
+        self._is_closing = False
 
         self._setup_ui()
         self._connect_signals()
@@ -57,13 +58,26 @@ class ThumbnailSetter(QDialog):
         self._controlled_player.load_media(self._video_path)
 
     def closeEvent(self, event):
-        """Override closeEvent to stop the media player."""
+        """Stops any running process and cleans up resources before closing."""
+        # If a process is running, stop it and wait for it to finish
+        # before actually closing the window.
         if self._processor.is_running():
-            # Signal the worker to stop, but don't wait here.
-            self._processor.stop()
-        self._controlled_player.cleanup()
-        self._processor.wait() # Wait for the worker thread to finish cleanly.
+            if not self._is_closing: # Prevent multiple stop signals
+                self._is_closing = True
+                self._processor.stop()
+                event.ignore() # Ignore the close event for now
+                return
+        
+        # If no process is running, or we are closing after a process has finished
+        self._controlled_player.cleanup() # Clean up the media player
         super().closeEvent(event)
+
+    def keyPressEvent(self, event):
+        """Override to prevent Esc from closing the dialog, which can cause issues."""
+        if event.key() == Qt.Key_Escape:
+            event.accept() # Consume the event, do nothing
+        else:
+            super().keyPressEvent(event)
 
     def _setup_ui(self):
         """Initializes and lays out the UI components."""
@@ -153,4 +167,8 @@ class ThumbnailSetter(QDialog):
     @pyqtSlot()
     def _on_processing_finished(self):
         """Handles the completion of the thumbnail process."""
+        # If the dialog was waiting to close, close it now.
+        if self._is_closing:
+            self.close()
+            return
         self._update_ui_state('enable')

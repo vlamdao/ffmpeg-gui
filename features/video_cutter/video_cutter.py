@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor, QIcon
 
 from components import PlaceholdersTable
-from features.player import ControlledPlayer, MarkerSlider
+from features.player import ControlledPlayer
 from .components import (SegmentList,
                          SegmentManager, EditSegmentDialog,
                          CommandTemplate, VideoCutterPlaceholders, ActionPanel
@@ -33,6 +33,7 @@ class VideoCutter(QDialog):
         self._logger = logger
         self._output_folder = output_folder
 
+        self._is_closing = False
         self._setup_ui()
         self._connect_signals()
         self._update_ui_state('enable')
@@ -43,20 +44,24 @@ class VideoCutter(QDialog):
         self._controlled_player.load_media(self._input_file)
 
     def closeEvent(self, event):
-        """Override closeEvent to stop the media player and any active workers."""
-        self._controlled_player.cleanup()
+        """Stops any running process and cleans up resources before closing."""
+        # If a process is running, stop it and wait for it to finish
+        # before actually closing the window.
         if self._processor and (self._processor.get_active_workers() or self._processor.get_processing_queue()):
-            # Stop signals the workers to terminate but doesn't wait for them.
-            self._processor.stop()
-            # Wait blocks until the worker threads have actually finished.
-            self._processor.wait()
+            if not self._is_closing: # Prevent multiple stop signals
+                self._is_closing = True
+                self._processor.stop()
+                event.ignore() # Ignore the close event for now
+                return
+        
+        # If no process is running, or we are closing after a process has finished
+        self._controlled_player.cleanup() # Clean up the media player
         super().closeEvent(event)
 
     def keyPressEvent(self, event):
         """Handle key presses for the dialog."""
         if event.key() == Qt.Key_Escape:
-            # Attempt to cancel segment creation. If not in creation mode, do nothing.
-            # This prevents the dialog from closing on Escape.
+            # Use Esc to cancel segment creation, but do not close the dialog.
             self._segment_manager.cancel_creation()
         else:
             super().keyPressEvent(event)
@@ -67,7 +72,7 @@ class VideoCutter(QDialog):
 
     def _create_widgets(self):
         self._segment_manager = SegmentManager(self)
-        self._controlled_player = ControlledPlayer(slider_class=MarkerSlider)
+        self._controlled_player = ControlledPlayer()
         self._action_panel = ActionPanel()
 
         self._placeholders = VideoCutterPlaceholders()
@@ -160,6 +165,10 @@ class VideoCutter(QDialog):
 
     def _on_processing_stopped(self):
         """Handles the end of the segment processing task."""
+        # If the dialog was waiting to close, close it now.
+        if self._is_closing:
+            self.close()
+            return
         self._update_ui_state('enable')
         self._segment_list.clear_highlights()
         self._logger.append_log(styled_text('bold', 'blue', None, "Features: Video Cutter | "

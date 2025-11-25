@@ -34,8 +34,6 @@ class MediaControls(QWidget):
     """Emitted when the seek forward button is clicked."""
     seek_backward_clicked = pyqtSignal()
     """Emitted when the seek backward button is clicked."""
-    slider_pressed = pyqtSignal()
-    """Emitted when the user presses the mouse on the slider."""
     position_changed = pyqtSignal(int)
     """Emitted when the slider's value changes (e.g., by dragging or clicking)."""
     seek_requested = pyqtSignal(int)
@@ -46,11 +44,10 @@ class MediaControls(QWidget):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
-        # Internal widgets, prefixed with _
         self._seek_backward_button: QPushButton
         self._play_button: QPushButton
         self._seek_forward_button: QPushButton
-        self._position_slider: QSlider
+        self._slider: Slider
         self._time_label: QLabel
         
         self._setup_ui()
@@ -73,10 +70,10 @@ class MediaControls(QWidget):
         self._seek_forward_button = QPushButton()
         self._seek_forward_button.setIcon(self.style().standardIcon(QStyle.SP_MediaSeekForward))
 
-        self._position_slider = Slider(Qt.Horizontal)
-        self._position_slider.setRange(0, 0)
-        self._position_slider.setPageStep(1000)  # Jump 1 second
-        self._position_slider.setStyleSheet(self._SLIDER_STYLESHEET)
+        self._slider = Slider(Qt.Horizontal)
+        self._slider.setRange(0, 0)
+        self._slider.setPageStep(1000)  # Jump 1 second
+        self._slider.setStyleSheet(self._SLIDER_STYLESHEET)
 
         self._time_label = QLabel("00:00:00 / 00:00:00")
 
@@ -87,7 +84,7 @@ class MediaControls(QWidget):
         layout.addWidget(self._seek_backward_button)
         layout.addWidget(self._play_button)
         layout.addWidget(self._seek_forward_button)
-        layout.addWidget(self._position_slider)
+        layout.addWidget(self._slider)
         layout.addWidget(self._time_label)
 
     def _connect_signals(self) -> None:
@@ -95,9 +92,8 @@ class MediaControls(QWidget):
         self._play_button.clicked.connect(self.play_clicked)
         self._seek_backward_button.clicked.connect(self.seek_backward_clicked)
         self._seek_forward_button.clicked.connect(self.seek_forward_clicked)
-        self._position_slider.sliderPressed.connect(self.slider_pressed)
-        self._position_slider.valueChanged.connect(self.position_changed)
-        self._position_slider.seek_requested.connect(self.seek_requested)
+        self._slider.valueChanged.connect(self.position_changed)
+        self._slider.seek_requested.connect(self.seek_requested)
 
     @pyqtSlot(QMediaPlayer.State)
     def update_media_state(self, state: QMediaPlayer.State) -> None:
@@ -110,9 +106,9 @@ class MediaControls(QWidget):
     @pyqtSlot(int, int)
     def update_position(self, position: int, duration: int) -> None:
         """Slot to update the slider and time label based on media player position."""
-        self._position_slider.blockSignals(True)
-        self._position_slider.setValue(position)
-        self._position_slider.blockSignals(False)
+        self._slider.blockSignals(True)
+        self._slider.setValue(position)
+        self._slider.blockSignals(False)
 
         if duration > 0:
             self._time_label.setText(f"{ms_to_time_str(position)} / {ms_to_time_str(duration)}")
@@ -120,7 +116,7 @@ class MediaControls(QWidget):
     @pyqtSlot('qint64')
     def update_duration(self, duration: int) -> None:
         """Slot to update the slider range and time label based on media duration."""
-        self._position_slider.setRange(0, duration)
+        self._slider.setRange(0, duration)
         # When duration changes, position is typically 0
         self._time_label.setText(f"{ms_to_time_str(0)} / {ms_to_time_str(duration)}")
         self._play_button.setEnabled(duration > 0)
@@ -128,12 +124,12 @@ class MediaControls(QWidget):
     @pyqtSlot(list)
     def set_segment_markers(self, segments: list) -> None:
         """Slot to pass segment data to the underlying slider for painting."""
-        self._position_slider.set_segment_markers(segments)
+        self._slider.set_segment_markers(segments)
 
     @pyqtSlot(int)
     def set_current_start_marker(self, position: int) -> None:
         """Slot to pass the current start marker position to the slider for painting."""
-        self._position_slider.set_current_start_marker(position)
+        self._slider.set_current_start_marker(position)
 
     def set_play_button_enabled(self, enabled: bool) -> None:
         """Public method to control the enabled state of the play button."""

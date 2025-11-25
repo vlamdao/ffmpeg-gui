@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QGroupBox, 
                              QRadioButton, QHBoxLayout, QMessageBox)
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, Qt
 
 from helper import resource_path
 from .processor import VideoJoinerProcessor
@@ -43,6 +43,13 @@ class VideoJoiner(QDialog):
             self._processor.stop()
         self._processor.wait() # Wait for the thread to finish cleanly
         super().closeEvent(event)
+
+    def keyPressEvent(self, event):
+        """Override to prevent Esc from closing the dialog."""
+        if event.key() == Qt.Key_Escape:
+            event.accept()
+        else:
+            super().keyPressEvent(event)
 
     def _create_widgets(self):
         """Creates all the widgets for the dialog."""
