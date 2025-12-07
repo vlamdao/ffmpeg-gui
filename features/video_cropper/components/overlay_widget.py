@@ -20,10 +20,9 @@ class OverlayWidget(QWidget):
         self.setMouseTracking(True)
 
         # --- Crop rectangle state management ---
-        self._HANDLE_SIZE = 2
+        self._HANDLE_SIZE = 3
         self._crop_rect_geometry = QRect()
         self._is_resizing = False
-        self._is_moving = False
         self._drag_start_pos = QPoint()
         self._drag_start_geom = QRect()
         self._resize_handle = None
@@ -66,6 +65,7 @@ class OverlayWidget(QWidget):
             painter.drawRect(handle_rect)
 
     def _get_handles(self, rect: QRect):
+        """Returns a dictionary of handle rectangles."""
         s = self._HANDLE_SIZE
         w, h = rect.width(), rect.height()
         return {
@@ -92,28 +92,22 @@ class OverlayWidget(QWidget):
             self._drag_start_geom = QRect(self._crop_rect_geometry)
             if self._resize_handle:
                 self._is_resizing = True
-            elif self._crop_rect_geometry.contains(event.pos()):
-                self._is_moving = True
+                if self.isVisible():
+                    self.grabMouse()
 
     def mouseMoveEvent(self, event):
         pos = event.pos()
         handle = self._get_handle_at(pos)
 
         # Update cursor
-        if (self._is_resizing and self._resize_handle in ['top-left', 'bottom-right']) or \
-           (handle in ['top-left', 'bottom-right']):
+        if handle in ['top-left', 'bottom-right']:
             self.setCursor(Qt.SizeFDiagCursor)
-        elif (self._is_resizing and self._resize_handle in ['top-right', 'bottom-left']) or \
-             (handle in ['top-right', 'bottom-left']):
+        elif handle in ['top-right', 'bottom-left']:
             self.setCursor(Qt.SizeBDiagCursor)
-        elif (self._is_resizing and self._resize_handle in ['top', 'bottom']) or \
-             (handle in ['top', 'bottom']):
+        elif handle in ['top', 'bottom']:
             self.setCursor(Qt.SizeVerCursor)
-        elif (self._is_resizing and self._resize_handle in ['left', 'right']) or \
-             (handle in ['left', 'right']):
+        elif handle in ['left', 'right']:
             self.setCursor(Qt.SizeHorCursor)
-        elif self._crop_rect_geometry.contains(pos):
-            self.setCursor(Qt.SizeAllCursor)
         else:
             self.setCursor(Qt.ArrowCursor)
 
@@ -121,9 +115,7 @@ class OverlayWidget(QWidget):
             delta = event.globalPos() - self._drag_start_pos
             new_geom = QRect(self._drag_start_geom)
 
-            if self._is_moving:
-                new_geom.translate(delta)
-            elif self._is_resizing:
+            if self._is_resizing:
                 if self._resize_handle: # Ensure handle is not None
                     if 'top' in self._resize_handle: new_geom.setTop(new_geom.top() + delta.y())
                     if 'bottom' in self._resize_handle: new_geom.setBottom(new_geom.bottom() + delta.y())
@@ -137,6 +129,6 @@ class OverlayWidget(QWidget):
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self._is_resizing = False
-            self._is_moving = False
             self._resize_handle = None
             self.setCursor(Qt.ArrowCursor)
+            self.releaseMouse()
