@@ -17,7 +17,8 @@ class CommandTemplate(BaseCommandTemplate):
             f'"{self._placeholders.get_OUTPUT_FOLDER()}/{self._placeholders.get_INFILE_NAME()}_cropped.{self._placeholders.get_INFILE_EXT()}"'
         ]
         self._set_default_cmd()
-
+        self._cmd_input.setFixedHeight(100)
+        
     def generate_commands(self,
                           input_file: str,
                           output_folder: str,
