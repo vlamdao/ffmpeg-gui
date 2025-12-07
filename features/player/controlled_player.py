@@ -35,6 +35,14 @@ class ControlledPlayer(QWidget):
         self._media_player.duration_changed.connect(self._media_controls.update_duration)
 
     # ========================================
+    # Widget Access
+    # ========================================
+    def get_video_widget(self) -> QWidget:
+        """Returns the widget where the video is rendered."""
+        return self._media_player.get_video_widget()
+
+
+    # ========================================
     # Load and cleanup
     # ========================================
     def load_media(self, media_path):
@@ -75,6 +83,10 @@ class ControlledPlayer(QWidget):
         """Returns the current state of the player."""
         return self._media_player.state()
     
+    def get_video_resolution(self) -> tuple[int, int]:
+        """Returns the resolution (width, height) of the loaded video."""
+        return self._media_player.get_video_resolution()
+
     def set_position(self, position):
         """Sets the position of the player."""
         self._media_player.set_position(position)

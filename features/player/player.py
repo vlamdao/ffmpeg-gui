@@ -130,6 +130,32 @@ class MediaPlayer(QWidget):
         self._is_media_loaded = True
         self.media_loaded.emit(True)
 
+    def get_video_widget(self) -> QWidget:
+        """Returns the frame widget that contains the video output."""
+        return self._video_frame
+
+    def get_video_resolution(self) -> tuple[int, int]:
+        """Returns the video's native resolution (width, height)."""
+        if not self._media_player:
+            return (0, 0)
+
+        # This can return (0, 0) if the media hasn't been fully parsed.
+        # We'll try to force parsing if needed.
+        size = self._media_player.video_get_size()
+        if size == (0, 0):
+            # The media might not be parsed. Let's parse it.
+            # The parse_with_options is asynchronous.
+            media = self._media_player.get_media()
+            if media:
+                media.parse_with_options(vlc.MediaParseFlag.local, -1)
+                # After parsing, try getting the size again from the media track info
+                tracks = media.tracks_get()
+                if tracks:
+                    for track in tracks:
+                        if track.type == vlc.TrackType.video:
+                            return (track.video.width, track.video.height)
+        return size
+
     def cleanup(self):
         """Stops playback and releases VLC resources."""
         # This method is intended to be called when a dialog is closed,
