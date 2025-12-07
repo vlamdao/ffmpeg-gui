@@ -90,6 +90,21 @@ class VideoCropper(QDialog):
         if hasattr(self, '_media_player'):
             self._update_overlay_geometry()
 
+    def changeEvent(self, event):
+        """
+        Handles window state changes to show/hide the overlay accordingly.
+        """
+        super().changeEvent(event)
+        if event.type() == QEvent.ActivationChange:
+            if self.isActiveWindow():
+                if not self.isMinimized():
+                    self._overlay.show()
+            else:
+                self._overlay.hide()
+        elif event.type() == QEvent.WindowStateChange:
+            if self.windowState() & Qt.WindowMinimized:
+                self._overlay.hide()
+
     def _connect_signals(self):
         # Player controls
         self._media_controls.play_clicked.connect(self._media_player.toggle_play)

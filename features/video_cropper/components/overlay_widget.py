@@ -124,10 +124,11 @@ class OverlayWidget(QWidget):
             if self._is_moving:
                 new_geom.translate(delta)
             elif self._is_resizing:
-                if 'top' in self._resize_handle: new_geom.setTop(new_geom.top() + delta.y())
-                if 'bottom' in self._resize_handle: new_geom.setBottom(new_geom.bottom() + delta.y())
-                if 'left' in self._resize_handle: new_geom.setLeft(new_geom.left() + delta.x())
-                if 'right' in self._resize_handle: new_geom.setRight(new_geom.right() + delta.x())
+                if self._resize_handle: # Ensure handle is not None
+                    if 'top' in self._resize_handle: new_geom.setTop(new_geom.top() + delta.y())
+                    if 'bottom' in self._resize_handle: new_geom.setBottom(new_geom.bottom() + delta.y())
+                    if 'left' in self._resize_handle: new_geom.setLeft(new_geom.left() + delta.x())
+                    if 'right' in self._resize_handle: new_geom.setRight(new_geom.right() + delta.x())
 
             new_geom = new_geom.normalized()
             self._crop_rect_geometry = new_geom.intersected(self.rect())
