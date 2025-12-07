@@ -15,6 +15,7 @@ class ResizableRectangle(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WA_TranslucentBackground)
         self.setMouseTracking(True)
         self._is_resizing = False
         self._is_moving = False
@@ -55,13 +56,10 @@ class ResizableRectangle(QWidget):
         
         # Draw main rectangle border
         border_color = QColor(Qt.yellow)
-        painter.setPen(QPen(border_color, 2, Qt.SolidLine))
-        painter.drawRect(self.rect().adjusted(1, 1, -1, -1))
-
-        # Draw handles
-        painter.setBrush(QBrush(border_color))
-        for rect in self._get_handles().values():
-            painter.drawRect(rect)
+        painter.setPen(QPen(border_color, 1, Qt.SolidLine)) # 1px is the thinnest possible
+        painter.setBrush(Qt.NoBrush) # Make the inside transparent
+        # Draw rect adjusted by 1px to stay inside the widget boundaries
+        painter.drawRect(self.rect().adjusted(0, 0, -1, -1))
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
