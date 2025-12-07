@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QMessageBox, QGraphicsView,
                              QGraphicsScene, QGraphicsRectItem, QGraphicsPixmapItem,
                              QApplication, QRubberBand, QGroupBox, QFormLayout,
                              QLineEdit, QLabel)
-from PyQt5.QtCore import Qt, QRectF, QPointF, pyqtSlot
+from PyQt5.QtCore import Qt, QRectF, QPointF, pyqtSlot, QSize, QRect
 from PyQt5.QtGui import QIcon, QPixmap, QImage, QPainter
 
 from helper import resource_path
