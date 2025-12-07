@@ -1,7 +1,7 @@
 from .command import CommandTemplate
 from .placeholders import VideoCropperPlaceholders
 from .action_panel import ActionPanel
-from .resizable_rectangle import ResizableRectangle
+from .overlay_widget import OverlayWidget
 
 
 
@@ -9,5 +9,5 @@ __all__ = [
     'CommandTemplate', 
     'VideoCropperPlaceholders', 
     'ActionPanel',
-    'ResizableRectangle'
+    'OverlayWidget'
 ]

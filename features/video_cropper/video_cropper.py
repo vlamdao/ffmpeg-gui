@@ -1,13 +1,13 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QMessageBox, QWidget,
                              QLineEdit, QLabel)
-from PyQt5.QtCore import Qt, QRectF, pyqtSlot, QRect
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt, QRectF, pyqtSlot, QRect, QEvent, QPoint
+from PyQt5.QtGui import QIcon, QPainter, QPen, QColor, QPainterPath
 
 from helper import resource_path
 from components import PlaceholdersTable
 from .processor import VideoCropperProcessor
 from features.player import MediaPlayer, MediaControls
-from .components import (ActionPanel, CommandTemplate, VideoCropperPlaceholders, ResizableRectangle)
+from .components import (ActionPanel, CommandTemplate, VideoCropperPlaceholders, OverlayWidget)
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -29,10 +29,14 @@ class VideoCropper(QDialog):
 
         self._setup_ui()
         self._connect_signals()
+
         self._media_player.load_media(self._video_path)
 
     def closeEvent(self, event):
         self._media_player.cleanup()
+        # Ensure the overlay is closed when the main dialog closes
+        if hasattr(self, '_overlay'):
+            self._overlay.close()
         super().closeEvent(event)
 
     def _setup_ui(self):
@@ -46,7 +50,9 @@ class VideoCropper(QDialog):
         self._media_player = MediaPlayer(self)
         player_container_layout.addWidget(self._media_player)
 
-        self._crop_rect = ResizableRectangle(player_container)
+        # Create the separate overlay widget
+        self._overlay = OverlayWidget()
+
         self._media_controls = MediaControls()
         
         self._placeholders_table = PlaceholdersTable(
@@ -65,12 +71,23 @@ class VideoCropper(QDialog):
         main_layout.addWidget(self._cmd_template)
         main_layout.addWidget(self._action_panel)
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        # When the dialog is shown, show and position the overlay
+        self._update_overlay_geometry()
+        self._overlay.show()
+
+    def moveEvent(self, event):
+        super().moveEvent(event)
+        # Update overlay position when the main window moves
+        if hasattr(self, '_media_player'):
+            self._update_overlay_geometry()
+
     def resizeEvent(self, event):
-        """Ensure the crop rectangle is resized to match the video widget."""
         super().resizeEvent(event)
-        # Match the geometry of the crop rectangle to the video player's video widget
-        self._crop_rect.setGeometry(self._media_player.get_video_widget().geometry())
-        self._crop_rect.raise_()
+        # Update overlay position and size when the main window is resized
+        if hasattr(self, '_media_player'):
+            self._update_overlay_geometry()
 
     def _connect_signals(self):
         # Player controls
@@ -87,14 +104,20 @@ class VideoCropper(QDialog):
         )
         self._media_player.duration_changed.connect(self._media_controls.update_duration)
 
-        self._media_player.state_changed.connect(self._crop_rect.update)
-
         # Feature-specific actions
         self._action_panel.run_clicked.connect(self._start_crop_process)
         self._action_panel.stop_clicked.connect(self._stop_crop_process)
         self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
         self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
+
+    def _update_overlay_geometry(self):
+        """Positions the overlay widget exactly on top of the video widget."""
+        video_widget = self._media_player.get_video_widget()
+        # Map the video widget's rectangle to global coordinates
+        top_left_global = video_widget.mapToGlobal(video_widget.rect().topLeft())
+        # Set the overlay's geometry based on the global position and size
+        self._overlay.setGeometry(top_left_global.x(), top_left_global.y(), video_widget.width(), video_widget.height())
 
     def _start_crop_process(self):
         # --- Calculate final crop parameters here, just before running ---
@@ -107,14 +130,14 @@ class VideoCropper(QDialog):
         widget_height = video_widget.height()
 
         # The resizable rectangle's geometry is relative to the video widget
-        rect = self._crop_rect.geometry()
+        rect = self._overlay.get_crop_geometry()
 
         # Calculate scaling factors
         scale_x = video_width / widget_width
         scale_y = video_height / widget_height
 
         # Calculate the real crop parameters based on the video's native resolution
-        final_w = int(rect.width() * scale_x)
+        final_w = int(rect.width() * scale_x) - (int(rect.width() * scale_x) % 2) # Ensure even number
         final_h = int(rect.height() * scale_y)
         final_x = int(rect.x() * scale_x)
         final_y = int(rect.y() * scale_y)
