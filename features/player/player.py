@@ -37,7 +37,7 @@ class MediaPlayer(QWidget):
 
         # --- UI Setup ---
         self._video_frame = QFrame()
-        self._video_frame.setStyleSheet("background-color: black;")
+        self._video_frame.setStyleSheet("background-color: #367fc9;")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._video_frame)
