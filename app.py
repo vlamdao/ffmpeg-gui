@@ -186,7 +186,7 @@ class FFmpegGUI(QMainWindow):
             output_folder=output_folder,
             logger=self.logger,
             parent=self)
-        dialog.exec_()
+        dialog.show()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

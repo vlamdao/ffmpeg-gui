@@ -19,6 +19,7 @@ class VideoCropper(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Video Cropper")
         self.setWindowIcon(QIcon(resource_path("icon/crop-video.png")))
+        self.setAttribute(Qt.WA_DeleteOnClose) # Ensure cleanup when closed non-modally
         self.setMinimumSize(800, 600)
 
         self._video_path = video_path
