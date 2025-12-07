@@ -87,6 +87,8 @@ class VideoCropper(QDialog):
         )
         self._media_player.duration_changed.connect(self._media_controls.update_duration)
 
+        self._media_player.state_changed.connect(self._crop_rect.update)
+
         # Feature-specific actions
         self._action_panel.run_clicked.connect(self._start_crop_process)
         self._action_panel.stop_clicked.connect(self._stop_crop_process)
