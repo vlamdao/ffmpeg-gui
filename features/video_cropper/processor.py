@@ -21,13 +21,17 @@ class VideoCropperProcessor(BaseProcessor):
                      input_file: str,
                      output_folder: str,
                      cmd_template: 'CommandTemplate',
-                     crop_params: dict) -> tuple[list[tuple[str, list[str], str]] | None, str | None]:
+                     crop_params: dict,
+                     start_time: str,
+                     end_time: str) -> tuple[list[tuple[str, list[str], str]] | None, str | None]:
 
         os.makedirs(output_folder, exist_ok=True)
 
         commands = cmd_template.generate_commands(input_file=input_file,
                                                   output_folder=output_folder,
-                                                  crop_params=crop_params)
+                                                  crop_params=crop_params,
+                                                  start_time=start_time,
+                                                  end_time=end_time)
         if not commands:
             return None, styled_text('bold', 'red', None, f'Features: {self.get_feature_name()} | '
                                                         f'Could not generate command. Check the command template.')

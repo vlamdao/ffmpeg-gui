@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QMessageBox, QWidget,
 from PyQt5.QtCore import Qt, QRectF, pyqtSlot, QRect, QEvent, QPoint
 from PyQt5.QtGui import QIcon, QPainter, QPen, QColor, QPainterPath
 
-from helper import resource_path
+from helper import resource_path, ms_to_time_str
 from components import PlaceholdersTable
 from .processor import VideoCropperProcessor
 from features.player import ControlledPlayer
@@ -62,6 +62,8 @@ class VideoCropper(QDialog):
         self._action_panel.stop_clicked.connect(self._stop_process)
         self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
+        self._action_panel.set_start_clicked.connect(self._on_set_start_time)
+        self._action_panel.set_end_clicked.connect(self._on_set_end_time)
         self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
 
     def closeEvent(self, event):
@@ -93,6 +95,8 @@ class VideoCropper(QDialog):
         super().showEvent(event)
         # Load media when the dialog is shown to avoid blocking the UI on init
         self._controlled_player.load_media(self._video_path)
+        # Set end time to video duration when media is loaded
+        self._controlled_player._media_player.duration_changed.connect(lambda d: self._action_panel.set_end_time(ms_to_time_str(d)))
         # When the dialog is shown, show and position the overlay
         self._update_overlay_geometry()
         self._overlay.show()
@@ -163,6 +167,9 @@ class VideoCropper(QDialog):
         log_msg = f"Crop parameters: w={final_w}, h={final_h}, x={final_x}, y={final_y}"
         self._logger.append_log(log_msg)
 
+        start_time = self._action_panel.get_start_time()
+        end_time = self._action_panel.get_end_time()
+
         self._controlled_player.pause()
         self._update_ui_state('disable')
 
@@ -171,8 +178,18 @@ class VideoCropper(QDialog):
             input_file=self._video_path, 
             output_folder=self._output_folder, 
             cmd_template=self._cmd_template,
-            crop_params=crop_params)
+            crop_params=crop_params,
+            start_time=start_time,
+            end_time=end_time)
     
+    @pyqtSlot()
+    def _on_set_start_time(self):
+        self._action_panel.set_start_time(ms_to_time_str(self._controlled_player.position()))
+
+    @pyqtSlot()
+    def _on_set_end_time(self):
+        self._action_panel.set_end_time(ms_to_time_str(self._controlled_player.position()))
+
     @pyqtSlot()
     def _stop_process(self):
         if self._processor.is_running():
