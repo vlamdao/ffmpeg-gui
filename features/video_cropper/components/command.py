@@ -2,7 +2,7 @@ from features.base import BaseCommandTemplate
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from ....components.placeholders import VideoCropperPlaceholders
+    from .placeholders import VideoCropperPlaceholders
 
 class CommandTemplate(BaseCommandTemplate):
 
