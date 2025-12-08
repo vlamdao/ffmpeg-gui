@@ -20,7 +20,7 @@ class OverlayWidget(QWidget):
         self.setMouseTracking(True)
 
         # --- Crop rectangle state management ---
-        self._HANDLE_SIZE = 3
+        self._HANDLE_SIZE = 10
         self._crop_rect_geometry = QRect()
         self._is_resizing = False
         self._drag_start_pos = QPoint()
@@ -55,18 +55,24 @@ class OverlayWidget(QWidget):
             painter.drawRect(handle_rect)
 
     def _get_handles(self, rect: QRect):
-        """Returns a dictionary of handle rectangles."""
+        """Returns a dictionary of handle rectangles at corners and mid-points."""
         s = self._HANDLE_SIZE
+        half_s = s // 2
         w, h = rect.width(), rect.height()
+        mid_x = rect.left() + w // 2
+        mid_y = rect.top() + h // 2
+
         return {
-            'top-left': QRect(rect.left(), rect.top(), s, s),
-            'top-right': QRect(rect.right() - s, rect.top(), s, s),
-            'bottom-left': QRect(rect.left(), rect.bottom() - s, s, s),
-            'bottom-right': QRect(rect.right() - s, rect.bottom() - s, s, s),
-            'top': QRect(rect.left() + s, rect.top(), w - 2 * s, s),
-            'bottom': QRect(rect.left() + s, rect.bottom() - s, w - 2 * s, s),
-            'left': QRect(rect.left(), rect.top() + s, s, h - 2 * s),
-            'right': QRect(rect.right() - s, rect.top() + s, s, h - 2 * s),
+            # Corners
+            'top-left': QRect(rect.left() - half_s, rect.top() - half_s, s, s),
+            'top-right': QRect(rect.right() - half_s, rect.top() - half_s, s, s),
+            'bottom-left': QRect(rect.left() - half_s, rect.bottom() - half_s, s, s),
+            'bottom-right': QRect(rect.right() - half_s, rect.bottom() - half_s, s, s),
+            # Mid-points
+            'top': QRect(mid_x - half_s, rect.top() - half_s, s, s),
+            'bottom': QRect(mid_x - half_s, rect.bottom() - half_s, s, s),
+            'left': QRect(rect.left() - half_s, mid_y - half_s, s, s),
+            'right': QRect(rect.right() - half_s, mid_y - half_s, s, s),
         }
 
     def _get_handle_at(self, pos: QPoint):
@@ -76,32 +82,40 @@ class OverlayWidget(QWidget):
         return None
 
     def mousePressEvent(self, event):
+        """Handles mouse clicks to start or stop resizing."""
         if event.button() == Qt.LeftButton:
-            self._resize_handle = self._get_handle_at(event.pos())
-            self._drag_start_pos = event.globalPos()
-            self._drag_start_geom = QRect(self._crop_rect_geometry)
-            if self._resize_handle:
-                self._is_resizing = True
+            # If already in resizing mode, this click will stop it.
+            if self._is_resizing:
+                self._is_resizing = False
+                self._resize_handle = None
+                self.setCursor(Qt.ArrowCursor)
+            # Otherwise, check if a handle is clicked to start resizing.
+            else:
+                handle = self._get_handle_at(event.pos())
+                if handle:
+                    self._is_resizing = True
+                    self._resize_handle = handle
+                    self._drag_start_pos = event.globalPos()
+                    self._drag_start_geom = QRect(self._crop_rect_geometry)
 
     def mouseMoveEvent(self, event):
-        # Chỉ thực hiện thay đổi kích thước nếu đang trong trạng thái resizing
-        if self._is_resizing and event.buttons() == Qt.LeftButton:
+        """Handles mouse movement for resizing or updating the cursor."""
+        if self._is_resizing:
+            # If resizing, update the geometry based on mouse movement.
             delta = event.globalPos() - self._drag_start_pos
             new_geom = QRect(self._drag_start_geom)
 
-            if self._resize_handle:
-                if 'top' in self._resize_handle: new_geom.setTop(new_geom.top() + delta.y())
-                if 'bottom' in self._resize_handle: new_geom.setBottom(new_geom.bottom() + delta.y())
-                if 'left' in self._resize_handle: new_geom.setLeft(new_geom.left() + delta.x())
-                if 'right' in self._resize_handle: new_geom.setRight(new_geom.right() + delta.x())
+            if 'top' in self._resize_handle: new_geom.setTop(new_geom.top() + delta.y())
+            if 'bottom' in self._resize_handle: new_geom.setBottom(new_geom.bottom() + delta.y())
+            if 'left' in self._resize_handle: new_geom.setLeft(new_geom.left() + delta.x())
+            if 'right' in self._resize_handle: new_geom.setRight(new_geom.right() + delta.x())
 
             new_geom = new_geom.normalized()
             self._crop_rect_geometry = new_geom.intersected(self.rect())
             self.update()
         else:
-            # Cập nhật hình dạng con trỏ chuột khi di chuột qua các handle
-            pos = event.pos()
-            handle = self._get_handle_at(pos)
+            # If not resizing, just update the cursor icon when hovering over handles.
+            handle = self._get_handle_at(event.pos())
             if handle in ['top-left', 'bottom-right']:
                 self.setCursor(Qt.SizeFDiagCursor)
             elif handle in ['top-right', 'bottom-left']:
@@ -114,7 +128,13 @@ class OverlayWidget(QWidget):
                 self.setCursor(Qt.ArrowCursor)
 
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self._is_resizing = False
-            self._resize_handle = None
-            self.setCursor(Qt.ArrowCursor)
+        """This event is now ignored in the click-move-click model."""
+        pass
+
+    def setEnabled(self, enabled):
+        """Override setEnabled to also reset the resizing state."""
+        super().setEnabled(enabled)
+        if not enabled:
+            # If the widget is disabled (e.g., during processing), exit resizing mode.
+            if self._is_resizing:
+                self._is_resizing = True
