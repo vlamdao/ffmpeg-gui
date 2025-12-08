@@ -93,7 +93,7 @@ class ThumbnailSetter(QDialog):
         self._placeholders_table.set_compact_height()
 
         self._command_template = CommandTemplates(placeholders=self._placeholders)
-        self._command_template.setFixedHeight(100)
+        self._command_template.setFixedHeight(90)
 
         main_layout.addWidget(self._controlled_player)
         main_layout.addWidget(self._action_panel)
