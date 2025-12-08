@@ -37,19 +37,8 @@ class VideoCropper(QDialog):
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
 
-        # Create a container for the player and the overlay
-        player_container = QWidget()
-        player_container_layout = QVBoxLayout(player_container)
-        player_container_layout.setContentsMargins(0, 0, 0, 0)
-
         self._media_player = MediaPlayer(self)
-        player_container_layout.addWidget(self._media_player)
-
-        # Create the separate overlay widget
-        self._overlay = OverlayWidget()
-
         self._media_controls = MediaControls()
-        
         self._placeholders_table = PlaceholdersTable(
             placeholders_list=self._placeholders.get_placeholders_list(),
             num_columns=6,
@@ -60,11 +49,14 @@ class VideoCropper(QDialog):
         self._cmd_template = CommandTemplate(placeholders=self._placeholders)
         self._action_panel = ActionPanel()
 
-        main_layout.addWidget(player_container, 1)
+        main_layout.addWidget(self._media_player, 1)
         main_layout.addWidget(self._media_controls)
         main_layout.addWidget(self._placeholders_table)
         main_layout.addWidget(self._cmd_template)
         main_layout.addWidget(self._action_panel)
+
+        # Overlay for crop selection
+        self._overlay = OverlayWidget()
 
     def _connect_signals(self):
         # Player controls
