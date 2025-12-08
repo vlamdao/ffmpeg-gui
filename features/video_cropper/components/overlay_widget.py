@@ -20,7 +20,7 @@ class OverlayWidget(QWidget):
         self.setMouseTracking(True)
 
         # --- Crop rectangle state management ---
-        self._HANDLE_SIZE = 3
+        self._HANDLE_SIZE = 2
         self._crop_rect_geometry = QRect()
         self._is_resizing = False
         self._drag_start_pos = QPoint()
@@ -92,43 +92,39 @@ class OverlayWidget(QWidget):
             self._drag_start_geom = QRect(self._crop_rect_geometry)
             if self._resize_handle:
                 self._is_resizing = True
-                if self.isVisible():
-                    self.grabMouse()
 
     def mouseMoveEvent(self, event):
-        pos = event.pos()
-        handle = self._get_handle_at(pos)
-
-        # Update cursor
-        if handle in ['top-left', 'bottom-right']:
-            self.setCursor(Qt.SizeFDiagCursor)
-        elif handle in ['top-right', 'bottom-left']:
-            self.setCursor(Qt.SizeBDiagCursor)
-        elif handle in ['top', 'bottom']:
-            self.setCursor(Qt.SizeVerCursor)
-        elif handle in ['left', 'right']:
-            self.setCursor(Qt.SizeHorCursor)
-        else:
-            self.setCursor(Qt.ArrowCursor)
-
-        if event.buttons() == Qt.LeftButton:
+        # Chỉ thực hiện thay đổi kích thước nếu đang trong trạng thái resizing
+        if self._is_resizing and event.buttons() == Qt.LeftButton:
             delta = event.globalPos() - self._drag_start_pos
             new_geom = QRect(self._drag_start_geom)
 
-            if self._is_resizing:
-                if self._resize_handle: # Ensure handle is not None
-                    if 'top' in self._resize_handle: new_geom.setTop(new_geom.top() + delta.y())
-                    if 'bottom' in self._resize_handle: new_geom.setBottom(new_geom.bottom() + delta.y())
-                    if 'left' in self._resize_handle: new_geom.setLeft(new_geom.left() + delta.x())
-                    if 'right' in self._resize_handle: new_geom.setRight(new_geom.right() + delta.x())
+            if self._resize_handle:
+                if 'top' in self._resize_handle: new_geom.setTop(new_geom.top() + delta.y())
+                if 'bottom' in self._resize_handle: new_geom.setBottom(new_geom.bottom() + delta.y())
+                if 'left' in self._resize_handle: new_geom.setLeft(new_geom.left() + delta.x())
+                if 'right' in self._resize_handle: new_geom.setRight(new_geom.right() + delta.x())
 
             new_geom = new_geom.normalized()
             self._crop_rect_geometry = new_geom.intersected(self.rect())
-            self.update() # Trigger a repaint
+            self.update()
+        else:
+            # Cập nhật hình dạng con trỏ chuột khi di chuột qua các handle
+            pos = event.pos()
+            handle = self._get_handle_at(pos)
+            if handle in ['top-left', 'bottom-right']:
+                self.setCursor(Qt.SizeFDiagCursor)
+            elif handle in ['top-right', 'bottom-left']:
+                self.setCursor(Qt.SizeBDiagCursor)
+            elif handle in ['top', 'bottom']:
+                self.setCursor(Qt.SizeVerCursor)
+            elif handle in ['left', 'right']:
+                self.setCursor(Qt.SizeHorCursor)
+            else:
+                self.setCursor(Qt.ArrowCursor)
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self._is_resizing = False
             self._resize_handle = None
             self.setCursor(Qt.ArrowCursor)
-            self.releaseMouse()
