@@ -29,6 +29,8 @@ class VideoCropper(QDialog):
         self._placeholders = VideoCropperPlaceholders()
         self._processor = VideoCropperProcessor(self)
 
+        self._is_closing = False
+
         self._setup_ui()
         self._connect_signals()
 
