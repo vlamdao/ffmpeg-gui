@@ -44,7 +44,7 @@ class VideoCropper(QDialog):
         self._placeholders_table.set_compact_height()
 
         self._cmd_template = CommandTemplate(placeholders=self._placeholders)
-        self._cmd_template.setFixedHeight(100)
+        self._cmd_template.setFixedHeight(90)
 
         self._action_panel = ActionPanel()
 
