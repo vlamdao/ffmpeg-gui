@@ -55,8 +55,7 @@ class VideoCropper(QDialog):
         
         # Overlay for crop selection
         self._overlay = OverlayWidget(self)
-        # Disable overlay initially. It will be enabled when the media is ready.
-        self._overlay.setEnabled(False)
+        self._overlay.setEnabled(False) # Disable overlay initially. It will be enabled when the media is ready.
 
 
     def _connect_signals(self):
