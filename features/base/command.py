@@ -18,7 +18,8 @@ class BaseCommandTemplate(QWidget):
 
         self._cmd_input = QTextEdit()
         self._cmd_input.setFont(QFont("Consolas", 9))
-        self._cmd_input.setMinimumHeight(80)
+        # self._cmd_input.setMinimumHeight(80)
+        self._cmd_input.setFixedHeight(90)
 
         layout.addWidget(self._cmd_input)
 
