@@ -49,10 +49,10 @@ class VideoCropper(QDialog):
         self._action_panel = ActionPanel()
 
         main_layout.addWidget(self._controlled_player, 1)
+        main_layout.addWidget(self._action_panel)
         main_layout.addWidget(self._placeholders_table)
         main_layout.addWidget(self._cmd_template)
-        main_layout.addWidget(self._action_panel)
-
+        
         # Overlay for crop selection
         self._overlay = OverlayWidget(self)
 
