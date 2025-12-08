@@ -65,6 +65,8 @@ class VideoCropper(QDialog):
         self._action_panel.set_start_clicked.connect(self._on_set_start_time)
         self._action_panel.set_end_clicked.connect(self._on_set_end_time)
         self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
+        # Update overlay and end time when media duration is known (which means metadata is loaded)
+        self._controlled_player._media_player.duration_changed.connect(self._on_media_ready)
 
     def closeEvent(self, event):
         """Stops any running process and cleans up resources before closing."""
@@ -95,8 +97,6 @@ class VideoCropper(QDialog):
         super().showEvent(event)
         # Load media when the dialog is shown to avoid blocking the UI on init
         self._controlled_player.load_media(self._video_path)
-        # Set end time to video duration when media is loaded
-        self._controlled_player._media_player.duration_changed.connect(lambda d: self._action_panel.set_end_time(ms_to_time_str(d)))
         # When the dialog is shown, show and position the overlay
         self._update_overlay_geometry()
         self._overlay.show()
@@ -128,13 +128,55 @@ class VideoCropper(QDialog):
             if self.windowState() & Qt.WindowMinimized:
                 self._overlay.hide()
 
-    def _update_overlay_geometry(self):
-        """Positions the overlay widget exactly on top of the video widget."""
+    @pyqtSlot('qint64')
+    def _on_media_ready(self, duration: int):
+        """Called when the media is parsed and its properties are known."""
+        self._action_panel.set_end_time(ms_to_time_str(duration))
+        self._update_overlay_geometry()
+        self._overlay.show() # Ensure overlay is visible after geometry update
+
+    def _calculate_video_rect_in_widget(self) -> QRect:
+        """
+        Calculates the actual rectangle where the video is rendered within the video widget,
+        accounting for letterboxing or pillarboxing.
+        """
         video_widget = self._controlled_player.get_video_widget()
-        # Map the video widget's rectangle to global coordinates
-        top_left_global = video_widget.mapToGlobal(video_widget.rect().topLeft())
-        # Set the overlay's geometry based on the global position and size
-        self._overlay.setGeometry(top_left_global.x(), top_left_global.y(), video_widget.width(), video_widget.height())
+        widget_width = video_widget.width()
+        widget_height = video_widget.height()
+
+        video_width, video_height = self._controlled_player.get_video_resolution()
+
+        if video_width == 0 or video_height == 0:
+            return video_widget.rect() # Fallback to full widget if resolution is unknown
+
+        widget_aspect = widget_width / widget_height
+        video_aspect = video_width / video_height
+
+        if video_aspect > widget_aspect: # Video is wider than widget (letterboxing)
+            render_width = widget_width
+            render_height = int(render_width / video_aspect)
+            x_offset = 0
+            y_offset = (widget_height - render_height) // 2
+        else: # Video is taller than widget (pillarboxing)
+            render_height = widget_height
+            render_width = int(render_height * video_aspect)
+            x_offset = (widget_width - render_width) // 2
+            y_offset = 0
+            
+        return QRect(x_offset, y_offset, render_width, render_height)
+
+    def _update_overlay_geometry(self):
+        """Positions the overlay widget exactly on top of the video's actual render area."""
+        video_widget = self._controlled_player.get_video_widget()
+        
+        # Calculate the actual video rendering area within the widget
+        video_rect_in_widget = self._calculate_video_rect_in_widget()
+
+        # Map the calculated video rect to global coordinates
+        top_left_global = video_widget.mapToGlobal(video_rect_in_widget.topLeft())
+        
+        # Set the overlay's geometry to match the video's render area
+        self._overlay.setGeometry(top_left_global.x(), top_left_global.y(), video_rect_in_widget.width(), video_rect_in_widget.height())
 
     def _on_crop_video(self):
         # --- Calculate final crop parameters here, just before running ---
@@ -142,20 +184,25 @@ class VideoCropper(QDialog):
         if video_width == 0 or video_height == 0:
             QMessageBox.warning(self, "Error", "Could not determine video resolution. Please play the video first.")
             return
-        video_widget = self._controlled_player.get_video_widget()
-        widget_width = video_widget.width()
-        widget_height = video_widget.height()
-
-        # The resizable rectangle's geometry is relative to the video widget
+        
+        # The overlay's geometry now matches the rendered video area.
+        rendered_video_rect = self._overlay.geometry()
+        # The crop selection rectangle is relative to the overlay.
         rect = self._overlay.get_crop_geometry()
 
         # Calculate scaling factors
-        scale_x = video_width / widget_width
-        scale_y = video_height / widget_height
+        scale_x = video_width / rendered_video_rect.width()
+        scale_y = video_height / rendered_video_rect.height()
+
+        print(f"Video resolution: {video_width}x{video_height}")
+        print(f"Rendered video size: {rendered_video_rect.width()}x{rendered_video_rect.height()}")
+        print(f"Scale factors: x={scale_x}, y={scale_y}")
+        print(f"Selected rectangle (overlay coords): x={rect.x()}, y={rect.y()}, w={rect.width()}, h={rect.height()}")
+        
 
         # Calculate the real crop parameters based on the video's native resolution
-        final_w = int(rect.width() * scale_x) - (int(rect.width() * scale_x) % 2) # Ensure even number
-        final_h = int(rect.height() * scale_y)
+        final_w = int(rect.width() * scale_x)
+        final_h = int(rect.height() * scale_y) - (int(rect.height() * scale_y) % 2) # Ensure even number for height
         final_x = int(rect.x() * scale_x)
         final_y = int(rect.y() * scale_y)
 
