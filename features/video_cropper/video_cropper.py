@@ -56,8 +56,8 @@ class VideoCropper(QDialog):
 
     def _connect_signals(self):
         # Feature-specific actions
-        self._action_panel.run_clicked.connect(self._start_crop_process)
-        self._action_panel.stop_clicked.connect(self._stop_crop_process)
+        self._action_panel.run_clicked.connect(self._on_crop_video)
+        self._action_panel.stop_clicked.connect(self._stop_process)
         self._processor.log_signal.connect(self._logger.append_log)
         self._processor.processing_finished.connect(self._on_processing_finished)
         self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
@@ -130,7 +130,7 @@ class VideoCropper(QDialog):
         # Set the overlay's geometry based on the global position and size
         self._overlay.setGeometry(top_left_global.x(), top_left_global.y(), video_widget.width(), video_widget.height())
 
-    def _start_crop_process(self):
+    def _on_crop_video(self):
         # --- Calculate final crop parameters here, just before running ---
         video_width, video_height = self._controlled_player.get_video_resolution()
         if video_width == 0 or video_height == 0:
@@ -161,16 +161,42 @@ class VideoCropper(QDialog):
         log_msg = f"Crop parameters: w={final_w}, h={final_h}, x={final_x}, y={final_y}"
         self._logger.append_log(log_msg)
 
-        if not all(crop_params.values()):
-            QMessageBox.warning(self, "Input Error", "All crop parameters must be filled.")
+        self._controlled_player.pause()
+        self._update_ui_state('disable')
+
+        # self._processor.start(self._video_path, self._output_folder, self._cmd_template, crop_params)
+        self._processor.start(
+            input_file=self._video_path, 
+            output_folder=self._output_folder, 
+            cmd_template=self._cmd_template,
+            crop_params=crop_params)
+    
+    @pyqtSlot()
+    def _stop_process(self):
+        if self._processor.is_running():
+            self._processor.stop()
+
+    def _update_ui_state(self, state: str):
+        """Enables or disables UI controls based on processing state."""
+        if state == "enable":
+            self._action_panel.update_ui_state('enable')
+            self._controlled_player.setEnabled(True)
+            self._placeholders_table.setEnabled(True)
+            self._cmd_template.setEnabled(True)
+            self._overlay.setEnabled(True)
+        elif state == "disable":
+            self._action_panel.update_ui_state('disable')
+            self._controlled_player.setDisabled(True)
+            self._placeholders_table.setDisabled(True)
+            self._cmd_template.setDisabled(True)
+            self._overlay.setDisabled(True)
+        else:
             return
-
-        self._action_panel.update_ui_state('disable')
-        self._processor.start(self._video_path, self._output_folder, self._cmd_template, crop_params)
-
-    def _stop_crop_process(self):
-        self._processor.stop()
 
     @pyqtSlot()
     def _on_processing_finished(self):
-        self._action_panel.update_ui_state('enable')
+        # If the dialog was waiting to close, close it now.
+        if self._is_closing:
+            self.close()
+            return
+        self._update_ui_state('enable')
