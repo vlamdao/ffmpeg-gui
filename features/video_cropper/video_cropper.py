@@ -1,110 +1,73 @@
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QMessageBox, QWidget,
-                             QLineEdit, QLabel)
-from PyQt5.QtCore import Qt, QRectF, pyqtSlot, QRect, QEvent, QPoint
-from PyQt5.QtGui import QIcon, QPainter, QPen, QColor, QPainterPath, QCloseEvent
+from PyQt5.QtWidgets import (QVBoxLayout, QMessageBox, QWidget)
+from PyQt5.QtCore import Qt, pyqtSlot, QRect, QEvent
+from PyQt5.QtGui import QIcon
 
 from helper import resource_path, ms_to_time_str, time_str_to_ms
 from components import PlaceholdersTable
+from features.base.dialog import BasePlayerDialog
 from .processor import VideoCropperProcessor
-from features.player import ControlledPlayer
-from .components import (ActionPanel, CommandTemplate, VideoCropperPlaceholders, OverlayWidget)
+from .components import (VideoCropperActionPanel, VideoCropperCommandTemplate, VideoCropperPlaceholders, OverlayWidget)
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from components import Logger
 
-
-class VideoCropper(QDialog):
+class VideoCropper(BasePlayerDialog):
     def __init__(self, video_path: str, output_folder: str, logger: 'Logger', parent=None):
-        super().__init__(parent)
+        super().__init__(video_path=video_path, output_folder=output_folder, logger=logger, parent=parent)
         self.setWindowTitle("Video Cropper")
         self.setWindowIcon(QIcon(resource_path("icon/crop-video.png")))
-        self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
         self.setWindowModality(Qt.WindowModal)
-        self.setAttribute(Qt.WA_DeleteOnClose) # Ensure cleanup when closed non-modally
-        self.setMinimumSize(800, 600)
         self.resize(900, 769)
 
-
-        self._video_path = video_path
-        self._output_folder = output_folder
-        self._logger = logger
-        self._placeholders = VideoCropperPlaceholders()
-        self._processor = VideoCropperProcessor(self)
-
-        self._is_closing = False
         self._segment = {'start': 0, 'end': 0}
 
-        self._setup_ui()
-        self._connect_signals()
+        self._setup_base_ui()
 
-    def _setup_ui(self):
-        main_layout = QVBoxLayout(self)
-
-        self._controlled_player = ControlledPlayer(self)
+    def _create_widgets(self):
+        """Instantiate feature-specific widgets."""
+        self._placeholders = VideoCropperPlaceholders(self)
+        self._processor = VideoCropperProcessor(self)
+        self._action_panel = VideoCropperActionPanel(self)
+        self._cmd_template = VideoCropperCommandTemplate(placeholders=self._placeholders)
         self._placeholders_table = PlaceholdersTable(
             placeholders_list=self._placeholders.get_placeholders_list(),
             num_columns=6,
             parent=self
         )
         self._placeholders_table.set_compact_height()
+        self._overlay = OverlayWidget(self)
+        self._overlay.setEnabled(False)
 
-        self._cmd_template = CommandTemplate(placeholders=self._placeholders)
-        self._action_panel = ActionPanel()
-
+    def _setup_layout(self):
+        """Set up the layout for the dialog."""
+        main_layout = QVBoxLayout(self)
         main_layout.addWidget(self._controlled_player, 1)
         main_layout.addWidget(self._action_panel)
         main_layout.addWidget(self._placeholders_table)
         main_layout.addWidget(self._cmd_template)
-        
-        # Overlay for crop selection
-        self._overlay = OverlayWidget(self)
-        self._overlay.setEnabled(False) # Disable overlay initially. It will be enabled when the media is ready.
 
     def _connect_signals(self):
+        """Connect signals for feature-specific widgets."""
+        super()._connect_signals()
         # Feature-specific actions
         self._action_panel.run_clicked.connect(self._on_crop_video)
-        self._action_panel.stop_clicked.connect(self._stop_process)
         self._action_panel.set_start_clicked.connect(self._on_set_start_time)
         self._action_panel.set_end_clicked.connect(self._on_set_end_time)
-
-        self._processor.log_signal.connect(self._logger.append_log)
-        self._processor.processing_finished.connect(self._on_processing_finished)
-
-        self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
         
         # Update overlay and end time when media duration is known (which means metadata is loaded)
         self._controlled_player._media_player.duration_changed.connect(self._on_media_ready)
 
-    def closeEvent(self, event: QCloseEvent):
-        """Stops any running process and cleans up resources before closing."""
-        # If a process is running, stop it and wait for it to finish
-        # before actually closing the window.
-        if self._processor.is_running():
-            if not self._is_closing: # Prevent multiple stop signals
-                self._is_closing = True
-                self._processor.stop()
-                event.ignore() # Ignore the close event for now
-                return
-        
-        # If no process is running, or we are closing after a process has finished
-        self._controlled_player.cleanup() # Clean up the media player
+    def closeEvent(self, event):
+        """Handle closing the dialog, ensuring the overlay is also closed."""
+        super().closeEvent(event)
         # Ensure the overlay is closed when the main dialog closes
         if hasattr(self, '_overlay'):
             self._overlay.close()
-        super().closeEvent(event)
-
-    def keyPressEvent(self, event):
-        """Override to prevent Esc from closing the dialog, which can cause issues."""
-        if event.key() == Qt.Key_Escape:
-            event.accept() # Consume the event, do nothing
-        else:
-            super().keyPressEvent(event)
 
     def showEvent(self, event):
+        """Load media and show the overlay when the dialog is shown."""
         super().showEvent(event)
-        # Load media when the dialog is shown to avoid blocking the UI on init
-        self._controlled_player.load_media(self._video_path)
         # When the dialog is shown, show and position the overlay
         self._update_overlay_geometry()
         self._overlay.show()
@@ -261,35 +224,12 @@ class VideoCropper(QDialog):
         self._segment['end'] = new_end_ms
         self._update_segment_label_marker()
 
-    @pyqtSlot()
-    def _stop_process(self):
-        if self._processor.is_running():
-            self._processor.stop()
-
     def _update_ui_state(self, state: str):
         """Enables or disables UI controls based on processing state."""
-        if state == "enable":
-            self._action_panel.update_ui_state('enable')
-            self._controlled_player.setEnabled(True)
-            self._placeholders_table.setEnabled(True)
-            self._cmd_template.setEnabled(True)
-            self._overlay.setEnabled(True)
-        elif state == "disable":
-            self._action_panel.update_ui_state('disable')
-            self._controlled_player.setDisabled(True)
-            self._placeholders_table.setDisabled(True)
-            self._cmd_template.setDisabled(True)
-            self._overlay.setDisabled(True)
-        else:
-            return
-
-    @pyqtSlot()
-    def _on_processing_finished(self):
-        # If the dialog was waiting to close, close it now.
-        if self._is_closing:
-            self.close()
-            return
-        self._update_ui_state('enable')
+        super()._update_ui_state(state)
+        is_disabled = (state == "disable")
+        if hasattr(self, '_overlay'):
+            self._overlay.setDisabled(is_disabled)
 
     def _update_segment_label_marker(self):
         """Synchronizes the UI with the internal segment state."""

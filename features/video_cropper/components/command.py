@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .placeholders import VideoCropperPlaceholders
 
-class CommandTemplate(BaseCommandTemplate):
+class VideoCropperCommandTemplate(BaseCommandTemplate):
 
     def __init__(self, placeholders: 'VideoCropperPlaceholders', parent=None):
         super().__init__(parent)

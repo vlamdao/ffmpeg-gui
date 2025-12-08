@@ -1,13 +1,13 @@
-from .command import CommandTemplate
+from .command import VideoCropperCommandTemplate
 from .placeholders import VideoCropperPlaceholders
-from .action_panel import ActionPanel
+from .action_panel import VideoCropperActionPanel
 from .overlay_widget import OverlayWidget
 
 
 
 __all__ = [
-    'CommandTemplate', 
+    'VideoCropperCommandTemplate', 
     'VideoCropperPlaceholders', 
-    'ActionPanel',
+    'VideoCropperActionPanel',
     'OverlayWidget'
 ]
