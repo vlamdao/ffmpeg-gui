@@ -62,11 +62,14 @@ class VideoCropper(QDialog):
         # Feature-specific actions
         self._action_panel.run_clicked.connect(self._on_crop_video)
         self._action_panel.stop_clicked.connect(self._stop_process)
-        self._processor.log_signal.connect(self._logger.append_log)
-        self._processor.processing_finished.connect(self._on_processing_finished)
         self._action_panel.set_start_clicked.connect(self._on_set_start_time)
         self._action_panel.set_end_clicked.connect(self._on_set_end_time)
+
+        self._processor.log_signal.connect(self._logger.append_log)
+        self._processor.processing_finished.connect(self._on_processing_finished)
+
         self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
+        
         # Update overlay and end time when media duration is known (which means metadata is loaded)
         self._controlled_player._media_player.duration_changed.connect(self._on_media_ready)
 
