@@ -14,7 +14,6 @@ class CommandTemplate(BaseCommandTemplate):
         )
         
         self._set_default_cmd()
-        self._cmd_input.setFixedHeight(90)
 
     def generate_commands(self, 
                           input_file: tuple[int, str, str], 
