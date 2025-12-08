@@ -83,6 +83,8 @@ class VideoCutter(QDialog):
         self._placeholders_table.set_compact_height()
 
         self._cmd_template = CommandTemplate(placeholders=self._placeholders, parent=self)
+        self._cmd_template.setFixedHeight(90)
+        
         self._segment_list = SegmentList()
         self._processor = Processor(self)
 
