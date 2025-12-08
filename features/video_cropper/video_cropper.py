@@ -35,7 +35,18 @@ class VideoCropper(QDialog):
         self._media_player.load_media(self._video_path)
 
     def closeEvent(self, event):
-        self._media_player.cleanup()
+        """Stops any running process and cleans up resources before closing."""
+        # If a process is running, stop it and wait for it to finish
+        # before actually closing the window.
+        if self._processor.is_running():
+            if not self._is_closing: # Prevent multiple stop signals
+                self._is_closing = True
+                self._processor.stop()
+                event.ignore() # Ignore the close event for now
+                return
+        
+        # If no process is running, or we are closing after a process has finished
+        self._media_player.cleanup() # Clean up the media player
         # Ensure the overlay is closed when the main dialog closes
         if hasattr(self, '_overlay'):
             self._overlay.close()
