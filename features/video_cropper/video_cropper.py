@@ -30,9 +30,7 @@ class VideoCropper(QDialog):
         self._processor = VideoCropperProcessor(self)
 
         self._is_closing = False
-        # --- Segment State ---
-        self._start_ms = 0
-        self._end_ms = 0
+        self._segment = {'start': 0, 'end': 0}
 
         self._setup_ui()
         self._connect_signals()
@@ -139,8 +137,7 @@ class VideoCropper(QDialog):
     @pyqtSlot('qint64')
     def _on_media_ready(self, duration: int):
         """Called when the media is parsed and its properties are known."""
-        self._start_ms = 0
-        self._end_ms = duration
+        self._segment = {'start': 0, 'end': duration}
         self._update_segment_ui()
 
         self._overlay.setEnabled(True) # Enable drawing now that we have correct dimensions
@@ -252,13 +249,13 @@ class VideoCropper(QDialog):
 
         # If the time in the input box is different from our state, the user edited it.
         # Action: Seek the player to the new time.
-        if input_start_ms != self._start_ms:
-            self._start_ms = input_start_ms
-            self._controlled_player.set_position(self._start_ms)
+        if input_start_ms != self._segment['start']:
+            self._segment['start'] = input_start_ms
+            self._controlled_player.set_position(self._segment['start'])
         # Otherwise, the user wants to set the start time from the player.
         # Action: Update the state from the player's position.
         else:
-            self._start_ms = self._controlled_player.position()
+            self._segment['start'] = self._controlled_player.position()
 
         self._update_segment_ui()
 
@@ -270,11 +267,11 @@ class VideoCropper(QDialog):
         except ValueError:
             input_end_ms = -1 # Invalid format
 
-        if input_end_ms != self._end_ms:
-            self._end_ms = input_end_ms
-            self._controlled_player.set_position(self._end_ms)
+        if input_end_ms != self._segment['end']:
+            self._segment['end'] = input_end_ms
+            self._controlled_player.set_position(self._segment['end'])
         else:
-            self._end_ms = self._controlled_player.position()
+            self._segment['end'] = self._controlled_player.position()
 
         self._update_segment_ui()
 
@@ -310,6 +307,6 @@ class VideoCropper(QDialog):
 
     def _update_segment_ui(self):
         """Synchronizes the UI (text inputs and slider) with the internal segment state."""
-        self._action_panel.set_start_time(ms_to_time_str(self._start_ms))
-        self._action_panel.set_end_time(ms_to_time_str(self._end_ms))
-        self._controlled_player.set_segment_markers([(self._start_ms, self._end_ms)])
+        self._action_panel.set_start_time(ms_to_time_str(self._segment['start']))
+        self._action_panel.set_end_time(ms_to_time_str(self._segment['end']))
+        self._controlled_player.set_segment_markers([(self._segment['start'], self._segment['end'])])
