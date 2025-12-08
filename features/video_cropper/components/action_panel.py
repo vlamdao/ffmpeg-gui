@@ -20,12 +20,16 @@ class ActionPanel(ActionButtons):
         self.set_run_button_text(" Crop Video")
         self._run_button.set_icon("crop-video.png")
 
-        self._start_time_edit = QLineEdit("00:00:00.000")
+        self._start_time_edit = QLineEdit()
+        self._start_time_edit.setInputMask("00:00:00.000")
+        self._start_time_edit.setFixedWidth(120)
         self._start_time_edit.setFont(QFont("Consolas", 9))
         self._start_time_edit.setAlignment(Qt.AlignCenter)
         self._start_time_edit.setMinimumHeight(self._BUTTON_MIN_HEIGHT - 4)
 
-        self._end_time_edit = QLineEdit("00:00:00.000")
+        self._end_time_edit = QLineEdit()
+        self._end_time_edit.setInputMask("00:00:00.000")
+        self._end_time_edit.setFixedWidth(120)
         self._end_time_edit.setFont(QFont("Consolas", 9))
         self._end_time_edit.setAlignment(Qt.AlignCenter)
         self._end_time_edit.setMinimumHeight(self._BUTTON_MIN_HEIGHT - 4)
