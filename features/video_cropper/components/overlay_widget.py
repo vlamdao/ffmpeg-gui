@@ -55,12 +55,9 @@ class OverlayWidget(QWidget):
             painter.drawRect(handle_rect)
 
     def _get_handles(self, rect: QRect):
-        """Returns a dictionary of handle rectangles at corners and mid-points."""
+        """Returns a dictionary of handle rectangles for the four corners."""
         s = self._HANDLE_SIZE
         half_s = s // 2
-        w, h = rect.width(), rect.height()
-        mid_x = rect.left() + w // 2
-        mid_y = rect.top() + h // 2
 
         return {
             # Corners
@@ -68,11 +65,6 @@ class OverlayWidget(QWidget):
             'top-right': QRect(rect.right() - half_s, rect.top() - half_s, s, s),
             'bottom-left': QRect(rect.left() - half_s, rect.bottom() - half_s, s, s),
             'bottom-right': QRect(rect.right() - half_s, rect.bottom() - half_s, s, s),
-            # Mid-points
-            'top': QRect(mid_x - half_s, rect.top() - half_s, s, s),
-            'bottom': QRect(mid_x - half_s, rect.bottom() - half_s, s, s),
-            'left': QRect(rect.left() - half_s, mid_y - half_s, s, s),
-            'right': QRect(rect.right() - half_s, mid_y - half_s, s, s),
         }
 
     def _get_handle_at(self, pos: QPoint):
@@ -88,7 +80,6 @@ class OverlayWidget(QWidget):
             if self._is_resizing:
                 self._is_resizing = False
                 self._resize_handle = None
-                self.setCursor(Qt.ArrowCursor)
             # Otherwise, check if a handle is clicked to start resizing.
             else:
                 handle = self._get_handle_at(event.pos())
@@ -113,19 +104,6 @@ class OverlayWidget(QWidget):
             new_geom = new_geom.normalized()
             self._crop_rect_geometry = new_geom.intersected(self.rect())
             self.update()
-        else:
-            # If not resizing, just update the cursor icon when hovering over handles.
-            handle = self._get_handle_at(event.pos())
-            if handle in ['top-left', 'bottom-right']:
-                self.setCursor(Qt.SizeFDiagCursor)
-            elif handle in ['top-right', 'bottom-left']:
-                self.setCursor(Qt.SizeBDiagCursor)
-            elif handle in ['top', 'bottom']:
-                self.setCursor(Qt.SizeVerCursor)
-            elif handle in ['left', 'right']:
-                self.setCursor(Qt.SizeHorCursor)
-            else:
-                self.setCursor(Qt.ArrowCursor)
 
     def mouseReleaseEvent(self, event):
         """This event is now ignored in the click-move-click model."""
