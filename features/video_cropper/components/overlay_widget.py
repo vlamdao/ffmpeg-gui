@@ -20,7 +20,7 @@ class OverlayWidget(QWidget):
         self.setMouseTracking(True)
 
         # --- Crop rectangle state management ---
-        self._HANDLE_SIZE = 10
+        self._HANDLE_SIZE = 20
         self._crop_rect_geometry = QRect()
         self._is_resizing = False
         self._drag_start_pos = QPoint()
