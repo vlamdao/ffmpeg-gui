@@ -20,7 +20,7 @@ class OverlayWidget(QWidget):
         self.setMouseTracking(True)
 
         # --- Crop rectangle state management ---
-        self._HANDLE_SIZE = 2
+        self._HANDLE_SIZE = 3
         self._crop_rect_geometry = QRect()
         self._is_resizing = False
         self._drag_start_pos = QPoint()
@@ -43,16 +43,6 @@ class OverlayWidget(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
 
         border_color = QColor(Qt.yellow)
-        
-        # Draw semi-transparent overlay outside the crop rectangle
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(QColor(0, 0, 0, 80))
-        full_rect = self.rect()
-        path = QPainterPath()
-        path.setFillRule(Qt.OddEvenFill)
-        path.addRect(QRectF(full_rect))
-        path.addRect(QRectF(self._crop_rect_geometry))
-        painter.drawPath(path)
 
         # Draw the crop rectangle border
         painter.setBrush(Qt.NoBrush)
