@@ -19,9 +19,12 @@ class VideoCropper(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Video Cropper")
         self.setWindowIcon(QIcon(resource_path("icon/crop-video.png")))
+        self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
         self.setWindowModality(Qt.WindowModal)
         self.setAttribute(Qt.WA_DeleteOnClose) # Ensure cleanup when closed non-modally
         self.setMinimumSize(800, 600)
+        self.resize(900, 769)
+
 
         self._video_path = video_path
         self._output_folder = output_folder
@@ -290,6 +293,8 @@ class VideoCropper(QDialog):
 
     def _update_segment_label_marker(self):
         """Synchronizes the UI with the internal segment state."""
-        # self._action_panel.set_segment_label(f'{ms_to_time_str(self._segment['start'])} - {ms_to_time_str(self._segment['end'])}')
-        self._action_panel.set_segment_label(f"{ms_to_time_str(self._segment['start'])} - {ms_to_time_str(self._segment['end'])}")
+        segment_label_str = f"{ms_to_time_str(self._segment['start'])} - {ms_to_time_str(self._segment['end'])} | "
+        segment_label_str += f"{ms_to_time_str(self._segment['end'] - self._segment['start'])}"
+        
+        self._action_panel.set_segment_label(segment_label_str)
         self._controlled_player.set_segment_markers([(self._segment['start'], self._segment['end'])])

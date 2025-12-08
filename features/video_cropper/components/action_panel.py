@@ -18,10 +18,8 @@ class ActionPanel(ActionButtons):
         super()._create_widgets()
 
         self._segment_label = QLabel("00:00:00.000 - 00:00:00.000")
-        self._segment_label.setFixedWidth(200)
         self._segment_label.setFont(QFont("Consolas", 9))
         self._segment_label.setAlignment(Qt.AlignCenter)
-        # self._segment_label.setMinimumHeight(self._BUTTON_MIN_HEIGHT - 4)
 
         self.set_run_button_text(" Crop Video")
         self._run_button.set_icon("crop-video.png")
