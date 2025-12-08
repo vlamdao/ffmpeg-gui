@@ -1,6 +1,6 @@
 from features.base import ActionButtons
-from components import StyledButton
-from PyQt5.QtWidgets import QLineEdit
+from components import StyledButton, buttons
+from PyQt5.QtWidgets import QLineEdit, QLabel
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -17,22 +17,14 @@ class ActionPanel(ActionButtons):
     def _create_widgets(self):
         super()._create_widgets()
 
+        self._segment_label = QLabel("00:00:00.000 - 00:00:00.000")
+        self._segment_label.setFixedWidth(200)
+        self._segment_label.setFont(QFont("Consolas", 9))
+        self._segment_label.setAlignment(Qt.AlignCenter)
+        # self._segment_label.setMinimumHeight(self._BUTTON_MIN_HEIGHT - 4)
+
         self.set_run_button_text(" Crop Video")
         self._run_button.set_icon("crop-video.png")
-
-        self._start_time_edit = QLineEdit()
-        self._start_time_edit.setInputMask("00:00:00.000")
-        self._start_time_edit.setFixedWidth(120)
-        self._start_time_edit.setFont(QFont("Consolas", 9))
-        self._start_time_edit.setAlignment(Qt.AlignCenter)
-        self._start_time_edit.setMinimumHeight(self._BUTTON_MIN_HEIGHT - 4)
-
-        self._end_time_edit = QLineEdit()
-        self._end_time_edit.setInputMask("00:00:00.000")
-        self._end_time_edit.setFixedWidth(120)
-        self._end_time_edit.setFont(QFont("Consolas", 9))
-        self._end_time_edit.setAlignment(Qt.AlignCenter)
-        self._end_time_edit.setMinimumHeight(self._BUTTON_MIN_HEIGHT - 4)
 
         self._set_start_button = StyledButton(
             text=" Set Start",
@@ -50,10 +42,9 @@ class ActionPanel(ActionButtons):
 
     def _setup_layout(self):
         super()._setup_layout()
-        self.layout.insertWidget(1, self._set_start_button)
-        self.layout.insertWidget(2, self._start_time_edit)
-        self.layout.insertWidget(3, self._end_time_edit)
-        self.layout.insertWidget(4, self._set_end_button)
+        self.layout.insertWidget(1, self._segment_label)
+        self.layout.insertWidget(2, self._set_start_button)
+        self.layout.insertWidget(3, self._set_end_button)
 
     def _connect_signals(self):
         super()._connect_signals()
@@ -72,23 +63,13 @@ class ActionPanel(ActionButtons):
             self.disable_stop_button()
             self._set_start_button.setEnabled(True)
             self._set_end_button.setEnabled(True)
-            self._start_time_edit.setEnabled(True)
-            self._end_time_edit.setEnabled(True)
         elif state == "disable":
             self.disable_run_button()
             self.enable_stop_button()
             self._set_start_button.setDisabled(True)
             self._set_end_button.setDisabled(True)
-            self._start_time_edit.setDisabled(True)
-            self._end_time_edit.setDisabled(True)
         else:
             return
 
-    def get_start_time(self) -> str:
-        return self._start_time_edit.text()
-
-    def get_end_time(self) -> str:
-        return self._end_time_edit.text()
-
-    def set_start_time(self, time_str: str): self._start_time_edit.setText(time_str)
-    def set_end_time(self, time_str: str): self._end_time_edit.setText(time_str)
+    def set_segment_label(self, segment_str: str):
+        self._segment_label.setText(segment_str)

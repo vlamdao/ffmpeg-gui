@@ -58,7 +58,6 @@ class VideoCropper(QDialog):
         self._overlay = OverlayWidget(self)
         self._overlay.setEnabled(False) # Disable overlay initially. It will be enabled when the media is ready.
 
-
     def _connect_signals(self):
         # Feature-specific actions
         self._action_panel.run_clicked.connect(self._on_crop_video)
@@ -138,12 +137,11 @@ class VideoCropper(QDialog):
     def _on_media_ready(self, duration: int):
         """Called when the media is parsed and its properties are known."""
         self._segment = {'start': 0, 'end': duration}
-        self._update_segment_ui()
+        self._update_segment_label_marker()
 
         self._overlay.setEnabled(True) # Enable drawing now that we have correct dimensions
         self._update_overlay_geometry()
         self._overlay.show() # Ensure overlay is visible after geometry update
-
 
     def _calculate_video_rect_in_widget(self) -> QRect:
         """
@@ -224,9 +222,6 @@ class VideoCropper(QDialog):
         log_msg = f"Crop parameters: w={final_w}, h={final_h}, x={final_x}, y={final_y}"
         self._logger.append_log(log_msg)
 
-        start_time = self._action_panel.get_start_time()
-        end_time = self._action_panel.get_end_time()
-
         self._controlled_player.pause()
         self._update_ui_state('disable')
 
@@ -236,44 +231,32 @@ class VideoCropper(QDialog):
             output_folder=self._output_folder, 
             cmd_template=self._cmd_template,
             crop_params=crop_params,
-            start_time=start_time,
-            end_time=end_time)
+            start_time=ms_to_time_str(self._segment['start']),
+            end_time=ms_to_time_str(self._segment['end']))
     
     @pyqtSlot()
     def _on_set_start_time(self):
-        """Handles the 'Set Start' button click with dual logic."""
-        try:
-            input_start_ms = time_str_to_ms(self._action_panel.get_start_time())
-        except ValueError:
-            input_start_ms = -1 # Invalid format
-
-        # If the time in the input box is different from our state, the user edited it.
-        # Action: Seek the player to the new time.
-        if input_start_ms != self._segment['start']:
-            self._segment['start'] = input_start_ms
-            self._controlled_player.set_position(self._segment['start'])
-        # Otherwise, the user wants to set the start time from the player.
-        # Action: Update the state from the player's position.
-        else:
-            self._segment['start'] = self._controlled_player.position()
-
-        self._update_segment_ui()
+        """Sets the start time from the player's current position."""
+        new_start_ms = self._controlled_player.position()
+        
+        if new_start_ms > self._segment['end']:
+            self._segment['end'] = self._controlled_player.duration()
+        
+        self._segment['start'] = new_start_ms
+        self._update_segment_label_marker()
 
     @pyqtSlot()
     def _on_set_end_time(self):
-        """Handles the 'Set End' button click with dual logic."""
-        try:
-            input_end_ms = time_str_to_ms(self._action_panel.get_end_time())
-        except ValueError:
-            input_end_ms = -1 # Invalid format
+        """Sets the end time from the player's current position."""
+        new_end_ms = self._controlled_player.position()
 
-        if input_end_ms != self._segment['end']:
-            self._segment['end'] = input_end_ms
+        if new_end_ms < self._segment['start']:
+            QMessageBox.warning(self, "Invalid Time", "End time cannot be before start time.")
             self._controlled_player.set_position(self._segment['end'])
-        else:
-            self._segment['end'] = self._controlled_player.position()
-
-        self._update_segment_ui()
+            return
+        
+        self._segment['end'] = new_end_ms
+        self._update_segment_label_marker()
 
     @pyqtSlot()
     def _stop_process(self):
@@ -305,8 +288,8 @@ class VideoCropper(QDialog):
             return
         self._update_ui_state('enable')
 
-    def _update_segment_ui(self):
-        """Synchronizes the UI (text inputs and slider) with the internal segment state."""
-        self._action_panel.set_start_time(ms_to_time_str(self._segment['start']))
-        self._action_panel.set_end_time(ms_to_time_str(self._segment['end']))
+    def _update_segment_label_marker(self):
+        """Synchronizes the UI with the internal segment state."""
+        # self._action_panel.set_segment_label(f'{ms_to_time_str(self._segment['start'])} - {ms_to_time_str(self._segment['end'])}')
+        self._action_panel.set_segment_label(f"{ms_to_time_str(self._segment['start'])} - {ms_to_time_str(self._segment['end'])}")
         self._controlled_player.set_segment_markers([(self._segment['start'], self._segment['end'])])
