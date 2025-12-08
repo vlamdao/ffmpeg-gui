@@ -6,7 +6,7 @@ from PyQt5.QtGui import QIcon, QPainter, QPen, QColor, QPainterPath
 from helper import resource_path
 from components import PlaceholdersTable
 from .processor import VideoCropperProcessor
-from features.player import MediaPlayer, MediaControls
+from features.player import ControlledPlayer
 from .components import (ActionPanel, CommandTemplate, VideoCropperPlaceholders, OverlayWidget)
 
 from typing import TYPE_CHECKING
@@ -35,8 +35,7 @@ class VideoCropper(QDialog):
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
 
-        self._media_player = MediaPlayer(self)
-        self._media_controls = MediaControls()
+        self._controlled_player = ControlledPlayer(self)
         self._placeholders_table = PlaceholdersTable(
             placeholders_list=self._placeholders.get_placeholders_list(),
             num_columns=6,
@@ -45,34 +44,19 @@ class VideoCropper(QDialog):
         self._placeholders_table.set_compact_height()
 
         self._cmd_template = CommandTemplate(placeholders=self._placeholders)
-        self._cmd_template.setFixedHeight(90)
+        self._cmd_template.setFixedHeight(100)
 
         self._action_panel = ActionPanel()
 
-        main_layout.addWidget(self._media_player, 1)
-        main_layout.addWidget(self._media_controls)
+        main_layout.addWidget(self._controlled_player, 1)
         main_layout.addWidget(self._placeholders_table)
         main_layout.addWidget(self._cmd_template)
         main_layout.addWidget(self._action_panel)
 
         # Overlay for crop selection
-        self._overlay = OverlayWidget()
+        self._overlay = OverlayWidget(self)
 
     def _connect_signals(self):
-        # Player controls
-        self._media_controls.play_clicked.connect(self._media_player.toggle_play)
-        self._media_controls.seek_backward_clicked.connect(self._media_player.seek_backward)
-        self._media_controls.seek_forward_clicked.connect(self._media_player.seek_forward)
-        self._media_controls.seek_requested.connect(self._media_player.set_position)
-
-        # Player state updates
-        self._media_player.media_loaded.connect(self._media_controls.set_play_button_enabled)
-        self._media_player.state_changed.connect(self._media_controls.update_media_state)
-        self._media_player.position_changed.connect(
-            lambda pos: self._media_controls.update_position(pos, self._media_player.duration())
-        )
-        self._media_player.duration_changed.connect(self._media_controls.update_duration)
-
         # Feature-specific actions
         self._action_panel.run_clicked.connect(self._start_crop_process)
         self._action_panel.stop_clicked.connect(self._stop_crop_process)
@@ -92,7 +76,7 @@ class VideoCropper(QDialog):
                 return
         
         # If no process is running, or we are closing after a process has finished
-        self._media_player.cleanup() # Clean up the media player
+        self._controlled_player.cleanup() # Clean up the media player
         # Ensure the overlay is closed when the main dialog closes
         if hasattr(self, '_overlay'):
             self._overlay.close()
@@ -108,7 +92,7 @@ class VideoCropper(QDialog):
     def showEvent(self, event):
         super().showEvent(event)
         # Load media when the dialog is shown to avoid blocking the UI on init
-        self._media_player.load_media(self._video_path)
+        self._controlled_player.load_media(self._video_path)
         # When the dialog is shown, show and position the overlay
         self._update_overlay_geometry()
         self._overlay.show()
@@ -116,13 +100,13 @@ class VideoCropper(QDialog):
     def moveEvent(self, event):
         super().moveEvent(event)
         # Update overlay position when the main window moves
-        if hasattr(self, '_media_player'):
+        if hasattr(self, '_controlled_player'):
             self._update_overlay_geometry()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         # Update overlay position and size when the main window is resized
-        if hasattr(self, '_media_player'):
+        if hasattr(self, '_controlled_player'):
             self._update_overlay_geometry()
 
     def changeEvent(self, event):
@@ -142,7 +126,7 @@ class VideoCropper(QDialog):
 
     def _update_overlay_geometry(self):
         """Positions the overlay widget exactly on top of the video widget."""
-        video_widget = self._media_player.get_video_widget()
+        video_widget = self._controlled_player.get_video_widget()
         # Map the video widget's rectangle to global coordinates
         top_left_global = video_widget.mapToGlobal(video_widget.rect().topLeft())
         # Set the overlay's geometry based on the global position and size
@@ -150,11 +134,11 @@ class VideoCropper(QDialog):
 
     def _start_crop_process(self):
         # --- Calculate final crop parameters here, just before running ---
-        video_width, video_height = self._media_player.get_video_resolution()
+        video_width, video_height = self._controlled_player.get_video_resolution()
         if video_width == 0 or video_height == 0:
             QMessageBox.warning(self, "Error", "Could not determine video resolution. Please play the video first.")
             return
-        video_widget = self._media_player.get_video_widget()
+        video_widget = self._controlled_player.get_video_widget()
         widget_width = video_widget.width()
         widget_height = video_widget.height()
 
