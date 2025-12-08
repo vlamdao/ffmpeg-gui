@@ -34,31 +34,6 @@ class VideoCropper(QDialog):
 
         self._media_player.load_media(self._video_path)
 
-    def closeEvent(self, event):
-        """Stops any running process and cleans up resources before closing."""
-        # If a process is running, stop it and wait for it to finish
-        # before actually closing the window.
-        if self._processor.is_running():
-            if not self._is_closing: # Prevent multiple stop signals
-                self._is_closing = True
-                self._processor.stop()
-                event.ignore() # Ignore the close event for now
-                return
-        
-        # If no process is running, or we are closing after a process has finished
-        self._media_player.cleanup() # Clean up the media player
-        # Ensure the overlay is closed when the main dialog closes
-        if hasattr(self, '_overlay'):
-            self._overlay.close()
-        super().closeEvent(event)
-
-    def keyPressEvent(self, event):
-        """Override to prevent Esc from closing the dialog, which can cause issues."""
-        if event.key() == Qt.Key_Escape:
-            event.accept() # Consume the event, do nothing
-        else:
-            super().keyPressEvent(event)
-
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
 
@@ -90,6 +65,53 @@ class VideoCropper(QDialog):
         main_layout.addWidget(self._placeholders_table)
         main_layout.addWidget(self._cmd_template)
         main_layout.addWidget(self._action_panel)
+
+    def _connect_signals(self):
+        # Player controls
+        self._media_controls.play_clicked.connect(self._media_player.toggle_play)
+        self._media_controls.seek_backward_clicked.connect(self._media_player.seek_backward)
+        self._media_controls.seek_forward_clicked.connect(self._media_player.seek_forward)
+        self._media_controls.seek_requested.connect(self._media_player.set_position)
+
+        # Player state updates
+        self._media_player.media_loaded.connect(self._media_controls.set_play_button_enabled)
+        self._media_player.state_changed.connect(self._media_controls.update_media_state)
+        self._media_player.position_changed.connect(
+            lambda pos: self._media_controls.update_position(pos, self._media_player.duration())
+        )
+        self._media_player.duration_changed.connect(self._media_controls.update_duration)
+
+        # Feature-specific actions
+        self._action_panel.run_clicked.connect(self._start_crop_process)
+        self._action_panel.stop_clicked.connect(self._stop_crop_process)
+        self._processor.log_signal.connect(self._logger.append_log)
+        self._processor.processing_finished.connect(self._on_processing_finished)
+        self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
+
+    def closeEvent(self, event):
+        """Stops any running process and cleans up resources before closing."""
+        # If a process is running, stop it and wait for it to finish
+        # before actually closing the window.
+        if self._processor.is_running():
+            if not self._is_closing: # Prevent multiple stop signals
+                self._is_closing = True
+                self._processor.stop()
+                event.ignore() # Ignore the close event for now
+                return
+        
+        # If no process is running, or we are closing after a process has finished
+        self._media_player.cleanup() # Clean up the media player
+        # Ensure the overlay is closed when the main dialog closes
+        if hasattr(self, '_overlay'):
+            self._overlay.close()
+        super().closeEvent(event)
+
+    def keyPressEvent(self, event):
+        """Override to prevent Esc from closing the dialog, which can cause issues."""
+        if event.key() == Qt.Key_Escape:
+            event.accept() # Consume the event, do nothing
+        else:
+            super().keyPressEvent(event)
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -123,28 +145,6 @@ class VideoCropper(QDialog):
         elif event.type() == QEvent.WindowStateChange:
             if self.windowState() & Qt.WindowMinimized:
                 self._overlay.hide()
-
-    def _connect_signals(self):
-        # Player controls
-        self._media_controls.play_clicked.connect(self._media_player.toggle_play)
-        self._media_controls.seek_backward_clicked.connect(self._media_player.seek_backward)
-        self._media_controls.seek_forward_clicked.connect(self._media_player.seek_forward)
-        self._media_controls.seek_requested.connect(self._media_player.set_position)
-
-        # Player state updates
-        self._media_player.media_loaded.connect(self._media_controls.set_play_button_enabled)
-        self._media_player.state_changed.connect(self._media_controls.update_media_state)
-        self._media_player.position_changed.connect(
-            lambda pos: self._media_controls.update_position(pos, self._media_player.duration())
-        )
-        self._media_player.duration_changed.connect(self._media_controls.update_duration)
-
-        # Feature-specific actions
-        self._action_panel.run_clicked.connect(self._start_crop_process)
-        self._action_panel.stop_clicked.connect(self._stop_crop_process)
-        self._processor.log_signal.connect(self._logger.append_log)
-        self._processor.processing_finished.connect(self._on_processing_finished)
-        self._placeholders_table.placeholder_double_clicked.connect(self._cmd_template.insert_placeholder)
 
     def _update_overlay_geometry(self):
         """Positions the overlay widget exactly on top of the video widget."""
