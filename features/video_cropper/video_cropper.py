@@ -55,6 +55,9 @@ class VideoCropper(QDialog):
         
         # Overlay for crop selection
         self._overlay = OverlayWidget(self)
+        # Disable overlay initially. It will be enabled when the media is ready.
+        self._overlay.setEnabled(False)
+
 
     def _connect_signals(self):
         # Feature-specific actions
@@ -132,6 +135,7 @@ class VideoCropper(QDialog):
     def _on_media_ready(self, duration: int):
         """Called when the media is parsed and its properties are known."""
         self._action_panel.set_end_time(ms_to_time_str(duration))
+        self._overlay.setEnabled(True) # Enable drawing now that we have correct dimensions
         self._update_overlay_geometry()
         self._overlay.show() # Ensure overlay is visible after geometry update
 
@@ -176,7 +180,7 @@ class VideoCropper(QDialog):
         top_left_global = video_widget.mapToGlobal(video_rect_in_widget.topLeft())
         
         # Set the overlay's geometry to match the video's render area
-        self._overlay.setGeometry(top_left_global.x(), top_left_global.y(), video_rect_in_widget.width(), video_rect_in_widget.height())
+        self._overlay.update_geometry_and_crop_rect(QRect(top_left_global, video_rect_in_widget.size()))
 
     def _on_crop_video(self):
         # --- Calculate final crop parameters here, just before running ---

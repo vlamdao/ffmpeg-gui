@@ -20,7 +20,7 @@ class OverlayWidget(QWidget):
         self.setMouseTracking(True)
 
         # --- Crop rectangle state management ---
-        self._HANDLE_SIZE = 10
+        self._HANDLE_SIZE = 14
         self._crop_rect_geometry = QRect()
         self._is_resizing = False
         self._drag_start_pos = QPoint()
@@ -32,18 +32,21 @@ class OverlayWidget(QWidget):
         """Returns the current geometry of the crop rectangle."""
         return self._crop_rect_geometry
 
-    def showEvent(self, event):
-        super().showEvent(event)
-        # Initialize crop rectangle to be half the size of the widget and centered.
-        if self._crop_rect_geometry.isNull():
-            widget_rect = self.rect()
-            new_width = widget_rect.width() // 2
-            new_height = widget_rect.height() // 2
-            new_x = (widget_rect.width() - new_width) // 2
-            new_y = (widget_rect.height() - new_height) // 2
-            self._crop_rect_geometry = QRect(new_x, new_y, new_width, new_height)
+    def update_geometry_and_crop_rect(self, rect: QRect):
+        """
+        Sets the widget's geometry and resets the internal crop rectangle.
+        This is called from the parent to ensure synchronization.
+        """
+        self.setGeometry(rect)
+        self._crop_rect_geometry = self.rect() # Use the new local rect (0,0,w,h)
+        self.update()
+
 
     def paintEvent(self, event):
+        # Only draw if the crop rectangle has a valid size.
+        if self._crop_rect_geometry.isNull() or not self.isEnabled():
+            return
+
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
@@ -61,15 +64,15 @@ class OverlayWidget(QWidget):
 
     def _get_handles(self, rect: QRect):
         """Returns a dictionary of handle rectangles for the four corners."""
-        # Handles are positioned completely outside the given rect.
+        # Handles are positioned inside the given rect.
         s = self._HANDLE_SIZE
 
         return {
             # Corners
-            'top-left': QRect(rect.left() - s, rect.top() - s, s, s),
-            'top-right': QRect(rect.right(), rect.top() - s, s, s),
-            'bottom-left': QRect(rect.left() - s, rect.bottom(), s, s),
-            'bottom-right': QRect(rect.right(), rect.bottom(), s, s),
+            'top-left': QRect(rect.left(), rect.top(), s, s),
+            'top-right': QRect(rect.right() - s, rect.top(), s, s),
+            'bottom-left': QRect(rect.left(), rect.bottom() - s, s, s),
+            'bottom-right': QRect(rect.right() - s, rect.bottom() - s, s, s),
         }
 
     def _get_handle_at(self, pos: QPoint):
@@ -107,7 +110,7 @@ class OverlayWidget(QWidget):
             if 'right' in self._resize_handle: new_geom.setRight(new_geom.right() + delta.x())
             
             new_geom = new_geom.normalized()
-            self._crop_rect_geometry = new_geom.intersected(self.rect().adjusted(self._HANDLE_SIZE, self._HANDLE_SIZE, -self._HANDLE_SIZE, -self._HANDLE_SIZE))
+            self._crop_rect_geometry = new_geom.intersected(self.rect())
             self.update()
 
     def mouseReleaseEvent(self, event):
