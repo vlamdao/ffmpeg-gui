@@ -1,10 +1,10 @@
-from features.base import BaseActionPanel
+from features.base import ActionButtons
 from components import StyledButton, buttons
 from PyQt5.QtWidgets import QLineEdit, QLabel
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, pyqtSignal
 
-class VideoCropperActionPanel(BaseActionPanel):
+class ActionPanel(ActionButtons):
     """
     A specialized set of action buttons for the Video Cropper feature.
     """
@@ -20,6 +20,9 @@ class VideoCropperActionPanel(BaseActionPanel):
         self._segment_label = QLabel("00:00:00.000 - 00:00:00.000")
         self._segment_label.setFont(QFont("Consolas", 9))
         self._segment_label.setAlignment(Qt.AlignCenter)
+
+        self.set_run_button_text(" Crop Video")
+        self._run_button.set_icon("crop-video.png")
 
         self._set_start_button = StyledButton(
             text=" Set Start",
@@ -53,12 +56,14 @@ class VideoCropperActionPanel(BaseActionPanel):
         Args:
             state (str): The current state, either "enable" or "disable".
         """
-        super().update_ui_state(state)
-
         if state == "enable":
+            self.enable_run_button()
+            self.disable_stop_button()
             self._set_start_button.setEnabled(True)
             self._set_end_button.setEnabled(True)
         elif state == "disable":
+            self.disable_run_button()
+            self.enable_stop_button()
             self._set_start_button.setDisabled(True)
             self._set_end_button.setDisabled(True)
         else:

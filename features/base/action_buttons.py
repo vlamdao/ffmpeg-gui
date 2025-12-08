@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtCore import QSize
 
-class BaseActionPanel(QWidget):
+class ActionButtons(QWidget):
     _BUTTON_MIN_HEIGHT = 36
     _ICON_SIZE = QSize(20, 20)
     _BUTTON_PADDING = (16, 0, 16, 0)
@@ -47,14 +47,6 @@ class BaseActionPanel(QWidget):
     def _connect_signals(self):
         self._run_button.clicked.connect(self.run_clicked)
         self._stop_button.clicked.connect(self.stop_clicked)
-
-    def update_ui_state(self, state: str):
-        if state == "enable":
-            self.enable_run_button()
-            self.disable_stop_button()
-        elif state == "disable":
-            self.disable_run_button()
-            self.enable_stop_button()
 
     def disable_run_button(self):
         self._run_button.setDisabled(True)
