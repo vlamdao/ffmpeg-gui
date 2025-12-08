@@ -41,7 +41,6 @@ class OverlayWidget(QWidget):
         self._crop_rect_geometry = self.rect() # Use the new local rect (0,0,w,h)
         self.update()
 
-
     def paintEvent(self, event):
         # Only draw if the crop rectangle has a valid size.
         if self._crop_rect_geometry.isNull() or not self.isEnabled():
@@ -112,10 +111,6 @@ class OverlayWidget(QWidget):
             new_geom = new_geom.normalized()
             self._crop_rect_geometry = new_geom.intersected(self.rect())
             self.update()
-
-    def mouseReleaseEvent(self, event):
-        """This event is now ignored in the click-move-click model."""
-        pass
 
     def setEnabled(self, enabled):
         """Override setEnabled to also reset the resizing state."""
