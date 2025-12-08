@@ -32,8 +32,6 @@ class VideoCropper(QDialog):
         self._setup_ui()
         self._connect_signals()
 
-        self._media_player.load_media(self._video_path)
-
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
 
@@ -109,6 +107,8 @@ class VideoCropper(QDialog):
 
     def showEvent(self, event):
         super().showEvent(event)
+        # Load media when the dialog is shown to avoid blocking the UI on init
+        self._media_player.load_media(self._video_path)
         # When the dialog is shown, show and position the overlay
         self._update_overlay_geometry()
         self._overlay.show()
