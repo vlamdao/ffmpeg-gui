@@ -1,6 +1,8 @@
 from __future__ import annotations
 import os
 import subprocess
+import sys
+import shlex
 from PyQt5.QtCore import QThread, pyqtSignal
 from helper import styled_text
 
@@ -53,12 +55,14 @@ class FFmpegWorker(QThread):
         try:
             env = os.environ.copy()
             env['PYTHONUTF8'] = '1'
-            # Using shell=True can be a security risk if cmd contains unsanitized user input.
-            # For this application, it's acceptable as we control the command generation.
-            # A more robust solution would be to build a list of arguments.
+
+            # Use shlex.split to safely parse the command string into a list of arguments.
+            # This avoids shell=True, which is more secure and provides better process control.
+            args = shlex.split(cmd)
+
             self._proc = subprocess.Popen(
-                cmd,
-                shell=True,
+                args,
+                shell=False, # Set to False for security and better process management
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -69,17 +73,13 @@ class FFmpegWorker(QThread):
 
             for line in self._proc.stdout:
                 if self._is_stopped:
-                    self._proc.terminate()
-                    try:
-                        # Wait for 5 seconds for graceful termination
-                        self._proc.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        # Force kill if it doesn't terminate
-                        self._proc.kill()
-                    return "Stopped"
+                    # The stop() method has already sent terminate signal.
+                    # We just break the loop to proceed to the cleanup logic.
+                    break
                 self.log_signal.emit(styled_text(None, None, 'italic', line.rstrip()))
 
             self._proc.wait()
+
             if self._is_stopped:
                 return "Stopped"
 
@@ -89,7 +89,16 @@ class FFmpegWorker(QThread):
             self.log_signal.emit(styled_text('bold', 'red', None, f"Exception while running command: {e}"))
             return "Failed"
         finally:
+            # Cleanup logic runs regardless of success, failure, or stop.
+            # If the process was stopped, clean up the associated output file.
+            if self._is_stopped and self._outputfile_path and os.path.exists(self._outputfile_path):
+                try:
+                    os.remove(self._outputfile_path)
+                    self.log_signal.emit(styled_text('bold', 'orange', None, f"Cleaned up incomplete output file: {self._outputfile_path}"))
+                except OSError as e:
+                    self.log_signal.emit(styled_text('bold', 'red', None, f"Error deleting incomplete file {self._outputfile_path}: {e}"))
             self._proc = None
+
 
     def run(self):
         """
@@ -129,14 +138,6 @@ class FFmpegWorker(QThread):
         """
         self._is_stopped = True
         if self._proc and self._proc.poll() is None:
+            # With shell=False, Python directly controls the ffmpeg process.
+            # A simple terminate() is now sufficient and cross-platform.
             self._proc.terminate()
-
-        # If an output file path is associated with this worker, delete it.
-        if self._outputfile_path and os.path.exists(self._outputfile_path):
-            try:
-                os.remove(self._outputfile_path)
-                self.log_signal.emit(styled_text('bold', 'orange', None, 
-                                                 f"Cleaned up incomplete output file: {self._outputfile_path}"))
-            except OSError as e:
-                self.log_signal.emit(styled_text('bold', 'red', None, 
-                                                 f"Error deleting incomplete file {self._outputfile_path}: {e}"))
