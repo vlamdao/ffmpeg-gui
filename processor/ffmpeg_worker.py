@@ -65,6 +65,7 @@ class FFmpegWorker(QThread):
                 shell=False, # Set to False for security and better process management
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                creationflags=subprocess.CREATE_NO_WINDOW,
                 text=True,
                 encoding='utf-8',
                 errors='replace',
