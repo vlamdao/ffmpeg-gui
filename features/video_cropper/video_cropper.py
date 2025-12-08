@@ -41,6 +41,13 @@ class VideoCropper(QDialog):
             self._overlay.close()
         super().closeEvent(event)
 
+    def keyPressEvent(self, event):
+        """Override to prevent Esc from closing the dialog, which can cause issues."""
+        if event.key() == Qt.Key_Escape:
+            event.accept() # Consume the event, do nothing
+        else:
+            super().keyPressEvent(event)
+
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
 
