@@ -77,6 +77,11 @@ class FFmpegGUI(QMainWindow):
         self.file_manager.log_signal.connect(self.logger.append_log)
         self.batch_processor.log_signal.connect(self.logger.append_log)
         self.preset_table.cellDoubleClicked.connect(self.preset_manager.apply_preset)
+
+        # Connect batch processor signals to UI updates
+        self.batch_processor.processing_started.connect(lambda: self._update_control_buttons(False))
+        self.batch_processor.processing_finished.connect(lambda: self._update_control_buttons(True))
+
         self.preset_table.customContextMenuRequested.connect(self.preset_manager.show_context_menu)
 
         # Connect signals from ControlPanel to the appropriate slots/methods
@@ -107,6 +112,11 @@ class FFmpegGUI(QMainWindow):
             QMessageBox.warning(self, "Output Folder Error", "No output folder selected.")
             return
         self.batch_processor.run_command(selected_files)
+
+    def _update_control_buttons(self, enabled: bool):
+        """Enable/disable main control buttons based on processing state."""
+        self.control_panel.enable_button('run', enabled)
+        self.control_panel.enable_button('stop', not enabled)
 
     def open_video_cutter(self):
         selected_files, _ = self.file_manager.get_selected_files()
