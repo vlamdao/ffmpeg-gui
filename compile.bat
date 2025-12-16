@@ -5,6 +5,6 @@ REM File compile.bat - Build FFmpeg GUI exe with PyInstaller
 
 pyinstaller "app.spec"
 
-copy presets.json dist\
+@REM copy presets.json dist\
 
 pause
