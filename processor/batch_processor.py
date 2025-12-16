@@ -15,6 +15,8 @@ class BatchProcessor(QObject):
     the processing state, such as clearing logs and updating file statuses.
     """
     log_signal = pyqtSignal(str)
+    processing_finished = pyqtSignal()
+    processing_started = pyqtSignal()
 
     def __init__(self,
                  file_manager: FileManager,
@@ -23,7 +25,8 @@ class BatchProcessor(QObject):
                  parent=None):
 
         super().__init__(parent)
-        self._ffmpeg_worker = None
+        self._active_workers: list[FFmpegWorker] = []
+        self._job_queue: list[tuple] = []
         self._file_manager = file_manager
         self._command_input = command_input
         self._output_folder = output_folder
@@ -34,15 +37,20 @@ class BatchProcessor(QObject):
             self.log_signal.emit(styled_text('bold', 'blue', None, "A batch process is already running."))
             return
 
-        selected_rows = set(row for row, _, _ in selected_files)
-        
-        jobs = self._create_jobs(selected_files)
-        if not jobs:
+        self._job_queue = self._create_jobs(selected_files)
+        if not self._job_queue:
             self.log_signal.emit(styled_text('bold', 'red', None, "Could not generate any commands to run."))
             return
-        self._start_batch(jobs, selected_rows)
+        
+        # Update status to "Pending" for all files in the queue
+        for job_id, _, _ in self._job_queue:
+            self._file_manager.update_status_by_filepath(job_id, "Pending")
 
-    def _create_jobs(self, selected_files: list) -> list[tuple[str, list[str]]]:
+        self.processing_started.emit()
+        self.log_signal.emit(styled_text('bold', 'blue', None, f"Starting batch processing for {len(self._job_queue)} files..."))
+        self._process_next_in_queue()
+
+    def _create_jobs(self, selected_files: list) -> list[tuple[str, list[str], str]]:
         """Creates a list of FFmpeg commands to be executed."""
         jobs = []
         cmd_generator = CommandGenerator()
@@ -50,57 +58,72 @@ class BatchProcessor(QObject):
         # Standard command for each file
         for _, filename, folder in selected_files:
             file_path = os.path.join(folder, filename)
+            output_folder_path = self._output_folder.get_completed_output_folder(folder)
+            os.makedirs(output_folder_path, exist_ok=True)
             command = cmd_generator.generate_command(input_file=file_path,
                                                      output_folder=self._output_folder.get_completed_output_folder(folder),
                                                      command_template=command_template
                                                      )
             if command:
-                jobs.append((file_path, [command]))
+                # The output file path is the last quoted string in the command
+                output_filepath = command.split('"')[-2]
+                jobs.append((file_path, [command], output_filepath))
         return jobs
 
-    def _start_batch(self, jobs: list[tuple[str, list[str]]], selected_rows: set):
-        """
-        Initializes and starts the FFmpegWorker for the batch job.
+    def _process_next_in_queue(self):
+        """Processes the next job in the queue."""
+        if not self._job_queue:
+            self.log_signal.emit(styled_text('bold', 'green', None, "Batch processing finished."))
+            self.processing_finished.emit()
+            return
 
-        Args:
-            jobs (list): A list of tuples (job_id, command_string).
-            selected_rows (set): A set of row indices for the selected files.
-        """
-        # Update status to "Pending" for all selected files in the jobs
-        for row in selected_rows:
-            self._file_manager.update_status(row, "Pending")
+        job = self._job_queue.pop(0)
+        self._start_worker(job)
 
-        # Clear status for any previously selected but now unselected files
-        for row in range(self._file_manager.file_table.rowCount()):
-            if row not in selected_rows:
-                self._file_manager.update_status(row, "")
+    def _start_worker(self, job: tuple[str, list[str], str]):
+        """Initializes and starts an FFmpegWorker for a single job."""
+        job_id, commands, output_filepath = job
 
-        # Create and start worker
-        self._ffmpeg_worker = FFmpegWorker(jobs)
-        self._ffmpeg_worker.status_updated.connect(self._file_manager.update_status_by_filepath)
-        self._ffmpeg_worker.log_signal.connect(self.log_signal.emit)
-        self._ffmpeg_worker.finished.connect(self._on_worker_finished)
-        self._ffmpeg_worker.start()
+        worker = FFmpegWorker([(job_id, commands)])
+        worker.set_outputfile_path(output_filepath)
+        worker.status_updated.connect(self._file_manager.update_status_by_filepath)
+        worker.log_signal.connect(self.log_signal.emit)
+        worker.finished.connect(lambda w=worker: self._on_worker_finished(w))
+        
+        self._active_workers.append(worker)
+        worker.start()
 
     def stop_batch(self):
         """Stops the currently running batch process."""
         if self.is_processing():
-            self._ffmpeg_worker.stop()
+            # Mark remaining jobs in queue as stopped
+            for job_id, _, _ in self._job_queue:
+                self._file_manager.update_status_by_filepath(job_id, "Stopped")
+            self._job_queue.clear()
+
+            # Stop all currently active workers
+            for worker in self._active_workers:
+                worker.stop()
+            
+            # The _on_worker_finished will handle cleanup and emit processing_finished
             self.log_signal.emit(styled_text('bold', 'blue', None, "Stopped batch processing..."))
 
     def is_processing(self):
         """
         Checks if a batch process is currently active.
-
-        Returns:
-            bool: True if a worker is running, False otherwise.
         """
-        return self._ffmpeg_worker is not None and self._ffmpeg_worker.isRunning()
+        return bool(self._job_queue or self._active_workers)
     
-    def _on_worker_finished(self):
+    def _on_worker_finished(self, worker: FFmpegWorker):
         """
         Slot called when the FFmpegWorker thread has finished.
-
-        Cleans up the worker reference to indicate that no process is running.
         """
-        self._ffmpeg_worker = None
+        if worker in self._active_workers:
+            self._active_workers.remove(worker)
+
+        # If the process was not stopped by the user, continue with the next job
+        if not worker._is_stopped:
+            self._process_next_in_queue()
+        # If it was stopped, and it's the last active worker, then the whole batch is finished.
+        elif not self._active_workers:
+             self.processing_finished.emit()
